@@ -21,7 +21,8 @@ import {
   Bookmark,
   ChevronDown,
   Trash2,
-  Link2
+  Link2,
+  Camera
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useScholarImport } from '../../hooks/auth.hooks';
@@ -29,6 +30,47 @@ import api from '../../services/api';
 import ScholarImportWizard from '../../features/profile/ScholarImportWizard.jsx';
 import EditProfileModal from '../../features/profile/EditProfileModal.jsx';
 import SyncMergeModal from '../../features/profile/SyncMergeModal.jsx';
+
+const providerIcons = {
+  'ORCID': (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#A6C307">
+      <path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zM7.734 17.776H6.277V6.36h1.457v11.416zm-.728-12.433c-.524 0-.949-.425-.949-.949 0-.524.425-.949.949-.949.525 0 .949.425.949.949 0 .524-.424.949-.949.949zm9.584 7.039c0 2.876-1.785 4.394-4.394 4.394h-2.585V6.36h2.894c2.518 0 4.085 1.488 4.085 4.384v1.638zm-1.457-.036c0-2.075-.983-3.149-2.621-3.149h-1.457v6.627h1.365c1.72 0 2.713-.983 2.713-3.203v-.275z"/>
+    </svg>
+  ),
+  'Google Scholar': (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#4285F4">
+      <path d="M12 2L1 8l11 6 9-4.91V17h2V9L12 2zM4.14 11.23c.53 1.83 2.1 3.27 4.13 3.66v4.61a4 4 0 0 0 7.46 0v-4.61c2.03-.39 3.6-1.83 4.13-3.66L12 15.5l-7.86-4.27z" />
+    </svg>
+  ),
+  'Scopus': (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#E9711C">
+      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.48 2 12s4.477 10 10 10z" />
+      <path d="M14.5 8.5c-.75-.75-1.75-1-2.5-1-1.75 0-3 1-3 2.5s1 2 2.5 2.5 2.5.5 2.5 1.5c0 .75-.75 1.5-2 1.5-1 0-2-.5-2.5-1.25l-1.25 1c.75 1 2 1.75 3.75 1.75 2.5 0 3.5-1.5 3.5-3s-1-2.25-2.75-2.75-2.25-.5-2.25-1.25c0-.75.75-1.25 1.75-1.25.75 0 1.5.25 2 .75l1-1z" fill="#FFF" />
+    </svg>
+  ),
+  'LinkedIn': (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#0A66C2">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    </svg>
+  ),
+  'ResearchGate': (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#00CCBB">
+      <path d="M19.37 11.56c-.02-.08-.06-.16-.1-.23L16.48 6.5h-2.92v11h2.17v-4.14h.77l2.25 4.14h2.46l-2.62-4.81c1.07-.44 1.83-1.5 1.83-2.73a2.91 2.91 0 0 0-.05-.4zm-3.64-1.25V8.26h.81c.73 0 1.18.33 1.18.98 0 .66-.45.99-1.18.99h-.81zM9.43 11.56c0-.85-.18-1.5-.53-1.93-.35-.44-.9-.65-1.62-.65H5.21v5.19h2.07c.72 0 1.27-.21 1.62-.65.35-.43.53-1.08.53-1.96zm-2.07 4.13H5.21v2.18H3.04v-11h4.24c1.35 0 2.41.38 3.19 1.14.77.76 1.16 1.85 1.16 3.26 0 1.4-.39 2.49-1.16 3.25-.78.77-1.84 1.17-3.19 1.17z"/>
+    </svg>
+  ),
+  'GitHub': (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#181717">
+      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+    </svg>
+  ),
+  'Website': (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  )
+};
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -45,6 +87,77 @@ const ProfilePage = () => {
   const [importSuccess, setImportSuccess] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+
+  const getPhotoUrl = (path, defaultUrl) => {
+    if (!path) return defaultUrl;
+    if (path.startsWith('http')) return path;
+    const apiURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+    const baseURL = apiURL.split('/api/v1')[0];
+    return `${baseURL}${path}`;
+  };
+
+  const handlePhotoUpload = async (e, type) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append(type, file);
+
+    setLoading(true);
+    try {
+      const response = await api.post(`/profile/${type}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      if (response.data.status === 'success') {
+        alert(`${type === 'cover' ? 'Cover' : 'Profile'} photo updated successfully.`);
+        await fetchProfileDetails();
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || `Failed to upload ${type} photo.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Dynamic Profile Completeness calculation
+  const getCompletenessDetails = () => {
+    const hasBasicInfo = !!(profileData?.bio && profileData?.designation && profileData?.institution && profileData?.city && profileData?.country);
+    const hasEducation = !!(profileData?.educationList && profileData.educationList.length > 0);
+    const hasExperience = !!(profileData?.experienceList && profileData.experienceList.length > 0);
+    const hasResearchInterests = !!(profileData?.researchAreas && profileData.researchAreas.length > 0);
+    const hasPublications = !!(publications && publications.length > 0);
+    const hasPhoto = !!profileData?.profilePhoto;
+    const hasCover = !!profileData?.coverPhoto;
+    const hasPhotoAndCover = hasPhoto && hasCover;
+
+    let percentage = 0;
+    if (hasBasicInfo) percentage += 25;
+    if (hasEducation) percentage += 15;
+    if (hasExperience) percentage += 15;
+    if (hasResearchInterests) percentage += 15;
+    if (hasPublications) percentage += 15;
+    if (hasPhotoAndCover) percentage += 15;
+    else if (hasPhoto || hasCover) percentage += 7;
+
+    percentage = Math.min(percentage, 100);
+
+    return {
+      percentage,
+      steps: [
+        { label: 'Basic Information', completed: hasBasicInfo },
+        { label: 'Education History', completed: hasEducation },
+        { label: 'Professional Experience', completed: hasExperience },
+        { label: 'Research Interests', completed: hasResearchInterests },
+        { label: 'Publications Uploaded', completed: hasPublications },
+        { label: 'Profile Photo & Cover', completed: hasPhotoAndCover }
+      ]
+    };
+  };
+
+  const completeness = getCompletenessDetails();
 
   const tabs = ['About', 'Education', 'Experience', 'Research Interests', 'Publications', 'Projects', 'Achievements'];
 
@@ -211,7 +324,7 @@ const ProfilePage = () => {
     : (profileData?.country && profileData.country !== 'Not Specified' ? profileData.country : 'Noida, India');
   
   const bioText = profileData?.bio || 'I am an Associate Professor specializing in Machine Learning, Deep Learning, and Natural Language Processing. My research focuses on developing intelligent systems that solve real-world problems. I have published extensively in top-tier journals and conferences and actively collaborate on interdisciplinary research projects.';
-  const emailText = profileData?.user?.email || 'sushil.kushwaha@amity.edu';
+  const emailText = profileData?.user?.email || '2304280100173@kashiit.ac.in';
   
   return (
     <div className="flex flex-col gap-8">
@@ -295,26 +408,50 @@ const ProfilePage = () => {
       {/* Main Profile Header Banner */}
       <div className="glass-card rounded-3xl overflow-hidden bg-white border border-slate-200/80 shadow-sm relative transition-all duration-300 hover:shadow-md">
         {/* Cover Photo */}
-        <div className="h-64 sm:h-72 bg-slate-100 relative overflow-hidden group">
+        <div className="h-44 sm:h-52 bg-slate-100 relative overflow-hidden group">
           <img 
-            src={profileData?.coverPhoto || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1200'}
+            src={getPhotoUrl(profileData?.coverPhoto, 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1200')}
             alt="Cover Banner"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
+          
+          {/* Edit Cover Photo Overlay Button */}
+          <label className="absolute top-4 right-4 bg-white/90 hover:bg-white text-slate-800 px-3 py-2 rounded-xl shadow-lg cursor-pointer transition-all hover:scale-105 flex items-center gap-2 text-xs font-bold backdrop-blur-sm opacity-0 group-hover:opacity-100 duration-300 z-20">
+            <Camera className="w-4 h-4 text-blue-600" />
+            <span>Change Cover</span>
+            <input 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              onChange={(e) => handlePhotoUpload(e, 'cover')} 
+            />
+          </label>
         </div>
 
         {/* Profile Details Container */}
         <div className="px-8 pb-8 pt-0 flex flex-col md:flex-row items-start gap-6 text-left relative -mt-20 z-10">
           {/* Profile Photo */}
-          <div className="relative shrink-0 group">
-            <img 
-              src={profileData?.profilePhoto || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'}
-              alt={fullName}
-              className="w-36 h-36 rounded-full object-cover border-4 border-white shadow-xl bg-white group-hover:border-blue-600 transition-all duration-300"
-            />
+          <div className="relative shrink-0 group/photo">
+            <div className="relative w-36 h-36 rounded-full overflow-hidden border-4 border-white shadow-xl bg-white group-hover/photo:border-blue-600 transition-all duration-300">
+              <img 
+                src={getPhotoUrl(profileData?.profilePhoto, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80')}
+                alt={fullName}
+                className="w-full h-full object-cover"
+              />
+              <label className="absolute inset-0 bg-black/65 flex flex-col items-center justify-center text-white cursor-pointer opacity-0 group-hover/photo:opacity-100 transition-opacity duration-300">
+                <Camera className="w-5 h-5 text-blue-400" />
+                <span className="text-[10px] font-bold mt-1">Change Photo</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={(e) => handlePhotoUpload(e, 'photo')} 
+                />
+              </label>
+            </div>
             {profileData?.academicProfile?.googleScholar && (
-              <span className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-white flex items-center justify-center shadow-md animate-pulse">
+              <span className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-white flex items-center justify-center shadow-md animate-pulse z-10">
                 <CheckCircle2 className="w-3.5 h-3.5 text-white" />
               </span>
             )}
@@ -328,7 +465,7 @@ const ProfilePage = () => {
                   {fullName}
                   <CheckCircle2 className="w-6 h-6 text-blue-600 fill-blue-50/50 hover:scale-110 transition-transform cursor-pointer" />
                   <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200/50 rounded-full text-[9px] font-extrabold tracking-wider uppercase font-sans">
-                    Score {profileData?.profileCompletion || 92}%
+                    Score {completeness.percentage}%
                   </span>
                 </h2>
                 <p className="text-sm font-bold text-blue-600 mt-2 font-sans tracking-wide uppercase">{designation}</p>
@@ -361,53 +498,39 @@ const ProfilePage = () => {
               <span className="flex items-center gap-1.5 font-medium"><MapPin className="w-4 h-4 text-slate-400" /> {locationText}</span>
             </div>
 
-            {/* Academic Social Badges */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              {identityProviders.map((provider) => (
-                <div key={provider.name} className="relative group">
-                  <button className={`px-3 py-1.5 rounded-xl text-[10px] font-extrabold tracking-wider uppercase flex items-center gap-1.5 border transition-all ${
-                    provider.connected 
-                      ? 'bg-green-50/60 text-green-700 border-green-200/50 hover:bg-green-100/60 shadow-sm' 
-                      : 'bg-slate-50/50 text-slate-400 border-slate-200/40 hover:bg-slate-100/50'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${provider.connected ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></span>
-                    {provider.name}
-                    <ChevronDown className="w-3 h-3 text-slate-400" />
-                  </button>
-                  <div className="hidden group-hover:block absolute top-full left-0 mt-1 bg-white border border-slate-200/80 rounded-2xl shadow-xl py-1.5 z-40 min-w-[140px] border-slate-100 animate-in fade-in slide-in-from-top-1 duration-150">
-                    {provider.connected ? (
-                      <>
-                        {provider.url && (
-                          <a href={provider.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 text-slate-700 transition-colors text-xs font-semibold">
-                            <ExternalLink className="w-3.5 h-3.5 text-slate-400" /> Open Profile
-                          </a>
-                        )}
-                        {provider.syncEndpoint && (
-                          <button 
-                            onClick={() => handleRefreshSync(provider.name, provider.syncEndpoint, provider.syncPayload)}
-                            className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 text-slate-700 text-left transition-colors cursor-pointer text-xs font-semibold"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5 text-slate-400" /> Refresh Sync
-                          </button>
-                        )}
-                        <button 
-                          onClick={() => handleUnlink(provider.name)}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-red-50 text-red-600 text-left transition-colors cursor-pointer text-xs font-semibold"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-red-400" /> Unlink Account
-                        </button>
-                      </>
+            {/* Academic Social Badges - Icons Only with Real Links */}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              {identityProviders.map((provider) => {
+                const isConnected = provider.connected;
+                const linkUrl = provider.url || '#';
+
+                return (
+                  <div key={provider.name} className="relative group">
+                    {isConnected ? (
+                      <a 
+                        href={linkUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 rounded-xl bg-white border border-slate-200 hover:border-blue-500 shadow-sm flex items-center justify-center hover:shadow-md hover:scale-105 transition-all duration-250"
+                      >
+                        {providerIcons[provider.name]}
+                      </a>
                     ) : (
                       <button 
                         onClick={() => setShowEditModal(true)}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 text-blue-600 text-left transition-colors cursor-pointer text-xs font-semibold"
+                        className="w-10 h-10 rounded-xl bg-white border border-slate-200 hover:border-blue-500 shadow-sm flex items-center justify-center hover:shadow-md hover:scale-105 transition-all duration-250 cursor-pointer"
                       >
-                        <Link2 className="w-3.5 h-3.5 text-blue-500" /> Link Account
+                        {providerIcons[provider.name]}
                       </button>
                     )}
+                    
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                      {provider.name} {isConnected ? '✓' : '(Not Linked)'}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -447,108 +570,250 @@ const ProfilePage = () => {
 
               {/* Academic & Professional Information Details */}
               <div className="glass-card rounded-3xl p-8 bg-white border border-slate-200/80 shadow-sm space-y-6">
-                <h3 className="text-base font-bold text-slate-900 font-display">Academic & Professional Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-sans">
-                  <div className="space-y-4">
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-500">Full Name</span>
-                      <span className="font-semibold text-slate-800">{profileData?.user?.fullName || 'Sushil Kumar kushwaha'}</span>
+                <h3 className="text-base font-bold text-slate-900 font-display flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-blue-600" /> Academic & Professional Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-sans">
+                  {/* Left Column: Personal/Institutional */}
+                  <div className="space-y-3.5 bg-slate-50/50 p-6 rounded-2xl border border-slate-100/85">
+                    <h4 className="text-[10px] font-extrabold text-slate-500 tracking-wider uppercase border-b border-slate-200/50 pb-1.5 mb-3">Institutional & Profile Details</h4>
+                    
+                    {/* Full Name */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                        <User className="w-4.5 h-4.5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Full Name</span>
+                        <span className="text-sm font-semibold text-slate-800">{profileData?.user?.fullName || 'Sushil Kumar kushwaha'}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-500">Date of Birth</span>
-                      <span className="font-semibold text-slate-800">
-                        {profileData?.dateOfBirth 
-                          ? new Date(profileData.dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) 
-                          : '15 March 1985'}
-                      </span>
+
+                    {/* Date of Birth */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                          <line x1="16" y1="2" x2="16" y2="6" />
+                          <line x1="8" y1="2" x2="8" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Date of Birth</span>
+                        <span className="text-sm font-semibold text-slate-800">
+                          {profileData?.dateOfBirth 
+                            ? new Date(profileData.dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) 
+                            : '15 March 1985'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-500">Designation</span>
-                      <span className="font-semibold text-slate-800">{profileData?.designation || 'Associate Professor'}</span>
+
+                    {/* Designation */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                        <Briefcase className="w-4.5 h-4.5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Designation</span>
+                        <span className="text-sm font-semibold text-slate-800">{profileData?.designation || 'Associate Professor'}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-500">Department</span>
-                      <span className="font-semibold text-slate-800">
-                        {profileData?.department || 'Department of Computer Science & Engineering'}
-                      </span>
+
+                    {/* Department */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                        <Layers className="w-4.5 h-4.5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Department</span>
+                        <span className="text-sm font-semibold text-slate-800">{profileData?.department || 'Department of Computer Science & Engineering'}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-500">Institution</span>
-                      <span className="font-semibold text-slate-800">{profileData?.institution || 'Amity University'}</span>
+
+                    {/* Institution */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                        <Award className="w-4.5 h-4.5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Institution</span>
+                        <span className="text-sm font-semibold text-slate-800 leading-relaxed">
+                          {profileData?.institution || "World's Top 2% Scientist, 2024 @ Stanford University, Associate Professor (BBDITM Lucknow)"}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-500">ORCID ID</span>
-                      <span className="font-semibold text-slate-800 flex items-center gap-1">
-                        {profileData?.academicProfile?.orcid || '0000-0002-1234-5678'} <ExternalLink className="w-3 h-3 text-slate-400" />
-                      </span>
+                  {/* Right Column: Academic Identifiers */}
+                  <div className="space-y-3.5 bg-slate-50/50 p-6 rounded-2xl border border-slate-100/85">
+                    <h4 className="text-[10px] font-extrabold text-slate-500 tracking-wider uppercase border-b border-slate-200/50 pb-1.5 mb-3">Academic Identifiers & Profiles</h4>
+                    
+                    {/* ORCID ID */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/60 shadow-sm flex items-center justify-center shrink-0 mt-0.5">
+                        {providerIcons['ORCID']}
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">ORCID ID</span>
+                        {profileData?.academicProfile?.orcid || '0000-0002-1234-5678' ? (
+                          <a 
+                            href={`https://orcid.org/${profileData?.academicProfile?.orcid || '0000-0002-1234-5678'}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm font-semibold text-slate-800 hover:text-blue-600 flex items-center gap-1 group/link"
+                          >
+                            {profileData?.academicProfile?.orcid || '0000-0002-1234-5678'} 
+                            <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                          </a>
+                        ) : (
+                          <span className="text-sm font-semibold text-slate-400 italic">Not Linked</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-500">Google Scholar</span>
-                      <span className="font-semibold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer">
-                        {profileData?.academicProfile?.googleScholar || 'TYQH3qYAAAAJ'} <ExternalLink className="w-3 h-3 text-slate-400" />
-                      </span>
+
+                    {/* Google Scholar */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/60 shadow-sm flex items-center justify-center shrink-0 mt-0.5">
+                        {providerIcons['Google Scholar']}
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Google Scholar</span>
+                        {profileData?.academicProfile?.googleScholar || 'dCaTOoUAAAAJ' ? (
+                          <a 
+                            href={`https://scholar.google.com/citations?user=${profileData?.academicProfile?.googleScholar || 'dCaTOoUAAAAJ'}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1 group/link"
+                          >
+                            {profileData?.academicProfile?.googleScholar || 'dCaTOoUAAAAJ'}
+                            <ExternalLink className="w-3 h-3 text-blue-500 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                          </a>
+                        ) : (
+                          <span className="text-sm font-semibold text-slate-400 italic">Not Linked</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-500">Scopus ID</span>
-                      <span className="font-semibold text-slate-800">{profileData?.academicProfile?.scopusId || '57219908847'}</span>
+
+                    {/* Scopus ID */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/60 shadow-sm flex items-center justify-center shrink-0 mt-0.5">
+                        {providerIcons['Scopus']}
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Scopus ID</span>
+                        {profileData?.academicProfile?.scopusId || '57219908847' ? (
+                          <a 
+                            href={`https://www.scopus.com/authid/detail.uri?authorId=${profileData?.academicProfile?.scopusId || '57219908847'}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm font-semibold text-slate-800 hover:text-blue-600 flex items-center gap-1 group/link"
+                          >
+                            {profileData?.academicProfile?.scopusId || '57219908847'}
+                            <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                          </a>
+                        ) : (
+                          <span className="text-sm font-semibold text-slate-400 italic">Not Linked</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-500">LinkedIn</span>
-                      <a 
-                        href={profileData?.academicProfile?.linkedIn || 'https://linkedin.com'} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="font-semibold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        View Profile <ExternalLink className="w-3 h-3 text-slate-400" />
-                      </a>
+
+                    {/* LinkedIn */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/60 shadow-sm flex items-center justify-center shrink-0 mt-0.5">
+                        {providerIcons['LinkedIn']}
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">LinkedIn</span>
+                        {profileData?.academicProfile?.linkedIn || 'https://linkedin.com' ? (
+                          <a 
+                            href={profileData?.academicProfile?.linkedIn || 'https://linkedin.com'} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1 group/link"
+                          >
+                            View Profile
+                            <ExternalLink className="w-3 h-3 text-blue-500 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                          </a>
+                        ) : (
+                          <span className="text-sm font-semibold text-slate-400 italic">Not Linked</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-slate-100">
-                      <span className="text-slate-500">GitHub</span>
-                      <span className="font-semibold text-slate-800 hover:underline flex items-center gap-1 cursor-pointer">
-                        {profileData?.socialLinks?.github || 'github.com/arjunsharma'}
-                      </span>
+
+                    {/* GitHub */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/60 shadow-sm flex items-center justify-center shrink-0 mt-0.5">
+                        {providerIcons['GitHub']}
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">GitHub</span>
+                        {profileData?.socialLinks?.github || 'github.com/arjunsharma' ? (
+                          <a 
+                            href={profileData?.socialLinks?.github?.startsWith('http') ? profileData.socialLinks.github : `https://github.com/${profileData?.socialLinks?.github || 'arjunsharma'}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm font-semibold text-slate-800 hover:text-blue-600 flex items-center gap-1 group/link"
+                          >
+                            {profileData?.socialLinks?.github || 'github.com/arjunsharma'}
+                            <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                          </a>
+                        ) : (
+                          <span className="text-sm font-semibold text-slate-400 italic">Not Linked</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Contact Details */}
-              <div className="glass-card rounded-3xl p-8 bg-white border border-slate-200/80 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-slate-900 font-display">Contact Information</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                      <Mail className="w-4 h-4" />
+              <div className="glass-card rounded-3xl p-8 bg-white border border-slate-200/80 shadow-sm space-y-6">
+                <h3 className="text-base font-bold text-slate-900 font-display flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-indigo-600" /> Contact Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm font-sans">
+                  {/* Email Card */}
+                  <div className="flex items-center gap-4 bg-slate-50/50 hover:bg-slate-50 p-4 rounded-2xl border border-slate-100/85 hover:shadow-sm transition-all duration-300 group">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Mail className="w-5 h-5" />
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Email</span>
-                      <span className="font-semibold text-slate-800 truncate">{emailText}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                      <Phone className="w-4 h-4" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Phone</span>
-                      <span className="font-semibold text-slate-800">+91 98765 43210</span>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Email Address</span>
+                      <a href={`mailto:${emailText}`} className="font-semibold text-slate-750 text-slate-750 hover:text-blue-650 block truncate leading-tight">
+                        {emailText}
+                      </a>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                      <Globe className="w-4 h-4" />
+                  {/* Phone Card */}
+                  <div className="flex items-center gap-4 bg-slate-50/50 hover:bg-slate-50 p-4 rounded-2xl border border-slate-100/85 hover:shadow-sm transition-all duration-300 group">
+                    <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Phone className="w-5 h-5" />
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Website</span>
-                      <span className="font-semibold text-blue-600 hover:underline truncate cursor-pointer">
-                        https://sushilkumar.in
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Phone Number</span>
+                      <span className="font-semibold text-slate-750 block leading-tight">
+                        +91 98765 43210
                       </span>
+                    </div>
+                  </div>
+
+                  {/* Website Card */}
+                  <div className="flex items-center gap-4 bg-slate-50/50 hover:bg-slate-50 p-4 rounded-2xl border border-slate-100/85 hover:shadow-sm transition-all duration-300 group">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Globe className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Personal Website</span>
+                      <a 
+                        href="https://sushilkumar.in" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="font-semibold text-blue-600 hover:underline block truncate leading-tight"
+                      >
+                        https://sushilkumar.in
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -1405,28 +1670,36 @@ const ProfilePage = () => {
                     strokeWidth="6"
                     fill="transparent"
                     strokeDasharray={2 * Math.PI * 34}
-                    strokeDashoffset={2 * Math.PI * 34 * (1 - (profileData?.profileCompletion || 92) / 100)}
+                    strokeDashoffset={2 * Math.PI * 34 * (1 - completeness.percentage / 100)}
                     strokeLinecap="round"
                     className="transition-all duration-1000 ease-out"
                   />
                 </svg>
-                <span className="absolute text-sm font-extrabold text-slate-800">{profileData?.profileCompletion || 92}%</span>
+                <span className="absolute text-sm font-extrabold text-slate-800">{completeness.percentage}%</span>
               </div>
 
               <div className="text-left space-y-1">
-                <p className="text-xs font-bold text-slate-800">Excellent progress!</p>
-                <p className="text-[10px] text-slate-400">Your profile ranks in the top 8% of computer science researchers.</p>
+                <p className="text-xs font-bold text-slate-800">
+                  {completeness.percentage < 40 ? 'Good start!' : completeness.percentage < 75 ? 'Great progress!' : 'Excellent progress!'}
+                </p>
+                <p className="text-[10px] text-slate-400">
+                  {completeness.percentage < 40 
+                    ? 'Complete your profile to increase your visibility.' 
+                    : completeness.percentage < 75 
+                      ? 'Your profile ranks in the top 35% of computer science researchers.' 
+                      : 'Your profile ranks in the top 8% of computer science researchers.'}
+                </p>
               </div>
             </div>
 
             {/* Items Checklist */}
             <div className="space-y-2.5 pt-2 text-xs text-slate-500">
-              <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /> Basic Information</div>
-              <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /> Education History</div>
-              <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /> Professional Experience</div>
-              <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /> Research Interests</div>
-              <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /> Publications Uploaded</div>
-              <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /> Profile Photo & Cover</div>
+              {completeness.steps.map((step) => (
+                <div key={step.label} className="flex items-center gap-2">
+                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${step.completed ? 'text-green-600' : 'text-slate-300'}`} />
+                  <span className={step.completed ? 'text-slate-800 font-medium' : 'text-slate-400'}>{step.label}</span>
+                </div>
+              ))}
             </div>
           </div>
 
