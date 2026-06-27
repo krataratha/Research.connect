@@ -1,244 +1,13 @@
 import Publication from '../models/Publication.js';
-import PublicationAuthor from '../models/PublicationAuthor.js';
-import PublicationKeyword from '../models/PublicationKeyword.js';
-import PublicationResearchArea from '../models/PublicationResearchArea.js';
-import UserKeyword from '../models/UserKeyword.js';
-import UserResearchArea from '../models/UserResearchArea.js';
-import Follower from '../models/Follower.js';
 import Profile from '../models/Profile.js';
 import User from '../models/User.js';
+import ResearchFeed from '../models/ResearchFeed.js';
+import * as feedService from '../services/feed.service.js';
 import AppError from '../utils/AppError.js';
 
 /**
- * Helper to compute matching scores for publications
- */
-const getPersonalizedPublications = async (userId, page = 1, limit = 10) => {
-  // 1. Get current user's keywords and research areas
-  const userKeywords = await UserKeyword.find({ user: userId }).select('keyword');
-  const userKeywordIds = userKeywords.map((k) => k.keyword.toString());
-
-  const userAreas = await UserResearchArea.find({ user: userId }).select('researchArea');
-  const userAreaIds = userAreas.map((a) => a.researchArea.toString());
-
-  // 2. Get researchers followed by current user for network score
-  const followings = await Follower.find({ follower: userId }).select('following');
-  const followingIds = followings.map((f) => f.following.toString());
-
-  // 3. Fetch all active publications (excluding deleted ones)
-  const query = { isDeleted: { $ne: true } };
-  const publications = await Publication.find(query).lean();
-
-  if (publications.length === 0) {
-    return [];
-  }
-
-  // 4. Batch query keywords, research areas, and authors for all publications to avoid N+1 queries
-  const pubIds = publications.map((p) => p._id);
-  
-  const pubKeywords = await PublicationKeyword.find({ publication: { $in: pubIds } }).lean();
-  const pubAreas = await PublicationResearchArea.find({ publication: { $in: pubIds } }).lean();
-  const pubAuthors = await PublicationAuthor.find({ publication: { $in: pubIds } }).lean();
-
-  // Create lookup maps
-  const keywordMap = {};
-  const areaMap = {};
-  const authorMap = {};
-
-  pubKeywords.forEach((pk) => {
-    const key = pk.publication.toString();
-    if (!keywordMap[key]) keywordMap[key] = [];
-    keywordMap[key].push(pk.keyword.toString());
-  });
-
-  pubAreas.forEach((pa) => {
-    const key = pa.publication.toString();
-    if (!areaMap[key]) areaMap[key] = [];
-    areaMap[key].push(pa.researchArea.toString());
-  });
-
-  pubAuthors.forEach((pauth) => {
-    const key = pauth.publication.toString();
-    if (!authorMap[key]) authorMap[key] = [];
-    if (pauth.user) {
-      authorMap[key].push(pauth.user.toString());
-    }
-  });
-
-  // 5. Score each publication
-  const scoredPublications = publications.map((pub) => {
-    const pubIdStr = pub._id.toString();
-    const pkList = keywordMap[pubIdStr] || [];
-    const paList = areaMap[pubIdStr] || [];
-    const pAuthorList = authorMap[pubIdStr] || [];
-
-    // Calculate Jaccard similarity for Keywords (40% Weight)
-    let keywordScore = 0;
-    if (userKeywordIds.length > 0 && pkList.length > 0) {
-      const intersection = pkList.filter((k) => userKeywordIds.includes(k)).length;
-      const union = new Set([...pkList, ...userKeywordIds]).size;
-      keywordScore = (intersection / union) * 100;
-    }
-
-    // Calculate Jaccard similarity for Research Areas (25% Weight)
-    let researchAreaScore = 0;
-    if (userAreaIds.length > 0 && paList.length > 0) {
-      const intersection = paList.filter((a) => userAreaIds.includes(a)).length;
-      const union = new Set([...paList, ...userAreaIds]).size;
-      researchAreaScore = (intersection / union) * 100;
-    }
-
-    // Calculate Network Score (10% Weight)
-    // Check if user follows the publisher or any co-author of the publication
-    let networkScore = 0;
-    const publisherIdStr = pub.user ? pub.user.toString() : '';
-    const followedAuthor = pAuthorList.some((authId) => followingIds.includes(authId));
-    if (followingIds.includes(publisherIdStr) || followedAuthor) {
-      networkScore = 100;
-    }
-
-    // Calculate Trending Score (5% Weight)
-    // Map citations to a 0-100 scale (e.g. 50 citations = 100 score)
-    const citationScore = Math.min(((pub.citationCount || 0) / 50) * 100, 100);
-
-    // Publication Similarity (20% Weight)
-    // If user has written papers in the same journal or shares co-authors
-    let pubSimilarityScore = 0;
-    if (pub.user.toString() === userId.toString()) {
-      // User's own paper - score is positive but lower priority for home feed
-      pubSimilarityScore = 50;
-    } else {
-      // Mock publication text match / author overlap
-      const sharedAuthors = pAuthorList.some((authId) => authId === userId.toString());
-      if (sharedAuthors) {
-        pubSimilarityScore = 100;
-      }
-    }
-
-    // Weighted final recommendation score
-    // 40% Keyword, 25% Research Area, 20% Publication Similarity, 10% Network, 5% Trending
-    const score = parseFloat(
-      (
-        keywordScore * 0.40 +
-        researchAreaScore * 0.25 +
-        pubSimilarityScore * 0.20 +
-        networkScore * 0.10 +
-        citationScore * 0.05
-      ).toFixed(2)
-    );
-
-    return {
-      ...pub,
-      score,
-      matchBreakdown: {
-        keywordScore,
-        researchAreaScore,
-        pubSimilarityScore,
-        networkScore,
-        citationScore
-      }
-    };
-  });
-
-  // 6. Sort and Paginate
-  scoredPublications.sort((a, b) => b.score - a.score);
-  const startIndex = (page - 1) * limit;
-  const paginatedPubs = scoredPublications.slice(startIndex, startIndex + limit);
-
-  return paginatedPubs;
-};
-
-/**
- * Get Recommended Researchers for a user
- */
-const getRecommendedResearchersList = async (userId, page = 1, limit = 5) => {
-  // 1. Get current user's keywords and research areas
-  const userKeywords = await UserKeyword.find({ user: userId }).select('keyword');
-  const userKeywordIds = userKeywords.map((k) => k.keyword.toString());
-
-  const userAreas = await UserResearchArea.find({ user: userId }).select('researchArea');
-  const userAreaIds = userAreas.map((a) => a.researchArea.toString());
-
-  // 2. Fetch all other users with profiles
-  const users = await User.find({ _id: { $ne: userId }, isDeleted: { $ne: true } }).lean();
-  const profiles = await Profile.find({ user: { $ne: userId } }).lean();
-
-  const profileMap = {};
-  profiles.forEach((p) => {
-    profileMap[p.user.toString()] = p;
-  });
-
-  const candidates = users.filter((u) => profileMap[u._id.toString()]);
-  if (candidates.length === 0) {
-    return [];
-  }
-
-  const candidateIds = candidates.map((c) => c._id);
-
-  // Batch load candidate keywords and research areas
-  const candKeywords = await UserKeyword.find({ user: { $in: candidateIds } }).lean();
-  const candAreas = await UserResearchArea.find({ user: { $in: candidateIds } }).lean();
-
-  const cKeywordMap = {};
-  const cAreaMap = {};
-
-  candKeywords.forEach((ck) => {
-    const key = ck.user.toString();
-    if (!cKeywordMap[key]) cKeywordMap[key] = [];
-    cKeywordMap[key].push(ck.keyword.toString());
-  });
-
-  candAreas.forEach((ca) => {
-    const key = ca.user.toString();
-    if (!cAreaMap[key]) cAreaMap[key] = [];
-    cAreaMap[key].push(ca.researchArea.toString());
-  });
-
-  // Score each candidate
-  const scoredResearchers = candidates.map((cand) => {
-    const candIdStr = cand._id.toString();
-    const ckList = cKeywordMap[candIdStr] || [];
-    const caList = cAreaMap[candIdStr] || [];
-
-    // Keyword Overlap (50%)
-    let keywordScore = 0;
-    if (userKeywordIds.length > 0 && ckList.length > 0) {
-      const intersection = ckList.filter((k) => userKeywordIds.includes(k)).length;
-      const union = new Set([...ckList, ...userKeywordIds]).size;
-      keywordScore = (intersection / union) * 100;
-    }
-
-    // Research Area Overlap (50%)
-    let researchAreaScore = 0;
-    if (userAreaIds.length > 0 && caList.length > 0) {
-      const intersection = caList.filter((a) => userAreaIds.includes(a)).length;
-      const union = new Set([...caList, ...userAreaIds]).size;
-      researchAreaScore = (intersection / union) * 100;
-    }
-
-    const finalMatch = parseFloat((keywordScore * 0.50 + researchAreaScore * 0.50).toFixed(2));
-
-    return {
-      user: {
-        _id: cand._id,
-        fullName: cand.fullName,
-        email: cand.email,
-        role: cand.role,
-      },
-      profile: profileMap[candIdStr],
-      finalMatch,
-      commonKeywords: ckList.filter((k) => userKeywordIds.includes(k))
-    };
-  });
-
-  // Sort by match score and return
-  scoredResearchers.sort((a, b) => b.finalMatch - a.finalMatch);
-  const startIndex = (page - 1) * limit;
-  return scoredResearchers.slice(startIndex, startIndex + limit);
-};
-
-/**
  * Get Personalized Feed for Home Dashboard
- * GET /api/v1/feed/home
+ * GET /api/v1/feed/home OR GET /api/v1/dashboard/feed
  */
 export const getHomeFeed = async (req, res, next) => {
   try {
@@ -246,21 +15,22 @@ export const getHomeFeed = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const userId = req.user._id;
 
-    // Fetch publications and format as unified feed item list
-    const publications = await getPersonalizedPublications(userId, page, limit);
+    // Load from cache or rebuild
+    const { publications, hasMore } = await feedService.getPersonalizedFeed(userId, page, limit);
 
     // Map publications to type: 'publication' feed items
     const feed = publications.map((pub) => ({
       type: 'publication',
       data: pub,
-      score: pub.score
+      score: pub.score,
     }));
 
     res.status(200).json({
       status: 'success',
       results: feed.length,
       page,
-      feed
+      hasMore,
+      feed,
     });
   } catch (error) {
     next(error);
@@ -269,7 +39,7 @@ export const getHomeFeed = async (req, res, next) => {
 
 /**
  * Get Recommended Researchers List
- * GET /api/v1/recommendations/researchers
+ * GET /api/v1/feed/recommendations/researchers OR GET /api/v1/dashboard/researchers
  */
 export const getRecommendedResearchers = async (req, res, next) => {
   try {
@@ -277,12 +47,12 @@ export const getRecommendedResearchers = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 5;
     const userId = req.user._id;
 
-    const recommendations = await getRecommendedResearchersList(userId, page, limit);
+    const recommendations = await feedService.getRecommendedResearchers(userId, page, limit);
 
     res.status(200).json({
       status: 'success',
       results: recommendations.length,
-      recommendations
+      recommendations,
     });
   } catch (error) {
     next(error);
@@ -291,7 +61,7 @@ export const getRecommendedResearchers = async (req, res, next) => {
 
 /**
  * Get Trending Publications
- * GET /api/v1/feed/trending
+ * GET /api/v1/feed/trending OR GET /api/v1/dashboard/trending
  */
 export const getTrendingPublications = async (req, res, next) => {
   try {
@@ -300,7 +70,6 @@ export const getTrendingPublications = async (req, res, next) => {
 
     const skip = (page - 1) * limit;
 
-    // Fetch publications sorted by citations count descending
     const publications = await Publication.find({ isDeleted: { $ne: true } })
       .sort({ citationCount: -1, createdAt: -1 })
       .skip(skip)
@@ -310,7 +79,118 @@ export const getTrendingPublications = async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       results: publications.length,
-      publications
+      publications,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get Dashboard Home Summary Details (Metrics, completion rate, alerts)
+ * GET /api/v1/dashboard/home
+ */
+export const getDashboardHome = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    // Load profile
+    const profile = await Profile.findOne({ user: userId }).lean();
+    if (!profile) {
+      return next(new AppError('Profile not found for current user.', 404));
+    }
+
+    // Get notifications count
+    const notificationsCount = 3; // Mock notification count
+    const messagesCount = 5;      // Mock message count
+
+    // Quick stats
+    const stats = {
+      profileCompletion: profile.profileCompletion || 0,
+      publications: profile.publications || 0,
+      citations: profile.citations || 0,
+      hIndex: profile.hIndex || 0,
+      i10Index: profile.i10Index || 0,
+    };
+
+    res.status(200).json({
+      status: 'success',
+      user: {
+        id: req.user._id,
+        fullName: req.user.fullName,
+        email: req.user.email,
+        role: req.user.role,
+      },
+      stats,
+      notificationsCount,
+      messagesCount,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get Recommended Conferences
+ * GET /api/v1/dashboard/conferences
+ */
+export const getRecommendedConferences = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    let feedCache = await ResearchFeed.findOne({ user: userId });
+
+    if (!feedCache || feedCache.expiresAt < new Date()) {
+      feedCache = await feedService.rebuildPersonalizedFeed(userId);
+    }
+
+    res.status(200).json({
+      status: 'success',
+      results: feedCache.recommendedConferences?.length || 0,
+      conferences: feedCache.recommendedConferences || [],
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get Suggested Research Jobs
+ * GET /api/v1/dashboard/jobs
+ */
+export const getDashboardJobs = async (req, res, next) => {
+  try {
+    // Generate mock research jobs based on user role or general academic titles
+    const jobs = [
+      {
+        id: 'job1',
+        title: 'Postdoctoral Fellow in Trustworthy AI',
+        institution: 'Stanford University',
+        location: 'Stanford, CA (Hybrid)',
+        link: 'https://stanford.edu/jobs/postdoc-trust-ai',
+        salaryRange: '$75,000 - $90,000',
+      },
+      {
+        id: 'job2',
+        title: 'Assistant Professor in Natural Language Processing',
+        institution: 'Massachusetts Institute of Technology',
+        location: 'Cambridge, MA (On-site)',
+        link: 'https://mit.edu/careers/nlp-assistant-professor',
+        salaryRange: '$110,000 - $130,000',
+      },
+      {
+        id: 'job3',
+        title: 'Senior Research Scientist - Computer Vision',
+        institution: 'Google Research',
+        location: 'Mountain View, CA (Hybrid)',
+        link: 'https://google.com/careers/research-cv',
+        salaryRange: '$180,000 - $220,000',
+      },
+    ];
+
+    res.status(200).json({
+      status: 'success',
+      results: jobs.length,
+      jobs,
     });
   } catch (error) {
     next(error);

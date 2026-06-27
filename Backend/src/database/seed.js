@@ -20,6 +20,7 @@ import Follower from '../models/Follower.js';
 import SearchHistory from '../models/SearchHistory.js';
 import ActivityLog from '../models/ActivityLog.js';
 import Report from '../models/Report.js';
+import ResearchFeed from '../models/ResearchFeed.js';
 
 dotenv.config();
 

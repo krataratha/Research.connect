@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 
 // Layouts
 import MainLayout from '../layouts/MainLayout.jsx';
@@ -21,12 +22,14 @@ import NotFound from '../pages/NotFound/NotFound.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 
 const AppRoutes = () => {
+  const { user } = useAuth();
+
   return (
     <Routes>
 
       {/* General Site Routes */}
       <Route path="/" element={<MainLayout />}>
-        <Route index element={<Home />} />
+        <Route index element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
         <Route 
           path="profile" 
           element={

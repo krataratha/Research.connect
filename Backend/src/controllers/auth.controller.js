@@ -218,3 +218,23 @@ export const logout = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Get current authenticated user details
+ */
+export const getMe = async (req, res, next) => {
+  try {
+    res.status(200).json({
+      status: 'success',
+      user: {
+        id: req.user._id,
+        fullName: req.user.fullName,
+        email: req.user.email,
+        role: req.user.role,
+        emailVerified: req.user.emailVerified,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
