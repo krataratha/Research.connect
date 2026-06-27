@@ -17,18 +17,21 @@ import {
 
 const router = Router();
 
-// /search must be registered before /:id
+// Search must come before /:id to avoid conflict
 router.get('/search', searchPublications);
 
-router.route('/')
+router
+  .route('/')
   .get(getPublicationsValidator, getAllPublications)
   .post(createPublicationValidator, createPublication);
 
-router.route('/:id')
+router
+  .route('/:id')
   .get(mongoIdValidator, getPublicationById)
   .put(updatePublicationValidator, updatePublication)
   .delete(mongoIdValidator, deletePublication);
 
+// Increment citation count
 router.patch('/:id/citation', mongoIdValidator, incrementCitation);
 
 export default router;
