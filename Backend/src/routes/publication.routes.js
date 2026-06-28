@@ -14,6 +14,12 @@ import {
   uploadPublicationFile,
   logAnalyticsEvent,
   lookupDoi,
+  getPublicationTypes,
+  createPublicationType,
+  getLicenses,
+  uploadCoverImage,
+  uploadSupplementaryFiles,
+  publishDraft,
 } from '../controllers/publication.controller.js';
 import {
   createPublicationValidator,
@@ -34,29 +40,45 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({
+// Permissive filter for supplementary files
+const fileUpload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB Limit
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB Limit
   fileFilter: (req, file, cb) => {
-    const filetypes = /pdf|docx|ppt|zip|png|jpg|jpeg/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-
-    if (extname && mimetype) {
+    // Highly permissive for academic/research files
+    const allowedExts = /pdf|docx|doc|ppt|pptx|zip|tar|gz|csv|xlsx|xls|json|png|jpg|jpeg|gif|webp|mp4|webm|txt|py|js|ts|cpp|java|go|rs|r|rmd|m|h|c/i;
+    const ext = path.extname(file.originalname).toLowerCase();
+    
+    if (allowedExts.test(ext)) {
       return cb(null, true);
     }
-    cb(new Error('Format not supported! Only pdf, docx, ppt, zip, or images are allowed.'));
+    cb(new Error(`File format ${ext} is not supported. Please upload standard research files.`));
+  },
+});
+
+// Restrictive filter for cover images
+const coverUpload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB Limit
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      return cb(null, true);
+    }
+    cb(new Error('Only PNG, JPG, JPEG or WEBP images are allowed as cover images.'));
   },
 });
 
 const router = Router();
 
-// Lookup DOI metadata using public API
+// Metadata and lookups (must come before /:id)
 router.get('/metadata/doi', lookupDoi);
-
-// Search must come before /:id to avoid conflict
+router.get('/types', getPublicationTypes);
+router.post('/types', protect, createPublicationType);
+router.get('/licenses', getLicenses);
 router.get('/search', searchPublications);
 
+// Core publications routes
 router
   .route('/')
   .get(getPublicationsValidator, getAllPublications)
@@ -68,6 +90,9 @@ router
   .put(protect, updatePublicationValidator, updatePublication)
   .delete(protect, mongoIdValidator, deletePublication);
 
+// Publishing draft
+router.post('/:id/publish', protect, mongoIdValidator, publishDraft);
+
 // Increment citation count
 router.patch('/:id/citation', mongoIdValidator, incrementCitation);
 
@@ -76,7 +101,9 @@ router.get('/:id/versions', protect, getPublicationVersions);
 router.post('/:id/versions/:versionNum/restore', protect, restorePublicationVersion);
 
 // Files uploads
-router.post('/:id/files', protect, upload.single('file'), uploadPublicationFile);
+router.post('/:id/files', protect, fileUpload.single('file'), uploadPublicationFile);
+router.post('/:id/cover', protect, coverUpload.single('coverImage'), uploadCoverImage);
+router.post('/:id/files-multiple', protect, fileUpload.array('files', 10), uploadSupplementaryFiles);
 
 // Analytics logging
 router.post('/:id/analytics/log', logAnalyticsEvent);

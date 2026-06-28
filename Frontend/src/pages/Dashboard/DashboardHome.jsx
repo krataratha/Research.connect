@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import TaxonomyBrowser from './components/TaxonomyBrowser';
 
 const DashboardHome = () => {
   const { user } = useAuth();
@@ -319,6 +320,11 @@ const DashboardHome = () => {
               )}
             </div>
           )}
+        </section>
+
+        {/* Academic Taxonomy Browser */}
+        <section className="pt-4 border-t border-brand-border/60">
+          <TaxonomyBrowser />
         </section>
       </div>
 

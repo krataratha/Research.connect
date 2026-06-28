@@ -20,8 +20,8 @@ const publicationFileSchema = new mongoose.Schema(
     },
     fileType: {
       type: String,
-      enum: ['pdf', 'docx', 'ppt', 'zip', 'dataset', 'image'],
       required: [true, 'File type is required'],
+      trim: true,
     },
     cloudinaryPublicId: {
       type: String,

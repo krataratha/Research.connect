@@ -23,6 +23,21 @@ const publicationAuthorSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    orcid: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    department: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    country: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     email: {
       type: String,
       trim: true,

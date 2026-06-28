@@ -22,6 +22,12 @@ import ActivityLog from '../models/ActivityLog.js';
 import Report from '../models/Report.js';
 import ResearchFeed from '../models/ResearchFeed.js';
 import OTP from '../models/OTP.js';
+import ResearchDomain from '../models/ResearchDomain.js';
+import ResearchTaxonomy from '../models/ResearchTaxonomy.js';
+import Institution from '../models/Institution.js';
+import ResearchInterest from '../models/ResearchInterest.js';
+import KeywordSynonym from '../models/KeywordSynonym.js';
+import { seedPublicationTypes, seedLicenses } from './seeder.js';
 
 dotenv.config();
 
@@ -40,6 +46,10 @@ const seedDatabase = async () => {
       console.log(`   - Cleared collection: ${name}`);
     }
     console.log('✅ Database cleared.');
+
+    // Seed dynamic types and licenses
+    await seedPublicationTypes();
+    await seedLicenses();
 
     // 1. Seed Research Areas
     console.log('🌱 Seeding Research Areas...');
@@ -74,6 +84,76 @@ const seedDatabase = async () => {
     ];
     const keywords = await Keyword.insertMany(keywordsData);
     console.log(`✅ Seeded ${keywords.length} Keywords.`);
+
+    // 2.1 Seed Institutions
+    console.log('🌱 Seeding Institutions...');
+    const institutionsData = [
+      {
+        name: 'Stanford University',
+        country: 'United States',
+        type: 'Academic',
+        website: 'https://stanford.edu',
+        description: 'A prestigious private research university in Stanford, California.',
+        departments: ['Computer Science Department', 'Bioengineering', 'Electrical Engineering'],
+        stats: { researchersCount: 15, publicationsCount: 240, citationsCount: 5200 }
+      },
+      {
+        name: 'Massachusetts Institute of Technology',
+        country: 'United States',
+        type: 'Academic',
+        website: 'https://mit.edu',
+        description: 'A world-renowned research university in Cambridge, Massachusetts.',
+        departments: ['CSAIL', 'Brain and Cognitive Sciences', 'Media Lab'],
+        stats: { researchersCount: 18, publicationsCount: 310, citationsCount: 7800 }
+      },
+      {
+        name: 'University of Tokyo',
+        country: 'Japan',
+        type: 'Academic',
+        website: 'https://u-tokyo.ac.jp',
+        description: 'The leading research university in Japan.',
+        departments: ['Information Science', 'Precision Engineering', 'Robotics'],
+        stats: { researchersCount: 12, publicationsCount: 180, citationsCount: 3900 }
+      }
+    ];
+    const institutions = await Institution.insertMany(institutionsData);
+    console.log(`✅ Seeded ${institutions.length} Institutions.`);
+
+    // 2.2 Seed Research Domains
+    console.log('🌱 Seeding Research Domains...');
+    const domainsData = [
+      { name: 'Artificial Intelligence', description: 'Study of intelligent agents.', isPopular: true, isTrending: true, popularityScore: 95 },
+      { name: 'Machine Learning', description: 'Algorithms that learn from data.', isPopular: true, isTrending: true, popularityScore: 92 },
+      { name: 'Computer Vision', description: 'Visual perception algorithms.', isPopular: true, isTrending: false, popularityScore: 80 },
+      { name: 'Natural Language Processing', description: 'Interaction between computers and languages.', isPopular: true, isTrending: true, popularityScore: 88 },
+      { name: 'Cyber Security', description: 'Protecting systems and data.', isPopular: false, isTrending: true, popularityScore: 75 },
+      { name: 'Blockchain', description: 'Decentralized ledger systems.', isPopular: false, isTrending: false, popularityScore: 60 },
+      { name: 'Bioinformatics', description: 'Computational biology.', isPopular: false, isTrending: false, popularityScore: 65 }
+    ];
+    const domains = await ResearchDomain.insertMany(domainsData);
+    console.log(`✅ Seeded ${domains.length} Research Domains.`);
+
+    // 2.3 Seed Research Taxonomy
+    console.log('🌱 Seeding Research Taxonomy...');
+    const compSci = await ResearchTaxonomy.create({ name: 'Computer Science', description: 'Core computer science research.' });
+    const aiTax = await ResearchTaxonomy.create({ name: 'Artificial Intelligence', parent: compSci._id, description: 'AI research.' });
+    const mlTax = await ResearchTaxonomy.create({ name: 'Machine Learning', parent: aiTax._id, description: 'ML models.' });
+    const dlTax = await ResearchTaxonomy.create({ name: 'Deep Learning', parent: mlTax._id, description: 'Neural networks.' });
+    const cnnTax = await ResearchTaxonomy.create({ name: 'CNN', parent: dlTax._id, description: 'Convolutional neural networks.' });
+    await ResearchTaxonomy.create({ name: 'Image Classification', parent: cnnTax._id, description: 'Classifying images into categories.' });
+    console.log('✅ Seeded Research Taxonomy Hierarchy.');
+
+    // 2.4 Seed Keyword Synonyms
+    console.log('🌱 Seeding Keyword Synonyms...');
+    const llmKeyword = keywords.find(k => k.keyword === 'large language models');
+    const nnKeyword = keywords.find(k => k.keyword === 'neural networks');
+    if (llmKeyword) {
+      await KeywordSynonym.create({ keyword: llmKeyword._id, synonyms: ['llm', 'llms', 'generative ai', 'gpt'] });
+    }
+    if (nnKeyword) {
+      await KeywordSynonym.create({ keyword: nnKeyword._id, synonyms: ['neural net', 'neural nets', 'artificial neural networks'] });
+    }
+    console.log('✅ Seeded Keyword Synonyms.');
 
     // 3. Seed Users
     console.log('🌱 Seeding Users...');
@@ -226,6 +306,27 @@ const seedDatabase = async () => {
       { user: yuki._id, keyword: keywords[8]._id },
     ]);
     console.log('✅ Connected Users to Research Areas and Keywords.');
+
+    // 6.1 Seed Research Interests for Users
+    console.log('🌱 Seeding Research Interests...');
+    await ResearchInterest.create([
+      {
+        user: sarah._id,
+        domains: [domains[0]._id, domains[1]._id, domains[3]._id], // AI, ML, NLP
+        keywords: [keywords[0]._id, keywords[1]._id, keywords[2]._id, keywords[5]._id] // neural networks, transformer models, LLMs, clinical decision support
+      },
+      {
+        user: alex._id,
+        domains: [domains[4]._id, domains[5]._id], // Cyber Security, Blockchain
+        keywords: [keywords[3]._id, keywords[6]._id, keywords[7]._id] // cryptography, anomaly detection, zero trust
+      },
+      {
+        user: yuki._id,
+        domains: [domains[0]._id, domains[1]._id, domains[2]._id], // AI, ML, Computer Vision
+        keywords: [keywords[0]._id, keywords[4]._id, keywords[8]._id] // neural networks, image segmentation, reinforcement learning
+      }
+    ]);
+    console.log('✅ Seeded Research Interests.');
 
     // 7. Seed Collaboration Preferences
     console.log('🌱 Seeding Collaboration Preferences...');

@@ -19,6 +19,11 @@ const publicationSchema = new mongoose.Schema(
       unique: true, // Duplicate prevention on titles
       index: true,
     },
+    subtitle: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     abstract: {
       type: String,
       required: [true, 'Publication must have an abstract'],
@@ -30,7 +35,6 @@ const publicationSchema = new mongoose.Schema(
       sparse: true, // Allow multiple nulls/undefineds
       trim: true,
       index: true,
-      match: [/^10.\d{4,9}\/[-._;()/:A-Z0-9]+$/i, 'Please provide a valid DOI (e.g. 10.1016/j.jbi.2026.104230)'],
     },
     publisher: {
       type: String,
@@ -50,6 +54,10 @@ const publicationSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    coverImage: {
+      type: String,
+      default: '',
+    },
     conference: {
       type: String,
       trim: true,
@@ -62,14 +70,62 @@ const publicationSchema = new mongoose.Schema(
     },
     publicationType: {
       type: String,
-      enum: ['journal', 'conference', 'book', 'book-chapter', 'patent', 'thesis', 'preprint', 'other'],
-      default: 'journal',
+      required: [true, 'Publication type is required'],
       index: true,
     },
     language: {
       type: String,
       trim: true,
       default: 'English',
+    },
+    country: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    fundingInfo: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    grantNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    license: {
+      type: String,
+      trim: true,
+      default: 'CC-BY-4.0',
+    },
+    version: {
+      type: Number,
+      default: 1,
+    },
+    commentsEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    status: {
+      type: String,
+      enum: ['draft', 'published'],
+      default: 'published',
+      index: true,
+    },
+    specificFields: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    relatedPublications: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Publication',
+      },
+    ],
+    references: {
+      type: [String],
+      default: [],
     },
     citationCount: {
       type: Number,
@@ -130,6 +186,8 @@ const publicationSchema = new mongoose.Schema(
 // Indexes
 // Compound index for user publication years (for rapid retrieval of author CV timelines)
 publicationSchema.index({ user: 1, publicationYear: -1 });
+// Compound index for status and deletion
+publicationSchema.index({ status: 1, isDeleted: 1 });
 // Text index for global search
 publicationSchema.index({ title: 'text', abstract: 'text' });
 

@@ -30,6 +30,7 @@ import api from '../../services/api';
 import ScholarImportWizard from '../../features/profile/ScholarImportWizard.jsx';
 import EditProfileModal from '../../features/profile/EditProfileModal.jsx';
 import SyncMergeModal from '../../features/profile/SyncMergeModal.jsx';
+import KeywordManager from './components/KeywordManager';
 
 const providerIcons = {
   'ORCID': (
@@ -1415,7 +1416,11 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {activeTab !== 'About' && activeTab !== 'Publications' && activeTab !== 'Education' && activeTab !== 'Experience' && (
+          {activeTab === 'Research Interests' && (
+            <KeywordManager />
+          )}
+
+          {activeTab !== 'About' && activeTab !== 'Publications' && activeTab !== 'Education' && activeTab !== 'Experience' && activeTab !== 'Research Interests' && (
             <div className="glass-card rounded-3xl p-8 bg-white border border-slate-200/80 shadow-sm space-y-4">
               <h3 className="text-base font-bold text-slate-900 font-display">{activeTab}</h3>
               <p className="text-sm text-slate-500 font-sans">

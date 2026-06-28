@@ -23,7 +23,8 @@ import NotFound from '../pages/NotFound/NotFound.jsx';
 import PublicationsDashboard from '../pages/Publications/Dashboard.jsx';
 import UploadPublication from '../pages/Publications/Upload.jsx';
 import PublicationDetails from '../pages/Publications/Detail.jsx';
-import SearchPublications from '../pages/Search/SearchPublications.jsx';
+import GlobalSearch from '../pages/Search/GlobalSearch.jsx';
+import RecommendationDashboard from '../pages/Dashboard/RecommendationDashboard.jsx';
 
 // Gate
 import ProtectedRoute from './ProtectedRoute.jsx';
@@ -89,7 +90,15 @@ const AppRoutes = () => {
           path="search" 
           element={
             <ProtectedRoute>
-              <SearchPublications />
+              <GlobalSearch />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="recommendations" 
+          element={
+            <ProtectedRoute>
+              <RecommendationDashboard />
             </ProtectedRoute>
           } 
         />

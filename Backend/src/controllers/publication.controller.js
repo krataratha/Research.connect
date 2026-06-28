@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { validationResult } from 'express-validator';
 import Publication from '../models/Publication.js';
 import PublicationAuthor from '../models/PublicationAuthor.js';
@@ -5,11 +6,14 @@ import PublicationFile from '../models/PublicationFile.js';
 import PublicationVersion from '../models/PublicationVersion.js';
 import PublicationAnalytics from '../models/PublicationAnalytics.js';
 import PublicationHistory from '../models/PublicationHistory.js';
+import PublicationType from '../models/PublicationType.js';
+import License from '../models/License.js';
 import Profile from '../models/Profile.js';
 import AppError from '../utils/AppError.js';
+import { uploadFile, deleteFile } from '../services/storage.service.js';
 
 // Helper: extract validation errors and throw if any
-const validate = (req) => {
+const validateExpress = (req) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const messages = errors.array().map((e) => e.msg).join(', ');
@@ -24,16 +28,166 @@ const paginate = (page, limit) => {
   return { page: p, limit: l, skip: (p - 1) * l };
 };
 
+// Helper: Validate ORCID, DOI, URL, and dynamic fields
+const validatePublicationData = async (data, isUpdate = false, pubId = null) => {
+  const { title, doi, authors, publicationType, specificFields, publicationDate } = data;
+
+  // 1. Required fields
+  if (!isUpdate || title !== undefined) {
+    if (!title || !title.trim()) {
+      throw new AppError('Title is required', 400);
+    }
+    // Duplicate title check
+    const titleFilter = { title: { $regex: new RegExp(`^${title.trim()}$`, 'i') } };
+    if (isUpdate && pubId) {
+      titleFilter._id = { $ne: pubId };
+    }
+    const existingTitle = await Publication.findOne(titleFilter);
+    if (existingTitle) {
+      throw new AppError('A publication with this title already exists', 400);
+    }
+  }
+
+  if (!isUpdate && (!authors || !Array.isArray(authors) || authors.length === 0)) {
+    throw new AppError('At least one author is required', 400);
+  }
+
+  // 2. DOI Validation
+  if (doi) {
+    const doiRegex = /^10.\d{4,9}\/[-._;()/:A-Z0-9]+$/i;
+    if (!doiRegex.test(doi)) {
+      throw new AppError('Please provide a valid DOI (e.g. 10.1016/j.jbi.2026.104230)', 400);
+    }
+    // Duplicate DOI check
+    const doiFilter = { doi: doi.trim() };
+    if (isUpdate && pubId) {
+      doiFilter._id = { $ne: pubId };
+    }
+    const existingDoi = await Publication.findOne(doiFilter);
+    if (existingDoi) {
+      throw new AppError('A publication with this DOI already exists', 400);
+    }
+  }
+
+  // 3. Authors Validation
+  if (authors && Array.isArray(authors)) {
+    const orcidRegex = /^\d{4}-\d{4}-\d{4}-\d{3}[0-9X]$/i;
+    for (const auth of authors) {
+      if (!auth.displayName && !auth.authorName) {
+        throw new AppError('Author name is required', 400);
+      }
+      if (auth.orcid && !orcidRegex.test(auth.orcid)) {
+        throw new AppError(`Invalid ORCID format for author ${auth.displayName || auth.authorName}. Must be e.g. 0000-0002-1825-0097`, 400);
+      }
+      if (auth.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(auth.email)) {
+          throw new AppError(`Invalid email format for author ${auth.displayName || auth.authorName}`, 400);
+        }
+      }
+    }
+  }
+
+  // 4. Dynamic fields validation based on PublicationType schema
+  if (publicationType) {
+    const typeDef = await PublicationType.findOne({ slug: publicationType });
+    if (typeDef) {
+      const fields = specificFields || {};
+      for (const field of typeDef.specificFields) {
+        const value = fields[field.name];
+        if (field.required && (value === undefined || value === null || value === '')) {
+          throw new AppError(`Field "${field.label}" is required for ${typeDef.name}`, 400);
+        }
+        // Validate URL types if the field name ends with Url or Repo
+        if (value && (field.name.toLowerCase().includes('url') || field.name.toLowerCase().includes('repo'))) {
+          try {
+            new URL(value);
+          } catch (_) {
+            throw new AppError(`Field "${field.label}" must be a valid URL`, 400);
+          }
+        }
+      }
+    }
+  }
+};
+
 /**
- * Create manual Publication entry
+ * Get all publication types
+ * GET /api/v1/publications/types
+ */
+export const getPublicationTypes = async (req, res, next) => {
+  try {
+    const types = await PublicationType.find().sort({ name: 1 });
+    res.status(200).json({
+      status: 'success',
+      results: types.length,
+      data: { types },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Create a new publication type (Admin or dynamic creation)
+ * POST /api/v1/publications/types
+ */
+export const createPublicationType = async (req, res, next) => {
+  try {
+    const { name, slug, description, category, specificFields } = req.body;
+    
+    const typeSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    
+    const newType = await PublicationType.create({
+      name,
+      slug: typeSlug,
+      description,
+      category,
+      specificFields: specificFields || []
+    });
+
+    res.status(201).json({
+      status: 'success',
+      data: { type: newType },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get all licenses
+ * GET /api/v1/publications/licenses
+ */
+export const getLicenses = async (req, res, next) => {
+  try {
+    const licenses = await License.find().sort({ name: 1 });
+    res.status(200).json({
+      status: 'success',
+      results: licenses.length,
+      data: { licenses },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Create manual Publication entry (Draft or Published)
  * POST /api/v1/publications
  */
 export const createPublication = async (req, res, next) => {
+  // We use a manual transaction fallback since replica sets might not be active locally
+  const createdAuthors = [];
+  let publication = null;
+
   try {
-    validate(req);
+    validateExpress(req);
+    await validatePublicationData(req.body);
 
     const {
       title,
+      subtitle,
       abstract,
       publisher,
       journal,
@@ -42,36 +196,62 @@ export const createPublication = async (req, res, next) => {
       publicationYear,
       publicationType,
       language,
-      pdfUrl,
+      country,
+      fundingInfo,
+      grantNumber,
+      license,
+      version,
+      commentsEnabled,
       visibility,
-      authors
+      status = 'published',
+      specificFields,
+      relatedPublications,
+      references,
+      authors,
     } = req.body;
 
-    // Create Publication with active user ID
-    const publication = await Publication.create({
+    // Create Publication
+    publication = await Publication.create({
       user: req.user._id,
       title,
+      subtitle,
       abstract,
       publisher,
       journal,
-      publicationDate,
+      publicationDate: publicationDate || new Date(),
       conference,
-      publicationYear: publicationYear || new Date(publicationDate).getFullYear(),
+      publicationYear: publicationYear || new Date(publicationDate || Date.now()).getFullYear(),
       publicationType,
       language,
-      pdfUrl,
-      visibility,
+      country,
+      fundingInfo,
+      grantNumber,
+      license,
+      version: version || 1,
+      commentsEnabled: commentsEnabled !== false,
+      visibility: visibility || 'public',
+      status,
+      specificFields: specificFields || {},
+      relatedPublications: relatedPublications || [],
+      references: references || [],
     });
 
-    // Create Publication Author mappings
+    // Create Publication Authors
     if (authors && Array.isArray(authors)) {
-      for (const auth of authors) {
-        await PublicationAuthor.create({
+      for (const [index, auth] of authors.entries()) {
+        const newAuthor = await PublicationAuthor.create({
           publication: publication._id,
-          user: auth.user || undefined,
+          user: auth.user || (auth.isMe ? req.user._id : undefined),
           authorName: auth.displayName || auth.authorName,
-          authorOrder: auth.authorOrder,
+          affiliation: auth.institution || auth.affiliation || '',
+          orcid: auth.orcid || '',
+          department: auth.department || '',
+          country: auth.country || '',
+          email: auth.email || '',
+          authorOrder: auth.authorOrder || (index + 1),
+          correspondingAuthor: !!auth.correspondingAuthor,
         });
+        createdAuthors.push(newAuthor);
       }
     }
 
@@ -80,17 +260,29 @@ export const createPublication = async (req, res, next) => {
       publication: publication._id,
       user: req.user._id,
       action: 'create',
-      details: 'Created publication manually'
+      details: `Created publication as ${status}`,
     });
 
-    // Recalculate researcher metrics
-    await Profile.recalculateMetrics(req.user._id);
+    // Recalculate researcher metrics if published
+    if (status === 'published') {
+      await Profile.recalculateMetrics(req.user._id);
+    }
+
+    // Populate authors to return in response
+    const populatedPub = await Publication.findById(publication._id).populate('authors');
 
     res.status(201).json({
       status: 'success',
-      data: { publication },
+      data: { publication: populatedPub },
     });
   } catch (err) {
+    // Manual rollback if creation fails midway
+    if (publication) {
+      await Publication.findByIdAndDelete(publication._id);
+    }
+    for (const auth of createdAuthors) {
+      await PublicationAuthor.findByIdAndDelete(auth._id);
+    }
     next(err);
   }
 };
@@ -101,12 +293,19 @@ export const createPublication = async (req, res, next) => {
  */
 export const getAllPublications = async (req, res, next) => {
   try {
-    validate(req);
+    validateExpress(req);
 
-    const { page, limit, sortBy = 'createdAt', order = 'desc', year, type, journal, search } = req.query;
+    const { page, limit, sortBy = 'createdAt', order = 'desc', year, type, journal, search, status } = req.query;
     const { page: p, limit: l, skip } = paginate(page, limit);
 
     const filter = { isDeleted: { $ne: true } };
+
+    // Default to published unless checking user's own publications
+    if (status) {
+      filter.status = status;
+    } else {
+      filter.status = 'published';
+    }
 
     if (year) {
       filter.publicationYear = parseInt(year);
@@ -123,12 +322,12 @@ export const getAllPublications = async (req, res, next) => {
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
-        { abstract: { $regex: search, $options: 'i' } }
+        { abstract: { $regex: search, $options: 'i' } },
       ];
     }
 
     const sortOrder = order === 'asc' ? 1 : -1;
-    const allowedSortFields = ['publicationYear', 'citationCount', 'title', 'createdAt'];
+    const allowedSortFields = ['publicationYear', 'citationCount', 'title', 'createdAt', 'publicationDate'];
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
 
     const [publications, total] = await Promise.all([
@@ -172,9 +371,15 @@ export const getPublicationById = async (req, res, next) => {
       return next(new AppError('No publication found with that ID', 404));
     }
 
+    // Fetch supplementary files
+    const files = await PublicationFile.find({ publication: publication._id });
+
     res.status(200).json({
       status: 'success',
-      data: { publication },
+      data: { 
+        publication,
+        files 
+      },
     });
   } catch (err) {
     next(err);
@@ -187,7 +392,8 @@ export const getPublicationById = async (req, res, next) => {
  */
 export const updatePublication = async (req, res, next) => {
   try {
-    validate(req);
+    validateExpress(req);
+    await validatePublicationData(req.body, true, req.params.id);
 
     const publication = await Publication.findById(req.params.id).populate('authors');
     if (!publication) {
@@ -222,26 +428,53 @@ export const updatePublication = async (req, res, next) => {
           name: a.authorName,
           email: a.email || '',
           user: a.user || undefined,
-          institution: a.institution || '',
-          authorOrder: a.authorOrder
+          institution: a.affiliation || '',
+          authorOrder: a.authorOrder,
+          orcid: a.orcid || '',
+          department: a.department || '',
+          country: a.country || ''
         }))
       },
       createdBy: req.user._id
     });
 
     // 2. Apply updates
-    const allowedFields = [
-      'title', 'abstract', 'publisher', 'journal', 'publicationDate', 
-      'conference', 'publicationYear', 'publicationType', 'language', 'pdfUrl', 'visibility'
+    const fieldsToUpdate = [
+      'title', 'subtitle', 'abstract', 'publisher', 'journal', 'publicationDate', 
+      'conference', 'publicationYear', 'publicationType', 'language', 'country', 
+      'fundingInfo', 'grantNumber', 'license', 'version', 'commentsEnabled', 
+      'visibility', 'status', 'specificFields', 'relatedPublications', 'references'
     ];
 
-    allowedFields.forEach((field) => {
+    fieldsToUpdate.forEach((field) => {
       if (req.body[field] !== undefined) {
         publication[field] = req.body[field];
       }
     });
 
     await publication.save();
+
+    // 3. Update authors if provided
+    if (req.body.authors && Array.isArray(req.body.authors)) {
+      // Remove old authors
+      await PublicationAuthor.deleteMany({ publication: publication._id });
+      
+      // Save new authors
+      for (const [index, auth] of req.body.authors.entries()) {
+        await PublicationAuthor.create({
+          publication: publication._id,
+          user: auth.user || (auth.isMe ? req.user._id : undefined),
+          authorName: auth.displayName || auth.authorName,
+          affiliation: auth.institution || auth.affiliation || '',
+          orcid: auth.orcid || '',
+          department: auth.department || '',
+          country: auth.country || '',
+          email: auth.email || '',
+          authorOrder: auth.authorOrder || (index + 1),
+          correspondingAuthor: !!auth.correspondingAuthor,
+        });
+      }
+    }
 
     // Log history
     await PublicationHistory.create({
@@ -251,9 +484,53 @@ export const updatePublication = async (req, res, next) => {
       details: `Updated metadata and archived version ${versionNum}`
     });
 
+    // Recalculate metrics
+    await Profile.recalculateMetrics(req.user._id);
+
+    const updatedPub = await Publication.findById(publication._id).populate('authors');
+
     res.status(200).json({
       status: 'success',
       message: 'Publication updated successfully and version history archived.',
+      data: { publication: updatedPub },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Publish a draft publication
+ * POST /api/v1/publications/:id/publish
+ */
+export const publishDraft = async (req, res, next) => {
+  try {
+    const publication = await Publication.findById(req.params.id);
+    if (!publication) {
+      return next(new AppError('Publication not found', 404));
+    }
+
+    if (publication.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return next(new AppError('Unauthorized operation', 403));
+    }
+
+    publication.status = 'published';
+    await publication.save();
+
+    // Log History
+    await PublicationHistory.create({
+      publication: publication._id,
+      user: req.user._id,
+      action: 'publish',
+      details: 'Published draft publication',
+    });
+
+    // Recalculate metrics
+    await Profile.recalculateMetrics(req.user._id);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Publication published successfully.',
       data: { publication },
     });
   } catch (err) {
@@ -333,7 +610,7 @@ export const searchPublications = async (req, res, next) => {
     const { q, year, type, journal, sort = 'citationCount', order = 'desc', page, limit } = req.query;
     const { page: p, limit: l, skip } = paginate(page, limit);
 
-    const filter = { isDeleted: { $ne: true } };
+    const filter = { isDeleted: { $ne: true }, status: 'published' };
 
     if (q) {
       filter.$or = [
@@ -461,7 +738,7 @@ export const restorePublicationVersion = async (req, res, next) => {
 };
 
 /**
- * Handle Publication PDF upload
+ * Upload single publication file
  * POST /api/v1/publications/:id/files
  */
 export const uploadPublicationFile = async (req, res, next) => {
@@ -479,22 +756,25 @@ export const uploadPublicationFile = async (req, res, next) => {
       return next(new AppError('Please provide a file to upload.', 400));
     }
 
-    const fileUrl = `/uploads/${req.file.filename}`;
+    // Upload using hybrid storage service
+    const uploadResult = await uploadFile(req.file, `publications/${publication._id}`);
 
     // Register file metadata record
     const pubFile = await PublicationFile.create({
       publication: publication._id,
       fileName: req.file.originalname,
-      fileType: req.file.mimetype.includes('pdf') ? 'pdf' : 'image',
-      cloudinaryPublicId: req.file.filename,
-      fileUrl,
+      fileType: path.extname(req.file.originalname).substring(1) || 'bin',
+      cloudinaryPublicId: uploadResult.publicId,
+      fileUrl: uploadResult.url,
       fileSize: req.file.size,
       uploadedBy: req.user._id
     });
 
-    // Update core publication fileUrl
-    publication.pdfUrl = fileUrl;
-    await publication.save();
+    // Update core publication fileUrl / pdfUrl if it is a PDF
+    if (req.file.mimetype.includes('pdf')) {
+      publication.pdfUrl = uploadResult.url;
+      await publication.save();
+    }
 
     // Log History
     await PublicationHistory.create({
@@ -508,6 +788,104 @@ export const uploadPublicationFile = async (req, res, next) => {
       status: 'success',
       message: 'Publication file uploaded successfully.',
       data: { file: pubFile, publication }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload Cover Image
+ * POST /api/v1/publications/:id/cover
+ */
+export const uploadCoverImage = async (req, res, next) => {
+  try {
+    const publication = await Publication.findById(req.params.id);
+    if (!publication) {
+      return next(new AppError('Publication not found', 404));
+    }
+
+    if (publication.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return next(new AppError('Unauthorized cover image upload', 403));
+    }
+
+    if (!req.file) {
+      return next(new AppError('Please provide a cover image file.', 400));
+    }
+
+    // Upload using hybrid storage service
+    const uploadResult = await uploadFile(req.file, `publications/${publication._id}/cover`);
+
+    // Update publication coverImage
+    publication.coverImage = uploadResult.url;
+    await publication.save();
+
+    // Log History
+    await PublicationHistory.create({
+      publication: publication._id,
+      user: req.user._id,
+      action: 'upload_cover',
+      details: 'Uploaded cover image',
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Cover image uploaded successfully.',
+      data: { coverImage: uploadResult.url, publication },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload multiple supplementary files
+ * POST /api/v1/publications/:id/files-multiple
+ */
+export const uploadSupplementaryFiles = async (req, res, next) => {
+  try {
+    const publication = await Publication.findById(req.params.id);
+    if (!publication) {
+      return next(new AppError('Publication not found', 404));
+    }
+
+    if (publication.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return next(new AppError('Unauthorized file upload', 403));
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return next(new AppError('Please provide files to upload.', 400));
+    }
+
+    const uploadedFiles = [];
+    for (const file of req.files) {
+      const uploadResult = await uploadFile(file, `publications/${publication._id}/supplementary`);
+      
+      const pubFile = await PublicationFile.create({
+        publication: publication._id,
+        fileName: file.originalname,
+        fileType: file.originalname.split('.').pop() || 'bin',
+        cloudinaryPublicId: uploadResult.publicId,
+        fileUrl: uploadResult.url,
+        fileSize: file.size,
+        uploadedBy: req.user._id,
+      });
+
+      uploadedFiles.push(pubFile);
+    }
+
+    // Log History
+    await PublicationHistory.create({
+      publication: publication._id,
+      user: req.user._id,
+      action: 'upload_multiple_files',
+      details: `Uploaded ${req.files.length} supplementary files`,
+    });
+
+    res.status(201).json({
+      status: 'success',
+      message: `${req.files.length} files uploaded successfully.`,
+      data: { files: uploadedFiles },
     });
   } catch (error) {
     next(error);
