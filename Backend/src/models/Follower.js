@@ -6,7 +6,6 @@ const followerSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Follower user is required'],
-      index: true,
     },
     following: {
       type: mongoose.Schema.Types.ObjectId,

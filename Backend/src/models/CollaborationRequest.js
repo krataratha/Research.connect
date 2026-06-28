@@ -6,13 +6,11 @@ const collaborationRequestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Sender is required'],
-      index: true,
     },
     receiver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Receiver is required'],
-      index: true,
     },
     projectTitle: {
       type: String,

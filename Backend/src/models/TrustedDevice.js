@@ -6,7 +6,6 @@ const trustedDeviceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Trusted device must belong to a user'],
-      index: true,
     },
     deviceId: {
       type: String,

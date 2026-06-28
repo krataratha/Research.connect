@@ -4,22 +4,36 @@ import { v2 as cloudinary } from 'cloudinary';
 import File from '../models/File.js';
 
 // Configuration
-let isCloudinaryConfigured = false;
-if (
-  process.env.CLOUDINARY_CLOUD_NAME &&
-  process.env.CLOUDINARY_API_KEY &&
-  process.env.CLOUDINARY_API_SECRET
-) {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  });
-  isCloudinaryConfigured = true;
-  console.log('☁️ Cloudinary configured successfully in upload.service.js');
-} else {
-  console.warn('⚠️ Cloudinary credentials missing. Using local storage fallback.');
-}
+export let isCloudinaryConfigured = false;
+export const verifyCloudinaryConnection = async () => {
+  if (
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
+  ) {
+    try {
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+      });
+      await cloudinary.api.ping();
+      isCloudinaryConfigured = true;
+      return true;
+    } catch (err) {
+      console.error('❌ Cloudinary connection failed:', err.message);
+      isCloudinaryConfigured = false;
+      return false;
+    }
+  } else {
+    // If in production, env.js would have already failed startup.
+    // In development, we can print a fallback warning.
+    console.warn('⚠️ Cloudinary credentials missing. Using local storage fallback.');
+    isCloudinaryConfigured = false;
+    return false;
+  }
+};
+
 
 const FOLDER_MAP = {
   'profile-image': 'Research Connect/Profile Images',

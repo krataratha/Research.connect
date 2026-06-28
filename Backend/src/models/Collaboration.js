@@ -71,7 +71,6 @@ const collaborationSchema = new mongoose.Schema(
 
 // Index on members to quickly fetch collaborations a user is part of
 collaborationSchema.index({ members: 1 });
-collaborationSchema.index({ status: 1 });
 
 const Collaboration = mongoose.model('Collaboration', collaborationSchema);
 export default Collaboration;

@@ -6,7 +6,6 @@ const researcherSimilaritySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Researcher A is required'],
-      index: true,
     },
     researcherB: {
       type: mongoose.Schema.Types.ObjectId,

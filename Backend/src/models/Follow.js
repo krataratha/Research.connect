@@ -3,10 +3,9 @@ import mongoose from 'mongoose';
 const followSchema = new mongoose.Schema(
   {
     followerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'Follower user ID is required'],
-      index: true,
+       type: mongoose.Schema.Types.ObjectId,
+       ref: 'User',
+       required: [true, 'Follower user ID is required'],
     },
     followingId: {
       type: mongoose.Schema.Types.ObjectId,

@@ -4,11 +4,16 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import globalErrorHandler from './middleware/errorHandler.js';
+import responseFormatter from './middleware/responseFormatter.js';
 import AppError from './utils/AppError.js';
 import apiRouter from './routes/index.js';
 import { rateLimiter, mongoSanitize } from './middleware/security.middleware.js';
 
 const app = express();
+
+// Standardize all response formats
+app.use(responseFormatter);
+
 
 // 1. Global Middlewares
 // Set security HTTP headers
