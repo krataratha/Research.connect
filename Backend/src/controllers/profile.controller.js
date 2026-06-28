@@ -16,6 +16,7 @@ import ResearchArea from '../models/ResearchArea.js';
 import UserResearchArea from '../models/UserResearchArea.js';
 import PublicationAuthor from '../models/PublicationAuthor.js';
 import PublicationHistory from '../models/PublicationHistory.js';
+import ResearchCollaborator from '../models/ResearchCollaborator.js';
 import { updateFieldWithMetadata } from '../utils/sourceTracker.js';
 import File from '../models/File.js';
 import { uploadFileToCloudinary, deleteFileFromCloudinary } from '../services/upload.service.js';
@@ -288,7 +289,13 @@ export const importGoogleScholar = async (req, res, next) => {
       ...result,
     });
   } catch (error) {
-    next(error);
+    console.error('🔥 importGoogleScholar Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: `Failed to complete importing Scholar profile: ${error.message}`,
+      stack: error.stack,
+      details: error
+    });
   }
 };
 
@@ -1259,6 +1266,23 @@ export const patchResearch = async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       message: 'Research areas and keywords updated successfully.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get My Co-authors
+ * GET /api/v1/profile/co-authors
+ */
+export const getMyCoAuthors = async (req, res, next) => {
+  try {
+    const coAuthors = await ResearchCollaborator.find({ user: req.user._id });
+    res.status(200).json({
+      status: 'success',
+      results: coAuthors.length,
+      coAuthors
     });
   } catch (error) {
     next(error);

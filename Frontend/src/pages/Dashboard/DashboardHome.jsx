@@ -10,7 +10,8 @@ import {
   ExternalLink,
   ChevronRight,
   UserPlus,
-  Calendar
+  Calendar,
+  Users
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -22,9 +23,11 @@ const DashboardHome = () => {
   const [feedItems, setFeedItems] = useState([]);
   const [researchers, setResearchers] = useState([]);
   const [trendingPubs, setTrendingPubs] = useState([]);
+  const [coAuthors, setCoAuthors] = useState([]);
   
   const [loadingFeed, setLoadingFeed] = useState(true);
   const [loadingRecs, setLoadingRecs] = useState(true);
+  const [loadingCoAuthors, setLoadingCoAuthors] = useState(true);
   
   const [feedPage, setFeedPage] = useState(1);
   const [hasMoreFeed, setHasMoreFeed] = useState(true);
@@ -75,11 +78,25 @@ const DashboardHome = () => {
     }
   };
 
+  // Fetch Co-Authors
+  const fetchCoAuthors = async () => {
+    try {
+      setLoadingCoAuthors(true);
+      const response = await api.get('/profile/co-authors');
+      setCoAuthors(response.data.coAuthors || []);
+    } catch (err) {
+      console.error('Failed to load co-authors:', err);
+    } finally {
+      setLoadingCoAuthors(false);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchFeed(1);
       fetchSuggestedResearchers();
       fetchTrendingPublications();
+      fetchCoAuthors();
     }
   }, [user]);
 
@@ -102,30 +119,7 @@ const DashboardHome = () => {
       {/* Left 3 Columns: Feed and Onboarding */}
       <div className="xl:col-span-3 space-y-8">
         
-        {/* Cold Start / Profile Completion Alert */}
-        {user && user.profileCompletion < 80 && (
-          <div className="relative overflow-hidden rounded-2xl bg-primary-gradient p-6 text-white text-left shadow-lg shadow-brand-blue/15">
-            <div className="absolute right-0 bottom-0 translate-y-6 translate-x-6 opacity-10">
-              <Sparkles className="w-48 h-48" />
-            </div>
-            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                  <Sparkles className="w-3.5 h-3.5" /> Boost Discovery
-                </div>
-                <h3 className="text-xl font-bold font-display">Complete your Profile to train the AI Recommendation Feed</h3>
-                <p className="text-xs text-brand-light-blue max-w-xl font-sans">
-                  Your profile completion rate is currently at <strong>{user.profileCompletion}%</strong>. Connect your Google Scholar ID or ORCID to sync your publications, h-index, and citation stats automatically.
-                </p>
-              </div>
-              <Link to="/profile" className="shrink-0">
-                <button className="px-5 py-2.5 bg-white text-brand-blue hover:bg-slate-50 font-bold rounded-xl text-xs transition-all shadow-sm shadow-black/5 cursor-pointer hover:scale-[1.02] active:scale-[0.98]">
-                  Setup Academic Profiles
-                </button>
-              </Link>
-            </div>
-          </div>
-        )}
+
 
         {/* Suggested Researchers Horizontal Panel */}
         <section className="space-y-4 text-left">
@@ -378,6 +372,65 @@ const DashboardHome = () => {
             
             {trendingPubs.length === 0 && (
               <p className="text-xs text-brand-text-secondary/70 italic">No trending papers indexed.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Co-Authors Widget */}
+        <div className="bg-brand-card border border-brand-border/80 rounded-2xl p-6 space-y-4 shadow-sm">
+          <h3 className="text-sm font-bold text-brand-text-primary uppercase tracking-wider flex items-center gap-1.5 font-display">
+            <Users className="w-4.5 h-4.5 text-brand-blue" /> Co-Authors
+          </h3>
+          <div className="space-y-3.5">
+            {loadingCoAuthors ? (
+              <div className="space-y-3">
+                {[1, 2].map((n) => (
+                  <div key={n} className="flex items-center gap-3 animate-pulse">
+                    <div className="w-8 h-8 bg-slate-100 rounded-full"></div>
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 bg-slate-100 rounded-full w-24"></div>
+                      <div className="h-2 bg-slate-100 rounded-full w-36"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : coAuthors.length > 0 ? (
+              coAuthors.map((co) => (
+                <div key={co._id} className="flex items-center justify-between group pb-3 border-b border-brand-border/40 last:border-b-0 last:pb-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-brand-light-blue/40 text-brand-blue font-bold text-xs flex items-center justify-center shrink-0 border border-brand-blue/10">
+                      {co.name.charAt(0)}
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-bold text-xs text-brand-text-primary line-clamp-1 group-hover:text-brand-blue transition-colors">
+                        {co.name}
+                      </h4>
+                      <p className="text-[10px] text-brand-text-secondary font-medium line-clamp-1 mt-0.5 max-w-[140px]">
+                        {co.affiliation || 'Academic Researcher'}
+                      </p>
+                    </div>
+                  </div>
+                  {co.scholarUrl ? (
+                    <a 
+                      href={co.scholarUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-brand-blue hover:text-brand-blue-hover flex items-center gap-0.5 shrink-0"
+                    >
+                      Google Scholar <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  ) : (
+                    <span className="text-[10px] text-slate-400">Profile</span>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-xs text-brand-text-secondary/70 italic">No co-authors synced yet.</p>
+                <Link to="/profile" className="text-[10px] font-bold text-brand-blue hover:underline mt-1.5 block">
+                  Sync Google Scholar Profile &rarr;
+                </Link>
+              </div>
             )}
           </div>
         </div>

@@ -178,7 +178,7 @@ export const registerUser = async (userData) => {
   if (googleScholarId) {
     try {
       console.log(`🔍 [SCHOLAR IMPORT] Syncing Scholar ID ${googleScholarId} on signup...`);
-      await scholarService.importScholarProfile(newUser._id, googleScholarId);
+      await scholarService.importGoogleScholarProfile(newUser._id, googleScholarId);
     } catch (err) {
       console.error('⚠️ Scholar auto-import failed during signup. Users can sync later.', err.message);
     }
