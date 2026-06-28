@@ -34,37 +34,37 @@ export const SocketProvider = ({ children }) => {
       console.warn('🔌 Socket connection error:', err.message);
     });
 
-    // Listen for new collaboration requests
+    // Naye collaboration requests aane pe suno
     newSocket.on('NEW_COLLABORATION_REQUEST', (data) => {
       console.log('📣 Real-time notification received: NEW_COLLABORATION_REQUEST', data);
       setNotifications((prev) => [data.notification, ...prev]);
     });
 
-    // Listen for collaboration request accepts
+    // Jab koi collaboration accept kare toh alert lo
     newSocket.on('COLLABORATION_REQUEST_ACCEPTED', (data) => {
       console.log('📣 Real-time notification received: COLLABORATION_REQUEST_ACCEPTED', data);
       setNotifications((prev) => [data.notification, ...prev]);
     });
 
-    // Listen for connection requests
+    // Nayi connection requests aane pe suno
     newSocket.on('NEW_CONNECTION_REQUEST', (data) => {
       console.log('📣 Real-time notification received: NEW_CONNECTION_REQUEST', data);
       setNotifications((prev) => [data.notification, ...prev]);
     });
 
-    // Listen for connection accepts
+    // Jab koi connection accept kare toh alert lo
     newSocket.on('CONNECTION_REQUEST_ACCEPTED', (data) => {
       console.log('📣 Real-time notification received: CONNECTION_REQUEST_ACCEPTED', data);
       setNotifications((prev) => [data.notification, ...prev]);
     });
 
-    // Listen for new followers
+    // Koi naya follower aaye toh notify karo
     newSocket.on('NEW_FOLLOWER', (data) => {
       console.log('📣 Real-time notification received: NEW_FOLLOWER', data);
       setNotifications((prev) => [data.notification, ...prev]);
     });
 
-    // Listen for new publications from followed researchers
+    // Jinko follow kiya hai, unki nayi publications aane pe suno
     newSocket.on('NEW_PUBLICATION_BY_FOLLOWED', (data) => {
       console.log('📣 Real-time notification received: NEW_PUBLICATION_BY_FOLLOWED', data);
       setNotifications((prev) => [data.notification, ...prev]);
@@ -77,14 +77,14 @@ export const SocketProvider = ({ children }) => {
     };
   }, [user]);
 
-  // Load initial notifications from database
+  // Database se purane notifications load karo
   useEffect(() => {
     if (!user) {
       setNotifications([]);
       return;
     }
 
-    // Fetch collaboration notifications from backend (optional, but we can store them locally)
+    // Backend se notifications laao (chahe toh local bhi save kar sakte hain)
   }, [user]);
 
   return (
