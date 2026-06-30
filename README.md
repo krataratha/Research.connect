@@ -40,66 +40,73 @@ Research Connect utilizes a premium light-theme design system. All interface ele
 
 The project is structured with exactly two root folders, maintaining a strict separation between client and server.
 
+### 💻 Frontend (Client-side)
+
 ```text
-research-connect/
-├── frontend/                 # React.js (Vite) Client
-│   ├── public/
-│   ├── src/
-│   │   ├── api/              # Axios configurations & interceptors
-│   │   ├── components/       # Reusable global UI components (e.g., ProtectedRoute)
-│   │   ├── hooks/            # Reusable global React hooks
-│   │   ├── layouts/          # Global layouts
-│   │   ├── store/            # Redux Toolkit store & slice definitions
-│   │   │   ├── slices/       # Redux slices (e.g., authSlice)
-│   │   │   └── index.js      # Store configuration
-│   │   ├── utils/            # Shared utilities
-│   │   ├── modules/          # Feature-First Modules
-│   │   │   ├── authentication/
-│   │   │   │   ├── api/
-│   │   │   │   ├── components/
-│   │   │   │   ├── constants/
-│   │   │   │   ├── context/
-│   │   │   │   ├── hooks/
-│   │   │   │   ├── pages/
-│   │   │   │   ├── services/
-│   │   │   │   ├── styles/
-│   │   │   │   ├── utils/
-│   │   │   │   └── index.js  # Module entry point
-│   │   │   ├── landing/
-│   │   │   │   ├── components/
-│   │   │   │   ├── pages/
-│   │   │   │   └── index.js
-│   │   │   └── dashboard/
-│   │   │       ├── pages/
-│   │   │       └── index.js
-│   │   ├── index.css         # Tailwind & global styles
-│   │   └── main.jsx          # App entry point with router & providers
-│   ├── index.html
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   └── vite.config.js
-│
-├── backend/                  # Node.js + Express.js Server
-│   ├── src/
-│   │   ├── database/         # Database Configuration
-│   │   │   ├── models/       # Shared database models
-│   │   │   ├── connection.js # Mongoose connection helper
-│   │   │   ├── indexes.js    # Index audit utilities
-│   │   │   └── seed.js       # Local database seeder
-│   │   ├── modules/          # Feature-First Modules
-│   │   │   └── authentication/
-│   │   │       ├── controller/
-│   │   │       ├── service/
-│   │   │       ├── repository/
-│   │   │       ├── routes/
-│   │   │       ├── validator/
-│   │   │       ├── middleware/
-│   │   │       ├── helper/
-│   │   │       ├── dto/
-│   │   │       └── index.js  # Module entry point
-│   │   └── server.js         # Express application entry point
-│   ├── .env
-│   └── .env.example
+frontend/                 # React.js (Vite) Client
+├── public/
+├── src/
+│   ├── api/              # Axios configurations & interceptors
+│   ├── components/       # Reusable global UI components (e.g., ProtectedRoute)
+│   ├── hooks/            # Reusable global React hooks
+│   ├── layouts/          # Global layouts
+│   ├── store/            # Redux Toolkit store & slice definitions
+│   │   ├── slices/       # Redux slices (e.g., authSlice)
+│   │   └── index.js      # Store configuration
+│   ├── utils/            # Shared utilities
+│   ├── modules/          # Feature-First Modules
+│   │   ├── authentication/
+│   │   │   ├── api/
+│   │   │   ├── components/
+│   │   │   ├── constants/
+│   │   │   ├── context/
+│   │   │   ├── hooks/
+│   │   │   ├── pages/
+│   │   │   ├── services/
+│   │   │   ├── styles/
+│   │   │   ├── utils/
+│   │   │   └── index.js  # Module entry point
+│   │   ├── landing/
+│   │   │   ├── components/
+│   │   │   ├── pages/
+│   │   │   └── index.js
+│   │   └── dashboard/
+│   │       ├── pages/
+│   │       └── index.js
+│   ├── index.css         # Tailwind & global styles
+│   └── main.jsx          # App entry point with router & providers
+├── index.html
+├── tailwind.config.js
+├── postcss.config.js
+└── vite.config.js
+```
+
+<br />
+
+### ⚙️ Backend (Server-side)
+
+```text
+backend/                  # Node.js + Express.js Server
+├── src/
+│   ├── database/         # Database Configuration
+│   │   ├── models/       # Shared database models
+│   │   ├── connection.js # Mongoose connection helper
+│   │   ├── indexes.js    # Index audit utilities
+│   │   └── seed.js       # Local database seeder
+│   ├── modules/          # Feature-First Modules
+│   │   └── authentication/
+│   │       ├── controller/
+│   │       ├── service/
+│   │       ├── repository/
+│   │       ├── routes/
+│   │       ├── validator/
+│   │       ├── middleware/
+│   │       ├── helper/
+│   │       ├── dto/
+│   │       └── index.js  # Module entry point
+│   └── server.js         # Express application entry point
+├── .env
+└── .env.example
 ```
 
 ---
