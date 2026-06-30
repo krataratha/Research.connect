@@ -284,3 +284,201 @@ Stores professional details, institution details, publication metrics, and socia
     ```
 
 ---
+
+## 🚀 Development Roadmap
+
+Below is the complete 16-phase implementation roadmap for **Research Connect**, detailing the dependencies and execution order.
+
+### 🟢 Phase 1 — Foundation & Project Setup
+* **Objective**: Establish the core architecture, configurations, and boilerplate.
+* **Status**: `[x] Completed`
+* **Modules**:
+  - `[x]` Project Setup & Folder Structure
+  - `[x]` Git & Branch Configurations
+  - `[x]` Environment variables (`.env`)
+  - `[x]` MongoDB connection pools
+  - `[x]` Express server boilerplate
+  - `[x]` React + Vite client setup
+  - `[x]` Tailwind CSS v4 & Theme configuration
+  - `[x]` Global Redux Store (Redux Toolkit + Redux Persist)
+  - `[x]` Axios API client with interceptors
+  - `[x]` Global React Hot Toast system
+  - `[x]` Global `ProtectedRoute` component
+  - `[x]` Landing Page (Navbar, Hero, Stats, Features, Categories, FAQ, Footer)
+
+### 🔐 Phase 2 — Authentication & Authorization
+* **Objective**: Secure user authentication and role-based route guarding.
+* **Status**: `[x] Completed`
+* **Modules**:
+  - `[x]` User registration with secure password hashing
+  - `[x]` Login with JWT access & refresh token generation
+  - `[x]` Silent token refresh cycles (`httpOnly` cookies)
+  - `[x]` Email verification with token expiration
+  - `[x]` Forgot Password & Reset Password flows
+  - `[x]` Role-based authorization middleware (`protect`, `authorize`)
+  - `[x]` Remember Me session management
+  - `[x]` Safe logout (invalidating refresh tokens in DB)
+
+### 👤 Phase 3 — Researcher Profile
+* **Objective**: Complete academic and professional profile management.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Personal Information (Biography, Designation, Department)
+  - `[ ]` Academic Details & Institutional affiliation
+  - `[ ]` Profile & Cover photo uploads
+  - `[ ]` Education & Professional experience timelines
+  - `[ ]` Social & Research Links (ORCID, Google Scholar, Scopus, ResearchGate, LinkedIn)
+  - `[ ]` Research Metrics (Views, Citations, Reads, h-Index)
+  - `[ ]` Dynamic Profile Completion meter
+
+### 📄 Phase 4 — Publication Management
+* **Objective**: Implement research papers upload, indexing, and management.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Upload Publication (PDF, DOI, Abstract, Authors, Journal, Conference, Publisher)
+  - `[ ]` Edit & Delete publication metadata
+  - `[ ]` PDF parsing & metadata extraction
+  - `[ ]` Citation count tracking
+  - `[ ]` Publication type categorization (Journal, Conference, Book, Preprint)
+  - `[ ]` Advanced search and filtering (by author, date, journal)
+
+### 🏷️ Phase 5 — Research Areas & Keywords
+* **Objective**: Define academic expertise and keyword indexing.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Research Areas categorization
+  - `[ ]` Academic Keywords indexing
+  - `[ ]` AI-powered keyword extraction suggestions (Gemini API Integration)
+  - `[ ]` Trending keywords analysis
+  - `[ ]` Research tag management
+
+### 🔍 Phase 6 — Search Engine
+* **Objective**: Implement a high-performance global search engine.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Global unified search
+  - `[ ]` Researcher search (by name, skill, institution)
+  - `[ ]` Publication search (by title, abstract, DOI)
+  - `[ ]` Institutional directory search
+  - `[ ]` Advanced filters (country, department, journal impact)
+  - `[ ]` Server-side pagination & sorting
+
+### 🤝 Phase 7 — Collaboration System
+* **Objective**: Connect researchers for co-authoring and joint projects.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Collaboration Profile toggles ("Open for Collaboration", "Looking for Co-author")
+  - `[ ]` Collaboration Request (Send, Accept, Reject, Withdraw)
+  - `[ ]` Matching preferences (preferred countries, domains)
+  - `[ ]` Active and historical collaborations tracker
+
+### 📊 Phase 8 — Dashboard
+* **Objective**: Personal workspace for researchers to monitor metrics and actions.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Dashboard overview with key metrics (h-index, citations, views)
+  - `[ ]` Interactive charts for publication growth and citation trends
+  - `[ ]` Publications & Citations widget
+  - `[ ]` Active collaborations & pending requests widget
+  - `[ ]` Recent activities timeline & quick actions panel
+
+### 🌍 Phase 9 — Discovery Dashboard
+* **Objective**: Community explorer feed.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Recommended researchers to follow
+  - `[ ]` Trending research areas and popular keywords
+  - `[ ]` Top performing institutions
+  - `[ ]` Recently joined researchers list
+  - `[ ]` Popular and trending publications
+  - `[ ]` Open collaborations board
+
+### 🤖 Phase 10 — AI Recommendation System
+* **Objective**: Implement intelligent recommendation engines.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Similar Researcher recommendation engine
+  - `[ ]` Similar Publication recommender
+  - `[ ]` Semantic matching based on abstract analysis (Gemini embeddings)
+  - `[ ]` Common interests and co-author path matching
+  - `[ ]` Recommendation scoring and match percentage displays
+
+### 📈 Phase 11 — Analytics
+* **Objective**: In-depth analytics of research impact.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Profile views, paper views, and download counts tracking
+  - `[ ]` Citation analytics over time
+  - `[ ]` Research area distribution charts
+  - `[ ]` Collaboration network graphs
+  - `[ ]` Monthly PDF impact report generation
+
+### 📰 Phase 12 — Research Feed
+* **Objective**: Academic social feed.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Create posts with text, links, or file attachments
+  - `[ ]` Share publications directly to the feed
+  - `[ ]` Social interactions (Like, Comment, Share)
+  - `[ ]` Institutional announcements and research updates
+
+### ⚙️ Phase 13 — Settings
+* **Objective**: Account and preference management.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Account settings (email change, profile URL)
+  - `[ ]` Security settings (password change, 2FA)
+  - `[ ]` Privacy controls (profile visibility, metrics sharing)
+  - `[ ]` Dark / Light theme toggle
+  - `[ ]` Notification preferences (email & push)
+  - `[ ]` Account deletion / deactivation
+
+### 📧 Phase 14 — Email System
+* **Objective**: Transactional and notification email automation.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Welcome email on registration
+  - `[ ]` Verification & password reset templates
+  - `[ ]` Collaboration request & acceptance emails
+  - `[ ]` Weekly digest (citation updates, recommended papers)
+
+### 📂 Phase 15 — File Management
+* **Objective**: Scalable file upload and hosting system.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` Profile and cover photo uploads (Cloudinary)
+  - `[ ]` PDF publication uploads (Cloudinary / S3)
+  - `[ ]` File validations (size, mime-type, malware scan)
+  - `[ ]` Certificate and dataset uploads
+
+### 🌐 Phase 16 — Public API & Documentation
+* **Objective**: Standardized public API for external integrations.
+* **Status**: `[ ] Pending`
+* **Modules**:
+  - `[ ]` API versioning (`/api/v1`)
+  - `[ ]` Swagger / OpenAPI documentation
+  - `[ ]` API rate limiting & request throttling
+  - `[ ]` API request logging and audit trails
+
+---
+
+## 📋 Final Development Order
+
+| Phase | Module | Depends On | Status |
+| :---: | :--- | :--- | :---: |
+| **1** | **Foundation & Landing** | — | `🟢 Completed` |
+| **2** | **Authentication** | Phase 1 | `🟢 Completed` |
+| **3** | **Researcher Profile** | Phase 2 | `🟡 Pending` |
+| **4** | **Publication Management** | Phase 3 | `🟡 Pending` |
+| **5** | **Research Areas & Keywords** | Phase 4 | `🟡 Pending` |
+| **6** | **Search Engine** | Phase 5 | `🟡 Pending` |
+| **7** | **Collaboration System** | Phase 6 | `🟡 Pending` |
+| **8** | **Dashboard** | Phase 7 | `🟡 Pending` |
+| **9** | **Discovery Dashboard** | Phase 8 | `🟡 Pending` |
+| **10** | **AI Recommendation** | Phase 9 | `🟡 Pending` |
+| **11** | **Analytics** | Phase 10 | `🟡 Pending` |
+| **12** | **Research Feed** | Phase 11 | `🟡 Pending` |
+| **13** | **Settings** | Phase 12 | `🟡 Pending` |
+| **14** | **Email System** | Phase 13 | `🟡 Pending` |
+| **15** | **File Management** | Phase 14 | `🟡 Pending` |
+| **16** | **Public API & Documentation** | Phase 15 | `🟡 Pending` |
