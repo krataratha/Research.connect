@@ -432,32 +432,36 @@ export const syncGoogleScholarData = async (userId, scholarId, options = {}) => 
     const bulkOps = [];
 
     // Identify updates or inserts
-    for (const fetched of fetchedArticles) {
-      const existing = existingMap.get(fetched.hashSignature);
-      if (existing) {
-        // Update if citation count or other fields changed
-        if (existing.citationCount !== fetched.citationCount || existing.isDeleted) {
-          bulkOps.push({
-            updateOne: {
-              filter: { _id: existing._id },
-              update: {
-                citationCount: fetched.citationCount,
-                isDeleted: false,
-                scholarUrl: fetched.scholarUrl,
-                pdfUrl: fetched.pdfUrl,
-                researchArea: fetched.researchArea,
-                keywords: fetched.keywords,
-              }
-            }
-          });
+for (const fetched of fetchedArticles) {
+  const existing = existingMap.get(fetched.hashSignature);
+  if (existing) {
+    // Update if citation count or other fields changed
+    if (existing.citationCount !== fetched.citationCount || existing.isDeleted) {
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: existing._id },
+          update: {
+            citationCount: fetched.citationCount,
+            isDeleted: false,
+            scholarUrl: fetched.scholarUrl,
+            pdfUrl: fetched.pdfUrl,
+            researchArea: fetched.researchArea,
+            keywords: fetched.keywords,
+          }
         }
-      } else {
-        // Insert new synced publication
-        bulkOps.push({
-          insertOne: { document: fetched }
-        });
-      }
+      });
     }
+  } else {
+    // Upsert to prevent E11000 duplicate key on re-import
+    bulkOps.push({
+      updateOne: {
+        filter: { user: fetched.user, hashSignature: fetched.hashSignature },
+        update: { $setOnInsert: fetched },
+        upsert: true,
+      }
+    });
+  }
+}
 
     // Soft delete publications that were removed from Google Scholar (only if not doing a selective import)
     if (!selectedPubTitles) {
