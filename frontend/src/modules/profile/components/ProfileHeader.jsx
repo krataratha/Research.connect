@@ -32,7 +32,7 @@ const ProfileHeader = ({
   isOwnProfile = false, 
   onSync 
 }) => {
-  const defaultCover = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1000';
+  const defaultCover = 'https://iili.io/C7pZ8Ss.jpg';
   const coverInputRef = useRef(null);
 
   const handleCoverClick = () => {

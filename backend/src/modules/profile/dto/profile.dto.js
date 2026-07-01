@@ -12,7 +12,7 @@ class ProfileDTO {
       company: profile.company || '',
       division: profile.division || '',
       position: profile.position || '',
-      coverImage: profile.coverImage || '',
+      coverImage: profile.coverImage || 'https://iili.io/C7pZ8Ss.jpg',
       profileImage: profile.profileImage || '',
       researchSummary: profile.researchSummary || '',
       currentResearch: profile.currentResearch || '',

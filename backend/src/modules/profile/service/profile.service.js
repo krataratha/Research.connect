@@ -129,7 +129,7 @@ class ProfileService {
       bio: profile.bio || '',
       displayName: profile.displayName || user.fullName || '',
       headline: profile.headline || '',
-      coverImage: profile.coverImage || '',
+      coverImage: profile.coverImage || 'https://iili.io/C7pZ8Ss.jpg',
       profileImage: profile.profileImage || user.profileImage || '',
       country: profile.country || user.country || '',
       state: profile.state || '',

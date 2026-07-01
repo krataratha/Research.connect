@@ -27,7 +27,7 @@ const ProfileSchema = new Schema(
     },
     coverImage: {
       type: String,
-      default: ''
+      default: 'https://iili.io/C7pZ8Ss.jpg'
     },
     profileImage: {
       type: String,
