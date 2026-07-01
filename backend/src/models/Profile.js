@@ -33,6 +33,15 @@ const ProfileSchema = new Schema(
       type: String,
       default: ''
     },
+    dateOfBirth: {
+      type: String,
+      default: ''
+    },
+    nationality: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     country: {
       type: String,
       trim: true,

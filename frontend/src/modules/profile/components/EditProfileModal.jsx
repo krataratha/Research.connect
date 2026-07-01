@@ -17,6 +17,8 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
     bio: profile?.bio || '',
     coverImage: profile?.coverImage || '',
     profileImage: profile?.profileImage || '',
+    dateOfBirth: profile?.dateOfBirth || '',
+    nationality: profile?.nationality || '',
     country: profile?.country || '',
     state: profile?.state || '',
     city: profile?.city || '',
@@ -182,6 +184,8 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
                 <Input label="Country" value={formData.country} onChange={val => handleTextChange('country', val)} />
                 <Input label="State" value={formData.state} onChange={val => handleTextChange('state', val)} />
                 <Input label="City" value={formData.city} onChange={val => handleTextChange('city', val)} />
+                <Input label="Date of Birth" value={formData.dateOfBirth} onChange={val => handleTextChange('dateOfBirth', val)} type="date" />
+                <Input label="Nationality" value={formData.nationality} onChange={val => handleTextChange('nationality', val)} placeholder="e.g. Indian" />
                 <Input label="Availability / Status" value={formData.availability} onChange={val => handleTextChange('availability', val)} placeholder="e.g. Open for PhD positions starting Fall 2026" />
                 <Input label="Profile Photo URL" value={formData.profileImage} onChange={val => handleTextChange('profileImage', val)} />
                 <Input label="Cover Banner URL" value={formData.coverImage} onChange={val => handleTextChange('coverImage', val)} />

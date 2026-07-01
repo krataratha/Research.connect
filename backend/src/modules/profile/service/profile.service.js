@@ -97,7 +97,7 @@ class ProfileService {
     ]);
 
     // Build default Social Links if none exists
-    const socialLinks = socialLinksObj || {
+    const socialLinks = socialLinksObj || profile.socialLinks || {
       orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', github: '', scopus: ''
     };
 
@@ -131,6 +131,8 @@ class ProfileService {
       headline: profile.headline || '',
       coverImage: profile.coverImage || 'https://iili.io/C7pZ8Ss.jpg',
       profileImage: profile.profileImage || user.profileImage || '',
+      dateOfBirth: profile.dateOfBirth || '',
+      nationality: profile.nationality || '',
       country: profile.country || user.country || '',
       state: profile.state || '',
       city: profile.city || '',
@@ -489,6 +491,7 @@ class ProfileService {
     // 2. Update Core Profile Details
     const coreFields = [
       'bio', 'displayName', 'headline', 'coverImage', 'profileImage',
+      'dateOfBirth', 'nationality',
       'country', 'state', 'city', 'institution', 'department', 'designation',
       'organization', 'researchGroup', 'languages', 'availability',
       'openToCollaborate', 'openToMentor', 'openToResearch', 'emailVisibility',
@@ -553,6 +556,11 @@ class ProfileService {
         { ...updateData.socialLinks, userId },
         { upsert: true, new: true }
       );
+      profile.socialLinks = {
+        ...((profile.socialLinks && typeof profile.socialLinks.toObject === 'function') ? profile.socialLinks.toObject() : profile.socialLinks || {}),
+        ...updateData.socialLinks
+      };
+      await profile.save();
     }
 
     // 5. Update Metrics Override if supplied

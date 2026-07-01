@@ -5,6 +5,8 @@ class ProfileDTO {
       profileId: profile._id,
       userId: profile.userId,
       bio: profile.bio || '',
+      dateOfBirth: profile.dateOfBirth || '',
+      nationality: profile.nationality || '',
       country: profile.country || '',
       institution: profile.institution || '',
       department: profile.department || '',

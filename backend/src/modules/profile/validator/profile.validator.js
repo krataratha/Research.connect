@@ -90,6 +90,14 @@ const updateProfileValidator = [
     .optional()
     .trim()
     .isString(),
+  body('dateOfBirth')
+    .optional()
+    .trim()
+    .isString(),
+  body('nationality')
+    .optional()
+    .trim()
+    .isString(),
   body('coverImage')
     .optional()
     .trim()

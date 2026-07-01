@@ -20,6 +20,23 @@ class ResearchIdentityService {
       website: profile.socialLinks?.website || ''
     };
 
+    // Save fields into separate SocialLink collection to maintain compatibility
+    const SocialLink = require('../../../models/SocialLink');
+    await SocialLink.findOneAndUpdate(
+      { userId },
+      {
+        userId,
+        orcid: profile.socialLinks.orcid,
+        googleScholar: profile.socialLinks.googleScholar,
+        researchGate: profile.socialLinks.researchGate,
+        linkedin: profile.socialLinks.linkedin,
+        github: profile.socialLinks.github,
+        scopus: profile.socialLinks.scopus,
+        website: profile.socialLinks.website
+      },
+      { upsert: true, new: true }
+    );
+
     // Set user type as academic if they complete identities
     const user = await User.findById(userId);
     if (user && user.researcherType === 'non_researcher') {

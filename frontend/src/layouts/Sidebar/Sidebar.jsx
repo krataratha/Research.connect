@@ -53,7 +53,7 @@ const Sidebar = () => {
 
   return (
     <aside 
-      className={`bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 min-h-screen flex-col justify-between transition-all duration-300 relative z-30 hidden md:flex ${
+      className={`bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-[calc(100vh-65px)] sticky top-[65px] flex-col justify-between transition-all duration-300 z-30 hidden md:flex overflow-y-auto scrollbar-none ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >

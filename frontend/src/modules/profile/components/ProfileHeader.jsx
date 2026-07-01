@@ -14,7 +14,8 @@ import {
   Globe, 
   Database,
   Bookmark,
-  Camera
+  Camera,
+  HeartHandshake
 } from 'lucide-react';
 import ProfileAvatar from './ProfileAvatar';
 
@@ -94,22 +95,46 @@ const ProfileHeader = ({
       </div>
 
       {/* Profile Details Area */}
-      <div className="px-6 pb-6 pt-0 relative flex flex-col md:flex-row md:items-end gap-6 -mt-16 sm:-mt-20">
+      <div className="px-6 pb-6 pt-0 relative flex flex-col md:flex-row md:items-end gap-6">
         
-        {/* Avatar */}
-        <ProfileAvatar 
-          imageUrl={profile?.profileImage || user?.profileImage} 
-          onAvatarChange={onAvatarChange} 
-          editable={isOwnProfile}
-        />
+        {/* Avatar Wrapper with negative margin */}
+        <div className="-mt-14 sm:-mt-20 relative z-10">
+          <ProfileAvatar 
+            imageUrl={profile?.profileImage || user?.profileImage} 
+            onAvatarChange={onAvatarChange} 
+            editable={isOwnProfile}
+          />
+        </div>
 
         {/* Bio Details */}
-        <div className="flex-grow space-y-2 mt-4 md:mt-0">
+        <div className="flex-grow space-y-2 mt-4 md:mt-0 pt-2">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-black text-text-primary tracking-tight">
               {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`}
             </h2>
             <CheckCircle className="w-5 h-5 text-primary fill-primary/10" title="Verified Researcher" />
+          </div>
+
+          {/* Social Links Row directly under the name */}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {Object.entries(socialIcons).map(([key, config]) => {
+              const url = profile?.socialLinks?.[key];
+              if (!url) return null;
+              if (!['googleScholar', 'orcid', 'github', 'linkedin', 'scopus'].includes(key)) return null;
+              const Icon = config.icon;
+              return (
+                <a
+                  key={key}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-1.5 border border-border bg-white rounded-lg text-text-secondary transition-all hover:scale-105 ${config.color}`}
+                  title={config.label}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                </a>
+              );
+            })}
           </div>
 
           <p className="text-xs sm:text-sm font-bold text-primary">
@@ -124,6 +149,26 @@ const ProfileHeader = ({
           <div className="flex items-center gap-1.5 text-xs text-text-secondary font-semibold">
             <MapPin className="w-3.5 h-3.5" />
             <span>{profile?.country || user?.country || 'Global'}</span>
+          </div>
+
+          {/* Open to Opportunities Block */}
+          <div className="flex items-center gap-1.5 pt-1 text-xs text-text-secondary">
+            <HeartHandshake className="w-3.5 h-3.5 text-accent-indigo" />
+            <span className="font-extrabold uppercase text-[9px] tracking-wider text-text-secondary">Open to:</span>
+            <div className="flex flex-wrap gap-1">
+              {profile?.openToCollaborate && (
+                <span className="text-[9px] bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded-md">Collaborations</span>
+              )}
+              {profile?.openToMentor && (
+                <span className="text-[9px] bg-teal-50 border border-teal-100 text-teal-700 font-bold px-1.5 py-0.5 rounded-md">Mentorship</span>
+              )}
+              {profile?.openToResearch && (
+                <span className="text-[9px] bg-blue-50 border border-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded-md">Joint Research</span>
+              )}
+              {!profile?.openToCollaborate && !profile?.openToMentor && !profile?.openToResearch && (
+                <span className="text-[10px] text-text-secondary italic font-medium">None specified</span>
+              )}
+            </div>
           </div>
         </div>
 
