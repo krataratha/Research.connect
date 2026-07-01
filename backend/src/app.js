@@ -12,6 +12,8 @@ const errorHandlerMiddleware = require('./common/middlewares/errorHandler.middle
 
 // Import Modules
 const landingModule = require('./modules/landing');
+const authModule = require('./modules/auth');
+const profileModule = require('./modules/profile');
 
 const app = express();
 
@@ -40,6 +42,8 @@ app.use(responseFormatterMiddleware);
 
 // Mount API Modules
 app.use('/api', landingModule.routes);
+app.use('/api/v1/auth', authModule.routes);
+app.use('/api/v1/profile', profileModule.routes);
 
 // Default root redirect to /api
 app.get('/', (req, res) => {

@@ -7,7 +7,8 @@ const ProfileSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true
+      unique: true,
+      index: true
     },
     bio: {
       type: String,
@@ -34,7 +35,17 @@ const ProfileSchema = new Schema(
       trim: true,
       default: ''
     },
-    organization: {
+    company: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    division: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    position: {
       type: String,
       trim: true,
       default: ''
@@ -51,6 +62,17 @@ const ProfileSchema = new Schema(
       min: 0,
       max: 100,
       default: 0
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false
+    },
+    deletedAt: {
+      type: Date
+    },
+    deletedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
     }
   },
   {
@@ -58,7 +80,10 @@ const ProfileSchema = new Schema(
   }
 );
 
+// Indexes for searching specialists/universities
 ProfileSchema.index({ institution: 1 });
+ProfileSchema.index({ company: 1 });
+ProfileSchema.index({ isDeleted: 1 });
 
 const Profile = mongoose.model('Profile', ProfileSchema);
 

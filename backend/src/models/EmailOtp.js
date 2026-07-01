@@ -7,7 +7,8 @@ const EmailOtpSchema = new Schema(
       type: String,
       required: true,
       lowercase: true,
-      trim: true
+      trim: true,
+      index: true
     },
     otp: {
       type: String,
@@ -15,21 +16,46 @@ const EmailOtpSchema = new Schema(
     },
     purpose: {
       type: String,
-      enum: ['email_verification', 'password_reset'],
-      required: true
+      required: true,
+      enum: ['registration', 'login', 'forgot_password']
+    },
+    attempts: {
+      type: Number,
+      default: 0
     },
     expiresAt: {
       type: Date,
       required: true
+    },
+    expiry: {
+      type: Date
+    },
+    verified: {
+      type: Boolean,
+      default: false
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false
     }
   },
   {
-    timestamps: { createdAt: true, updatedAt: false }
+    timestamps: true
   }
 );
 
+EmailOtpSchema.pre('save', function (next) {
+  if (this.expiresAt && !this.expiry) {
+    this.expiry = this.expiresAt;
+  } else if (this.expiry && !this.expiresAt) {
+    this.expiresAt = this.expiry;
+  }
+  next();
+});
+
 EmailOtpSchema.index({ email: 1, purpose: 1 });
-EmailOtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // Auto-delete on expiry
+EmailOtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // Auto-expire from DB
+EmailOtpSchema.index({ isDeleted: 1 });
 
 const EmailOtp = mongoose.model('EmailOtp', EmailOtpSchema);
 

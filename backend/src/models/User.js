@@ -13,6 +13,10 @@ const UserSchema = new Schema(
       required: [true, 'Last name is required'],
       trim: true
     },
+    fullName: {
+      type: String,
+      trim: true
+    },
     email: {
       type: String,
       required: [true, 'Email is required'],
@@ -29,25 +33,59 @@ const UserSchema = new Schema(
     },
     phone: {
       type: String,
-      trim: true
+      trim: true,
+      default: ''
     },
     role: {
       type: String,
       enum: ['researcher', 'admin'],
       default: 'researcher'
     },
+    researcherType: {
+      type: String,
+      enum: ['academic', 'corporate', 'medical', 'non_researcher'],
+      default: 'non_researcher'
+    },
+    organizationType: {
+      type: String,
+      enum: ['institution', 'company', 'hospital', 'organization'],
+      default: 'organization'
+    },
     status: {
       type: String,
       enum: ['pending', 'active', 'suspended'],
-      default: 'active'
+      default: 'pending'
     },
-    isActive: {
+    emailVerified: {
       type: Boolean,
-      default: true
+      default: false
     },
     isVerified: {
       type: Boolean,
       default: false
+    },
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    isBlocked: {
+      type: Boolean,
+      default: false
+    },
+    loginAttempts: {
+      type: Number,
+      default: 0
+    },
+    lastLogin: {
+      type: Date
+    },
+    lastLoginIP: {
+      type: String,
+      default: ''
+    },
+    lastLoginDevice: {
+      type: String,
+      default: ''
     },
     profileImage: {
       type: String,
@@ -55,7 +93,19 @@ const UserSchema = new Schema(
     },
     country: {
       type: String,
-      trim: true
+      trim: true,
+      default: ''
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false
+    },
+    deletedAt: {
+      type: Date
+    },
+    deletedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
     }
   },
   {
@@ -63,8 +113,24 @@ const UserSchema = new Schema(
   }
 );
 
+// Pre-save hook to populate fullName and sync verified fields
+UserSchema.pre('save', function (next) {
+  if (this.isModified('firstName') || this.isModified('lastName')) {
+    this.fullName = `${this.firstName} ${this.lastName}`.trim();
+  }
+  if (this.isModified('emailVerified')) {
+    this.isVerified = this.emailVerified;
+  } else if (this.isModified('isVerified')) {
+    this.emailVerified = this.isVerified;
+  }
+  next();
+});
+
 // Indexes
-UserSchema.index({ createdAt: 1 });
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ status: 1 });
+UserSchema.index({ isDeleted: 1 });
+UserSchema.index({ createdAt: -1 });
 
 const User = mongoose.model('User', UserSchema);
 

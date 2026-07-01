@@ -6,6 +6,20 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import LandingPage from '../modules/landing';
 import ComingSoon from '../components/common/ComingSoon';
 
+// Guards
+import ProtectedRoute from './ProtectedRoute';
+import PublicRoute from './PublicRoute';
+
+// Pages
+import LoginPage from '../modules/auth/pages/LoginPage';
+import RegisterPage from '../modules/auth/pages/RegisterPage';
+import OtpVerificationPage from '../modules/auth/pages/OtpVerificationPage';
+import ForgotPasswordPage from '../modules/auth/pages/ForgotPasswordPage';
+import ResetPasswordPage from '../modules/auth/pages/ResetPasswordPage';
+import SuccessPage from '../modules/auth/pages/SuccessPage';
+import DashboardPage from '../modules/dashboard/pages/DashboardPage';
+import ProfilePage from '../modules/profile/pages/ProfilePage';
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -16,14 +30,46 @@ const AppRoutes = () => {
 
       {/* Authentication Layout */}
       <Route element={<AuthLayout />}>
-        <Route path="login" element={<ComingSoon title="Authentication Login Coming Soon" />} />
-        <Route path="register" element={<ComingSoon title="Authentication Register Coming Soon" />} />
+        <Route path="login" element={
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
+        } />
+        <Route path="register" element={
+          <PublicRoute>
+            <RegisterPage />
+          </PublicRoute>
+        } />
+        <Route path="otp" element={
+          <PublicRoute>
+            <OtpVerificationPage />
+          </PublicRoute>
+        } />
+        <Route path="forgot-password" element={
+          <PublicRoute>
+            <ForgotPasswordPage />
+          </PublicRoute>
+        } />
+        <Route path="reset-password" element={
+          <PublicRoute>
+            <ResetPasswordPage />
+          </PublicRoute>
+        } />
+        <Route path="success" element={
+          <PublicRoute>
+            <SuccessPage />
+          </PublicRoute>
+        } />
       </Route>
 
       {/* Dashboard & Modules Layout */}
-      <Route element={<DashboardLayout />}>
-        <Route path="dashboard" element={<ComingSoon title="Research Dashboard Coming Soon" />} />
-        <Route path="profile" element={<ComingSoon title="Researcher Profile Coming Soon" />} />
+      <Route element={
+        <ProtectedRoute>
+          <DashboardLayout />
+        </ProtectedRoute>
+      }>
+        <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="profile" element={<ProfilePage />} />
         <Route path="publication" element={<ComingSoon title="Publication Management Coming Soon" />} />
         <Route path="search" element={<ComingSoon title="Research Discovery Search Coming Soon" />} />
         <Route path="settings" element={<ComingSoon title="System Settings Coming Soon" />} />

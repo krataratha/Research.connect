@@ -6,7 +6,8 @@ const SessionSchema = new Schema(
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: true,
+      index: true
     },
     browser: {
       type: String,
@@ -15,6 +16,14 @@ const SessionSchema = new Schema(
     device: {
       type: String,
       default: 'Unknown'
+    },
+    os: {
+      type: String,
+      default: 'Unknown'
+    },
+    ip: {
+      type: String,
+      default: ''
     },
     ipAddress: {
       type: String,
@@ -31,10 +40,23 @@ const SessionSchema = new Schema(
     logoutTime: {
       type: Date
     },
+    rememberMe: {
+      type: Boolean,
+      default: false
+    },
+    active: {
+      type: Boolean,
+      default: true,
+      index: true
+    },
     status: {
       type: String,
       enum: ['active', 'expired', 'revoked'],
       default: 'active'
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false
     }
   },
   {
@@ -42,7 +64,22 @@ const SessionSchema = new Schema(
   }
 );
 
-SessionSchema.index({ userId: 1, status: 1 });
+SessionSchema.pre('save', function (next) {
+  if (this.isModified('active')) {
+    this.status = this.active ? 'active' : 'revoked';
+  } else if (this.isModified('status')) {
+    this.active = this.status === 'active';
+  }
+  if (this.isModified('ip') && !this.ipAddress) {
+    this.ipAddress = this.ip;
+  } else if (this.isModified('ipAddress') && !this.ip) {
+    this.ip = this.ipAddress;
+  }
+  next();
+});
+
+SessionSchema.index({ userId: 1, active: 1 });
+SessionSchema.index({ isDeleted: 1 });
 
 const Session = mongoose.model('Session', SessionSchema);
 
