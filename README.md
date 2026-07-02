@@ -5,7 +5,9 @@ An enterprise-grade, production-ready **AI-Powered Research Discovery & Collabor
 This documentation describes the foundation structure, system architecture, database models, and setup procedures established through **Phase 1**.
 
 ### 📖 Technical Documentation Guides
+
 For in-depth explanations of specific features, refer to:
+
 - [Architecture Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/architecture_guide.md) — System layers, security mechanisms, and background jobs.
 - [Folder Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/folder_guide.md) — Codebase layouts and file conventions.
 - [Coding Standards & Guidelines](file:///c:/Users/codew/Downloads/Research.connect/docs/coding_standards.md) — Coding conventions, repository, and service rules.
@@ -182,6 +184,7 @@ Refer to [.agents/AGENTS.md](file:///c:/Users/codew/Downloads/Research.connect/.
 ## 🗄️ Database Schemas & Collection Blueprints
 
 For a complete breakdown of all 46 Mongoose collections, refer to the [Database Schema Documentation](file:///c:/Users/codew/Downloads/Research.connect/database_schema.md). Key collections include:
+
 - **`users`**: Auth credentials, account status, role flags.
 - **`profiles`**: Biography, social links, institutional affiliations.
 - **`google_scholar_profiles`**: Cached Google Scholar API metrics (citations, h-index, etc.).
@@ -195,6 +198,7 @@ For a complete breakdown of all 46 Mongoose collections, refer to the [Database 
 ## ⚙️ Generic CRUD Repository Engine
 
 All repositories inherit from `BaseRepository` ([base.repository.js](file:///c:/Users/codew/Downloads/Research.connect/backend/src/common/repository/base.repository.js)), which provides standard database controls:
+
 - `create(data)` & `bulkInsert(dataArray)`
 - `findById(id, populate, select)` & `findOne(filter, populate, select)`
 - `find(filter, queryOptions, populate)` (supports sorting, pagination, and regex search)
@@ -210,11 +214,14 @@ Similarly, all business services can inherit from `BaseService` ([base.service.j
 ## 🚀 Installation & Quickstart
 
 ### Prerequisites
+
 - Node.js (v18+)
 - MongoDB (Local instance or Atlas connection string)
 
 ### 1. Configure Environment Variables
+
 Create a `.env` file in the `backend/` directory using the keys in `.env.example`:
+
 ```env
 PORT=5000
 NODE_ENV=development
@@ -229,6 +236,7 @@ SERP_API_KEY=your_serp_api_key_here
 ```
 
 ### 2. Install Packages
+
 ```bash
 # Install backend packages
 cd backend
@@ -240,13 +248,16 @@ npm install
 ```
 
 ### 3. Seed Database
+
 Run the seeder script to initialize default indices and load testing profile data:
+
 ```bash
 cd ../backend
 npm run seed
 ```
 
 ### 4. Run Development Servers
+
 ```bash
 # Launch backend (from backend/)
 npm run dev
@@ -262,6 +273,7 @@ npm run dev
 All system details are accessible using versioned endpoints under `/api`:
 
 ### 1. Public Base Endpoints (`/api/*`)
+
 - **GET `/api`**: Welcome message, check online state.
 - **GET `/api/health`**: Server health metrics and system uptime.
 - **GET `/api/database`**: MongoDB connection status and pool size.
@@ -269,6 +281,7 @@ All system details are accessible using versioned endpoints under `/api`:
 - **GET `/api/categories`**: Lists active academic disciplines and paper distributions.
 
 ### 2. Authentication Endpoints (`/api/v1/auth/*`)
+
 - **POST `/register`**: Creates a pending account, hashes password, and triggers email verification OTP.
 - **POST `/send-registration-otp`**: Resends email verification code (60s cooldown limit).
 - **POST `/verify-registration-otp`**: Verifies registration code, activates account, and issues access & refresh tokens.
@@ -283,11 +296,13 @@ All system details are accessible using versioned endpoints under `/api`:
 - **GET `/me`**: Returns current logged-in user details and profile.
 
 ### 3. Profile Endpoints (`/api/v1/profile/*`)
+
 - **GET `/`**: Returns current authenticated researcher's profile.
 - **PUT `/` or PATCH `/`**: Updates profile bio, skills, social links, and affiliation, recalculating `profileCompletion` score.
 - **DELETE `/`**: Soft deletes profile and user record.
 
 ### 4. Google Scholar Integration Endpoints (`/api/v1/*`)
+
 - **POST `/research-identity`**: Saves research identity profiles (e.g. ORCID, Google Scholar, ResearchGate, LinkedIn, GitHub).
 - **POST `/scholar/import`**: Enqueues a background job via SerpAPI to import Google Scholar metrics and publications (rate-limited).
 - **POST `/scholar/reimport`**: Forces a fresh re-import of Google Scholar profile metrics.
@@ -300,6 +315,7 @@ All system details are accessible using versioned endpoints under `/api`:
 - **GET `/scholar/analytics`**: Get citation trends and research area distribution.
 
 ### 5. Research Feed & Social Endpoints (`/api/v1/*`)
+
 - **GET `/feed`**: Returns personalized research publication feed.
 - **GET `/feed/trending` / `/feed/recommended` / `/feed/latest` / `/feed/following`**: Feeds filtered by citation rate, AI recommendation models, recent date, and followed users.
 - **GET `/home`**: Summary view of feed, suggested profiles, and trending analytics.
@@ -319,3 +335,13 @@ All system details are accessible using versioned endpoints under `/api`:
 - **GET `/publication/:id/similar`**: Fetch structurally or semantically similar publications.
 - **POST `/publication/ai-summary`**: Generates an AI-powered summary of the publication.
 - **GET `/search`**: Global text search across publications, users, and tags.
+
+### 6. Message Endpoints (`/api/v1/messages/*`)
+
+- **POST `/messages/conversations`**: Creates a direct conversation with another researcher.
+- **GET `/messages/conversations`**: Lists the authenticated user's conversations.
+- **GET `/messages/conversations/:conversationId/messages`**: Retrieves message history for a conversation.
+- **POST `/messages/conversations/:conversationId/messages`**: Sends a new message in a conversation.
+- **POST `/messages/conversations/:conversationId/read`**: Marks all unread messages in a conversation as read.
+- **GET `/messages/unread-count`**: Returns the count of unread messages for the authenticated user.
+- **DELETE `/messages/:messageId`**: Deletes a sent message.
