@@ -22,6 +22,14 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.VITE_API_BASE_URL || 'http://127.0.0.1:5000',
           changeOrigin: true,
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('[Vite Proxy Error]: Backend server might be offline.', err.message);
+            });
+            proxy.on('proxyReq', (proxyReq, _req, _res) => {
+              proxyReq.removeHeader('cookie');
+            });
+          }
         },
       },
     },

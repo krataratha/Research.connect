@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { ArrowLeft, ArrowRight, Save, Send, Loader2 } from 'lucide-react';
@@ -24,6 +25,7 @@ const PublicationCreatePage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useSelector((state) => state.auth);
+  const queryClient = useQueryClient();
 
   // States
   const [step, setStep] = useState(1);
@@ -215,6 +217,12 @@ const PublicationCreatePage = () => {
       const response = await publicationService.saveDraft(formData);
       if (response.success) {
         toast.success('Draft saved successfully!', { id: loadingToast });
+        
+        // Invalidate React Query caches to trigger updates
+        queryClient.invalidateQueries({ queryKey: ['publications-portfolio'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+        queryClient.invalidateQueries({ queryKey: ['feed'] });
+
         // Redirect to profile or draft manager
         navigate(user?.profileSlug ? `/profile/${user.profileSlug}` : '/profile');
       } else {
@@ -242,11 +250,18 @@ const PublicationCreatePage = () => {
     const loadingToast = toast.loading('Publishing research in progress...');
     try {
       const response = await publicationService.createPublication(formData);
-      if (response.success) {
+      if (response.success && response.data) {
         toast.success('Research paper published successfully!', { id: loadingToast });
+        
+        // Invalidate React Query caches to trigger updates
+        queryClient.invalidateQueries({ queryKey: ['publications-portfolio'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+        queryClient.invalidateQueries({ queryKey: ['feed'] });
+
         // Redirect to the generated SEO friendly slug page
+        const targetSlug = response.data.slug;
         setTimeout(() => {
-          navigate(`/publication/${response.data.slug}`);
+          navigate(`/publication/${targetSlug}`);
         }, 1000);
       } else {
         toast.error(response.message || 'Failed to publish research.', { id: loadingToast });

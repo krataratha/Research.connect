@@ -64,7 +64,36 @@ class FeedRepository extends BaseRepository {
   }
 
   async deletePublication(id) {
-    return await Publication.findByIdAndUpdate(id, { isDeleted: true, deletedAt: new Date() }, { new: true });
+    const PublicationAuthor = require('../../../models/PublicationAuthor');
+    const PublicationFile = require('../../../models/PublicationFile');
+    const PublicationKeyword = require('../../../models/PublicationKeyword');
+    const PublicationResearchArea = require('../../../models/PublicationResearchArea');
+    const PublicationMetric = require('../../../models/PublicationMetric');
+    const PublicationAnalytic = require('../../../models/PublicationAnalytic');
+    const PublicationView = require('../../../models/PublicationView');
+    const PublicationDownload = require('../../../models/PublicationDownload');
+    const PublicationBookmark = require('../../../models/PublicationBookmark');
+    const PublicationComment = require('../../../models/PublicationComment');
+    const PublicationHistory = require('../../../models/PublicationHistory');
+    const PublicationMetadata = require('../../../models/PublicationMetadata');
+    const PublicationReader = require('../../../models/PublicationReader');
+
+    await Publication.deleteOne({ _id: id });
+    await PublicationFile.deleteMany({ publicationId: id });
+    await PublicationAuthor.deleteMany({ publicationId: id });
+    await PublicationKeyword.deleteMany({ publicationId: id });
+    await PublicationResearchArea.deleteMany({ publicationId: id });
+    await PublicationMetric.deleteMany({ publicationId: id });
+    await PublicationAnalytic.deleteMany({ publicationId: id });
+    await PublicationView.deleteMany({ publicationId: id });
+    await PublicationDownload.deleteMany({ publicationId: id });
+    await PublicationBookmark.deleteMany({ publicationId: id });
+    await PublicationComment.deleteMany({ publicationId: id });
+    await PublicationHistory.deleteMany({ publicationId: id });
+    if (PublicationMetadata) await PublicationMetadata.deleteMany({ publicationId: id });
+    if (PublicationReader) await PublicationReader.deleteMany({ publicationId: id });
+
+    return { _id: id };
   }
 
   async getPublicationById(id) {

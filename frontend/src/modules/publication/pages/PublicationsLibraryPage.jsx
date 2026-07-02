@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import publicationService from '../../../services/publication.service';
 import profileService from '../../../services/profile.service';
+import PDFReader from '../components/PDFReader';
 
 const PublicationsLibraryPage = () => {
   const { profileSlug } = useParams();
@@ -36,6 +37,9 @@ const PublicationsLibraryPage = () => {
   const [selectedPubComments, setSelectedPubComments] = useState(null);
   // Delete confirmation modal state
   const [deleteConfirmPub, setDeleteConfirmPub] = useState(null);
+  // Selected Publication for Reader Modal
+  const [activeReadPub, setActiveReadPub] = useState(null);
+  const [isReadingLoading, setIsReadingLoading] = useState(false);
 
   // 1. Fetch profile to check ownership & get metrics
   const { data: profileRes, isLoading: isProfileLoading } = useQuery({
@@ -99,6 +103,28 @@ const PublicationsLibraryPage = () => {
     }
   };
 
+  // Open Publication Reader in Modal
+  const handleReadClick = async (pub) => {
+    if (isReadingLoading) return;
+    setIsReadingLoading(true);
+    const readToast = toast.loading('Opening publication reader...');
+    try {
+      const slugOrId = pub.slug && pub.slug !== 'undefined' ? pub.slug : (pub.id || pub._id);
+      const res = await publicationService.getPublicationForReader(slugOrId);
+      if (res.success && res.data) {
+        setActiveReadPub(res.data);
+        toast.dismiss(readToast);
+      } else {
+        toast.error('Failed to load publication document.', { id: readToast });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Error opening reader: ' + (err.message || 'Unknown error'), { id: readToast });
+    } finally {
+      setIsReadingLoading(false);
+    }
+  };
+
   // CSV Export Handler
   const handleCSVExport = () => {
     if (publications.length === 0) {
@@ -135,18 +161,12 @@ const PublicationsLibraryPage = () => {
   };
 
   // Delete/Trash Handler
-  const handleDeleteClick = (pub) => {
-    setDeleteConfirmPub(pub);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deleteConfirmPub) return;
-    const deleteToast = toast.loading(deleteConfirmPub.isDeleted ? 'Deleting permanently...' : 'Moving to Trash...');
+  const handleDeleteClick = async (pub) => {
+    const deleteToast = toast.loading('Deleting publication...');
     try {
-      const res = await publicationService.deletePublication(deleteConfirmPub.id || deleteConfirmPub._id);
+      const res = await publicationService.deletePublication(pub.id || pub._id);
       if (res.success) {
-        toast.success(deleteConfirmPub.isDeleted ? 'Publication deleted permanently!' : 'Publication moved to Trash. Restore within 30 days.', { id: deleteToast });
-        setDeleteConfirmPub(null);
+        toast.success('Publication deleted permanently!', { id: deleteToast });
         refetch();
       } else {
         toast.error('Delete failed.', { id: deleteToast });
@@ -432,7 +452,7 @@ const PublicationsLibraryPage = () => {
                     </div>
 
                     <div className="space-y-1">
-                      <h3 className="text-sm font-extrabold text-slate-900 leading-snug line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer" onClick={() => navigate(`/publication/${pub.slug}`)}>
+                      <h3 className="text-sm font-extrabold text-slate-900 leading-snug line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer" onClick={() => handleReadClick(pub)}>
                         {pub.title}
                       </h3>
                       <p className="text-[11px] text-slate-400 font-semibold truncate">
@@ -468,7 +488,7 @@ const PublicationsLibraryPage = () => {
                   <div className="border-t border-slate-100 pt-4 mt-5 flex items-center justify-between flex-wrap gap-2 text-xs">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => navigate(`/publication/${pub.slug}`)}
+                        onClick={() => handleReadClick(pub)}
                         className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50/80 hover:bg-blue-50 px-3.5 py-1.5 rounded-xl transition-all active:scale-[0.98]"
                       >
                         Read
@@ -630,46 +650,133 @@ const PublicationsLibraryPage = () => {
         </div>
       )}
 
-      {/* Delete / Trash Confirmation Modal */}
-      {deleteConfirmPub && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden flex flex-col p-6 space-y-4"
-          >
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto border border-rose-100">
-                <Trash2 className="w-6 h-6" />
-              </div>
-              <h3 className="font-extrabold text-slate-900 text-sm">
-                {deleteConfirmPub.isDeleted ? 'Permanently Delete Publication?' : 'Move Publication to Trash?'}
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                {deleteConfirmPub.isDeleted 
-                  ? `Are you sure you want to permanently delete "${deleteConfirmPub.title}"? This action is irreversible.`
-                  : `Are you sure you want to move "${deleteConfirmPub.title}" to trash? You can restore it anytime within 30 days.`}
-              </p>
-            </div>
 
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                onClick={() => setDeleteConfirmPub(null)}
-                className="flex-grow bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="flex-grow bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 rounded-xl transition-colors shadow-sm active:scale-[0.98]"
-              >
-                {deleteConfirmPub.isDeleted ? 'Permanently Delete' : 'Move to Trash'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+
+      {/* 5. Reader Modal / Pop Window */}
+      <AnimatePresence>
+        {activeReadPub && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 sm:p-6 lg:p-10">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="bg-slate-50 w-full max-w-7xl h-[85vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-slate-200 relative text-left"
+            >
+              {/* Header bar */}
+              <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                <div className="space-y-1">
+                  <span className="inline-flex items-center text-[9px] font-extrabold tracking-wider uppercase bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded">
+                    {activeReadPub.publicationType || 'RESEARCH ARTICLE'}
+                  </span>
+                  <h2 className="text-sm sm:text-base font-extrabold text-slate-900 truncate max-w-2xl" title={activeReadPub.title}>
+                    {activeReadPub.title}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setActiveReadPub(null)}
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Main Content Areas */}
+              <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                {/* Left Column: Reader */}
+                <div className="lg:col-span-2 h-full min-h-[450px]">
+                  {activeReadPub.cloudinaryFileUrl ? (
+                    <PDFReader
+                      title={activeReadPub.title}
+                      pdfUrl={activeReadPub.cloudinaryFileUrl}
+                      authors={activeReadPub.authors}
+                      journal={activeReadPub.publication || activeReadPub.journal}
+                      year={activeReadPub.year}
+                      doi={activeReadPub.doi}
+                      onDownload={() => handleDownload(activeReadPub)}
+                    />
+                  ) : (
+                    <div className="h-full min-h-[400px] bg-white border border-slate-200 rounded-3xl p-12 text-center flex flex-col items-center justify-center gap-3">
+                      <FileText className="w-12 h-12 text-slate-350 mx-auto" />
+                      <h3 className="text-sm font-extrabold text-slate-800">No Document File Attached</h3>
+                      <p className="text-xs text-slate-400 max-w-xs leading-normal">
+                        This publication was published as metadata-only. Full text PDF is not available.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Metadata Details */}
+                <div className="lg:col-span-1 space-y-6">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-6">
+                    {/* Authors */}
+                    <div className="space-y-2">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Authors</h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {activeReadPub.authorsList && activeReadPub.authorsList.length > 0 ? (
+                          activeReadPub.authorsList.map((author, index) => (
+                            <span
+                              key={index}
+                              className="bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1 text-[10px] font-semibold text-slate-700 flex items-center gap-1"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                              <span>{author.name}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-600 font-semibold">{activeReadPub.authors}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Abstract */}
+                    {activeReadPub.abstract && (
+                      <div className="space-y-1.5">
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Abstract</h4>
+                        <p className="text-xs text-slate-600 leading-relaxed text-justify max-h-[220px] overflow-y-auto pr-1">
+                          {activeReadPub.abstract}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Metadata Table */}
+                    <div className="border-t border-slate-100 pt-4 space-y-3">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Metadata Details</h4>
+                      <div className="space-y-2 text-xs">
+                        {activeReadPub.publicationCode && (
+                          <div>
+                            <span className="block text-[9px] text-slate-400 uppercase font-bold">Publication ID</span>
+                            <span className="font-bold text-slate-800 block mt-0.5">{activeReadPub.publicationCode}</span>
+                          </div>
+                        )}
+
+                        <div>
+                          <span className="block text-[9px] text-slate-400 uppercase font-bold">Visibility</span>
+                          <span className="font-bold text-slate-800 block mt-0.5">{activeReadPub.visibility || 'Public'}</span>
+                        </div>
+
+                        {(activeReadPub.publication || activeReadPub.journal) && (
+                          <div>
+                            <span className="block text-[9px] text-slate-400 uppercase font-bold">Journal/Venue</span>
+                            <span className="font-bold text-slate-800 block mt-0.5 truncate">{activeReadPub.publication || activeReadPub.journal}</span>
+                          </div>
+                        )}
+
+                        {activeReadPub.doi && (
+                          <div>
+                            <span className="block text-[9px] text-slate-400 uppercase font-bold">DOI</span>
+                            <span className="font-bold text-blue-600 block mt-0.5 select-all">{activeReadPub.doi}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

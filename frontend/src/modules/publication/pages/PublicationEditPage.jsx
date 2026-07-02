@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { 
   ArrowLeft, ArrowRight, Save, Send, Loader2 
@@ -27,6 +27,7 @@ const PublicationEditPage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useSelector((state) => state.auth);
+  const queryClient = useQueryClient();
 
   // States
   const [step, setStep] = useState(4); // Default to Step 4 since we are editing existing details
@@ -193,6 +194,14 @@ const PublicationEditPage = () => {
       
       if (response.success) {
         toast.success('Draft updated successfully!', { id: loadingToast });
+        
+        // Invalidate react-query cache keys
+        queryClient.invalidateQueries({ queryKey: ['publications-portfolio'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+        queryClient.invalidateQueries({ queryKey: ['feed'] });
+        queryClient.invalidateQueries({ queryKey: ['publication', slug] });
+        queryClient.invalidateQueries({ queryKey: ['publication-edit', slug] });
+
         navigate(`/profile/${currentUser.profileSlug}/publications`);
       } else {
         toast.error(response.message || 'Failed to update draft.', { id: loadingToast });
@@ -212,9 +221,18 @@ const PublicationEditPage = () => {
       const submitData = prepareSubmitData('published');
       const response = await publicationService.updatePublication(formData.id, submitData);
       
-      if (response.success) {
+      if (response.success && response.data) {
         toast.success('Research updated and published successfully!', { id: loadingToast });
-        navigate(`/profile/${currentUser.profileSlug}/publications`);
+        
+        // Invalidate react-query cache keys
+        queryClient.invalidateQueries({ queryKey: ['publications-portfolio'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+        queryClient.invalidateQueries({ queryKey: ['feed'] });
+        queryClient.invalidateQueries({ queryKey: ['publication', slug] });
+        queryClient.invalidateQueries({ queryKey: ['publication-edit', slug] });
+
+        const targetSlug = response.data.slug;
+        navigate(`/publication/${targetSlug}`);
       } else {
         toast.error(response.message || 'Failed to update research.', { id: loadingToast });
       }

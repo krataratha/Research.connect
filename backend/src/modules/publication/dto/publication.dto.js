@@ -44,6 +44,7 @@ class PublicationDTO {
       readingTime: pubObj.readingTime || 5,
       researchScore: pubObj.researchScore || 0,
       metrics: pubObj.metrics || null,
+      publicationCode: pubObj.publicationCode || '',
       createdAt: pubObj.createdAt,
       updatedAt: pubObj.updatedAt
     };

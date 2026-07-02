@@ -2,31 +2,27 @@
  * Generate an SEO-friendly slug with a unique random suffix to avoid collisions and hide ObjectIds.
  * E.g., "Deep Learning for Healthcare" -> "deep-learning-for-healthcare-rp_A8X2KD"
  */
+const slugify = require('slugify');
+const { nanoid } = require('nanoid');
+
+/**
+ * Generate an SEO-friendly slug with a unique random suffix to avoid collisions and hide ObjectIds.
+ * E.g., "Deep Learning for Healthcare" -> "deep-learning-for-healthcare-rp_A8X2KD"
+ */
 const generateSlug = (title) => {
-  if (!title) return '';
+  const titleText = title ? title.toString() : 'research-paper';
 
-  // 1. Slugify the title
-  let slug = title
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')           // Replace spaces with -
-    .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
-    .replace(/\-\-+/g, '-')         // Replace multiple - with single -
-    .replace(/^-+/, '')             // Trim - from start of text
-    .replace(/-+$/, '');            // Trim - from end of text
+  const titleSlug = slugify(titleText, {
+    lower: true,
+    strict: true,
+    trim: true
+  });
 
-  if (!slug) slug = 'research-item';
+  // Limit title slug to around 80 characters, and clean trailing hyphens
+  const cleanTitleSlug = titleSlug.substring(0, 80).replace(/-+$/, '') || 'research-paper';
 
-  // 2. Generate random 6-character uppercase alphanumeric string
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let suffix = '';
-  for (let i = 0; i < 6; i++) {
-    suffix += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-
-  // 3. Combine with the prompt's suffix format: -rp_[suffix]
-  return `${slug}-rp_${suffix}`;
+  // Append a 6-character unique ID
+  return `${cleanTitleSlug}-${nanoid(6)}`;
 };
 
 module.exports = {

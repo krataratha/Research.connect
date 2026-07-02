@@ -20,6 +20,12 @@ const PublicationSchema = new Schema(
       sparse: true,
       index: true
     },
+    publicationCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true
+    },
     title: {
       type: String,
       required: true,
@@ -207,13 +213,46 @@ const PublicationSchema = new Schema(
   }
 );
 
-PublicationSchema.pre('save', function (next) {
+PublicationSchema.pre('save', async function (next) {
   if (this.doi === '' || this.doi === null) {
     this.doi = undefined;
   }
   if (this.googleScholarPublicationId === '' || this.googleScholarPublicationId === null) {
     this.googleScholarPublicationId = undefined;
   }
+
+  // 1. Auto-generate slug if not present
+  if (!this.slug && this.title) {
+    const { generateSlug } = require('../modules/publication/helper/slug.helper');
+    this.slug = generateSlug(this.title);
+  }
+
+  // 2. Auto-generate publicationCode (RC-YYYY-XXXXXXX) if not present
+  if (!this.publicationCode) {
+    const currentYear = new Date().getFullYear();
+    try {
+      const count = await mongoose.model('Publication').countDocuments({
+        createdAt: {
+          $gte: new Date(`${currentYear}-01-01`),
+          $lte: new Date(`${currentYear}-12-31T23:59:59.999Z`)
+        }
+      });
+      const seq = String(count + 1).padStart(7, '0');
+      let code = `RC-${currentYear}-${seq}`;
+
+      // Check if it already exists to prevent duplicate key errors in high concurrency
+      const existing = await mongoose.model('Publication').findOne({ publicationCode: code });
+      if (existing) {
+        const randomSuffix = Math.floor(100 + Math.random() * 900);
+        code = `RC-${currentYear}-${seq}-${randomSuffix}`;
+      }
+      this.publicationCode = code;
+    } catch (err) {
+      const randomId = Math.floor(1000000 + Math.random() * 9000000);
+      this.publicationCode = `RC-${currentYear}-${randomId}`;
+    }
+  }
+
   next();
 });
 

@@ -361,7 +361,14 @@ class PublicationService {
    */
   async getPublicationBySlug(slug, clientInfo = {}) {
     // Find regardless of soft-delete status to allow owners to access deleted/draft/private documents
-    const publication = await Publication.findOne({ slug });
+    let publication;
+    const mongoose = require('mongoose');
+    if (slug && mongoose.Types.ObjectId.isValid(slug)) {
+      publication = await Publication.findById(slug);
+    }
+    if (!publication) {
+      publication = await Publication.findOne({ slug });
+    }
     if (!publication) {
       throw new NotFoundError('Publication not found.');
     }
@@ -607,7 +614,7 @@ class PublicationService {
   }
 
   /**
-   * Delete publication
+   * Delete publication permanently
    */
   async deletePublication(id, userId) {
     const publication = await Publication.findById(id);
@@ -619,20 +626,30 @@ class PublicationService {
       throw new ForbiddenError('You are not authorized to delete this publication.');
     }
 
-    if (publication.isDeleted) {
-      // Already soft deleted -> delete permanently!
-      await Publication.deleteOne({ _id: id });
-      await PublicationFile.deleteMany({ publicationId: id });
-      await PublicationAuthor.deleteMany({ publicationId: id });
-      await PublicationKeyword.deleteMany({ publicationId: id });
-      await PublicationResearchArea.deleteMany({ publicationId: id });
-      await PublicationMetric.deleteMany({ publicationId: id });
-      await PublicationAnalytic.deleteMany({ publicationId: id });
-    } else {
-      publication.isDeleted = true;
-      publication.deletedAt = new Date();
-      publication.deletedBy = userId;
-      await publication.save();
+    // Delete permanently from all related collections
+    await Publication.deleteOne({ _id: id });
+    await PublicationFile.deleteMany({ publicationId: id });
+    await PublicationAuthor.deleteMany({ publicationId: id });
+    await PublicationKeyword.deleteMany({ publicationId: id });
+    await PublicationResearchArea.deleteMany({ publicationId: id });
+    await PublicationMetric.deleteMany({ publicationId: id });
+    await PublicationAnalytic.deleteMany({ publicationId: id });
+    await PublicationView.deleteMany({ publicationId: id });
+    await PublicationDownload.deleteMany({ publicationId: id });
+    await PublicationBookmark.deleteMany({ publicationId: id });
+    await PublicationComment.deleteMany({ publicationId: id });
+    await PublicationHistory.deleteMany({ publicationId: id });
+
+    // Delete metadata
+    const PublicationMetadata = require('../../../models/PublicationMetadata');
+    if (PublicationMetadata) {
+      await PublicationMetadata.deleteMany({ publicationId: id });
+    }
+
+    // Delete reader history
+    const PublicationReader = require('../../../models/PublicationReader');
+    if (PublicationReader) {
+      await PublicationReader.deleteMany({ publicationId: id });
     }
 
     // Recalculate metrics

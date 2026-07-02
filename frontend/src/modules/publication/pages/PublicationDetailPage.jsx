@@ -173,6 +173,15 @@ const PublicationDetailPage = () => {
               <div className="border-t border-slate-100 pt-4 space-y-3">
                 <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Metadata Details</h2>
                 <div className="space-y-2 text-xs">
+                  {data.publicationCode && (
+                    <div>
+                      <span className="block text-[9px] text-slate-400 uppercase font-bold">Publication ID</span>
+                      <span className="font-bold text-slate-850 block mt-0.5">
+                        {data.publicationCode}
+                      </span>
+                    </div>
+                  )}
+
                   <div>
                     <span className="block text-[9px] text-slate-400 uppercase font-bold">Visibility</span>
                     <span className="font-bold text-slate-850 inline-flex items-center gap-1 mt-0.5">
