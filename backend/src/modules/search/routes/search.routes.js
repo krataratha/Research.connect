@@ -3,30 +3,31 @@ const router = express.Router();
 const searchController = require('../controller/search.controller');
 const { authMiddleware, optionalAuth } = require('../../../common/middlewares/auth.middleware');
 const { searchLimiter } = require('../../../config/rateLimiter');
+const responseCache = require('../../../cache/response-cache.middleware');
 
 // All search routes are rate-limited
 // Public routes use optionalAuth (history saved only for auth users)
 
 // GET /api/v1/search  — unified search
-router.get('/', searchLimiter, optionalAuth, searchController.search);
+router.get('/', searchLimiter, optionalAuth, responseCache(15), searchController.search);
 
 // GET /api/v1/search/publications
-router.get('/publications', searchLimiter, optionalAuth, searchController.searchPublications);
+router.get('/publications', searchLimiter, optionalAuth, responseCache(15), searchController.searchPublications);
 
 // GET /api/v1/search/authors
-router.get('/authors', searchLimiter, optionalAuth, searchController.searchAuthors);
+router.get('/authors', searchLimiter, optionalAuth, responseCache(30), searchController.searchAuthors);
 
 // GET /api/v1/search/journals
-router.get('/journals', searchLimiter, optionalAuth, searchController.searchJournals);
+router.get('/journals', searchLimiter, optionalAuth, responseCache(30), searchController.searchJournals);
 
 // GET /api/v1/search/conferences
-router.get('/conferences', searchLimiter, optionalAuth, searchController.searchConferences);
+router.get('/conferences', searchLimiter, optionalAuth, responseCache(30), searchController.searchConferences);
 
 // GET /api/v1/search/autocomplete
-router.get('/autocomplete', searchLimiter, searchController.autocomplete);
+router.get('/autocomplete', searchLimiter, responseCache(10), searchController.autocomplete);
 
 // GET /api/v1/search/trending
-router.get('/trending', searchController.getTrending);
+router.get('/trending', responseCache(60), searchController.getTrending);
 
 // GET /api/v1/search/history  (auth required)
 router.get('/history', authMiddleware, searchController.getHistory);

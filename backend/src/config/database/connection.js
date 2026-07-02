@@ -11,7 +11,9 @@ const options = {
   heartbeatFrequencyMS: 10000, // Send heartbeats every 10 seconds
   serverSelectionTimeoutMS: 5000,
   retryWrites: true,
-  compressors: 'snappy,zlib'
+  compressors: 'snappy,zlib',
+  readPreference: 'primary',
+  w: 'majority'
 };
 
 let isConnecting = false;

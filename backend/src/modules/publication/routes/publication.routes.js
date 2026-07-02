@@ -8,6 +8,7 @@ const { ValidationError } = require('../../../common/errors/AppError');
 const citationRoutes = require('./citation.routes');
 const analyticsRoutes = require('./analytics.routes');
 const analyticsController = require('../controller/analytics.controller');
+const responseCache = require('../../../cache/response-cache.middleware');
 
 // Configure Multer for memory storage with a 100MB limit
 const upload = multer({
@@ -101,16 +102,16 @@ router.post('/save-draft', authMiddleware, savePublicationValidator, publication
 router.post('/publish', authMiddleware, savePublicationValidator, publicationController.createPublication);
 
 // 7. Get all publications
-router.get('/', publicationController.getPublications);
+router.get('/', responseCache(30), publicationController.getPublications);
 
 // 8. Get publication for reader
-router.get('/read/:slug', optionalAuth, publicationController.getPublicationForReader);
+router.get('/read/:slug', optionalAuth, responseCache(30), publicationController.getPublicationForReader);
 
 // 8.5 Get publications by researcher profile slug
-router.get('/profile/:profileSlug', optionalAuth, publicationController.getPublicationsByProfileSlug);
+router.get('/profile/:profileSlug', optionalAuth, responseCache(30), publicationController.getPublicationsByProfileSlug);
 
 // 9. Get single publication by slug
-router.get('/:slug', optionalAuth, publicationController.getPublicationBySlug);
+router.get('/:slug', optionalAuth, responseCache(30), publicationController.getPublicationBySlug);
 
 // 10. Update publication
 router.patch('/:id', authMiddleware, publicationController.updatePublication);
@@ -144,18 +145,18 @@ router.post('/:id/recommend', authMiddleware, publicationController.toggleRecomm
 router.post('/:id/share', authMiddleware, publicationController.trackShare);
 
 // 16.8 Related publications & researchers
-router.get('/:id/related', optionalAuth, publicationController.getRelatedPublications);
-router.get('/:id/related-researchers', optionalAuth, publicationController.getRelatedResearchers);
+router.get('/:id/related', optionalAuth, responseCache(30), publicationController.getRelatedPublications);
+router.get('/:id/related-researchers', optionalAuth, responseCache(30), publicationController.getRelatedResearchers);
 
 // 16.9 Threaded Comments APIs
-router.get('/:id/comments', optionalAuth, publicationController.getComments);
+router.get('/:id/comments', optionalAuth, responseCache(15), publicationController.getComments);
 router.post('/:id/comment', authMiddleware, publicationController.addComment);
 router.put('/comments/:commentId', authMiddleware, publicationController.editComment);
 router.delete('/comments/:commentId', authMiddleware, publicationController.deleteComment);
 router.post('/comments/:commentId/like', authMiddleware, publicationController.toggleLikeComment);
 
 // 17. Get publications by username
-router.get('/profile/:username/publications', optionalAuth, publicationController.getPublicationsByUsername);
+router.get('/profile/:username/publications', optionalAuth, responseCache(30), publicationController.getPublicationsByUsername);
 
 // 18. Citation sub-router — GET/POST /:id/citation/*
 router.use('/:id/citation', citationRoutes);

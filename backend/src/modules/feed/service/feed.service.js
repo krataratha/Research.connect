@@ -12,12 +12,19 @@ const Comment = require('../../../models/Comment');
 class FeedService {
   async generatePersonalizedFeed(userId, options = {}) {
     const { page = 1, limit = 10 } = options;
+    const cacheKey = `personalized:${userId}:${page}:${limit}`;
+    const { FeedCache } = require('../../../cache/cache.service');
+
+    const cachedFeed = await FeedCache.get(cacheKey);
+    if (cachedFeed) {
+      return cachedFeed;
+    }
 
     // Fetch user's profile, co-authors and people they follow to personalize
     const [userProfile, coauthors, followingDocs] = await Promise.all([
-      Profile.findOne({ userId }),
-      CoAuthor.find({ userId }),
-      Follow.find({ followerId: userId })
+      Profile.findOne({ userId }).lean(),
+      CoAuthor.find({ userId }).lean(),
+      Follow.find({ followerId: userId }).lean()
     ]);
 
     const followingIds = followingDocs.map(f => f.followingId.toString());
@@ -90,33 +97,65 @@ class FeedService {
     const startIndex = (page - 1) * limit;
     const paginated = scoredPublications.slice(startIndex, startIndex + Number(limit)).map(item => item.publication);
 
-    return {
+    const result = {
       docs: paginated,
       total,
       page: Number(page),
       limit: Number(limit),
       totalPages: Math.ceil(total / limit)
     };
+
+    await FeedCache.set(cacheKey, result, 120); // 2 minute cache
+    return result;
   }
 
   async getTrendingFeed(options = {}) {
-    return await feedRepository.getPublications({}, { ...options, sort: '-views -downloads -citations' });
+    const { page = 1, limit = 10 } = options;
+    const cacheKey = `trending:${page}:${limit}`;
+    const { FeedCache } = require('../../../cache/cache.service');
+
+    const cached = await FeedCache.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await feedRepository.getPublications({}, { ...options, sort: '-views -downloads -citations' });
+    await FeedCache.set(cacheKey, result, 120); // 2 minute cache
+    return result;
   }
 
   async getLatestFeed(options = {}) {
-    return await feedRepository.getPublications({}, { ...options, sort: '-createdAt' });
+    const { page = 1, limit = 10 } = options;
+    const cacheKey = `latest:${page}:${limit}`;
+    const { FeedCache } = require('../../../cache/cache.service');
+
+    const cached = await FeedCache.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await feedRepository.getPublications({}, { ...options, sort: '-createdAt' });
+    await FeedCache.set(cacheKey, result, 60); // 1 minute cache
+    return result;
   }
 
   async getFollowingFeed(userId, options = {}) {
+    const { page = 1, limit = 10 } = options;
+    const cacheKey = `following:${userId}:${page}:${limit}`;
+    const { FeedCache } = require('../../../cache/cache.service');
+
+    const cached = await FeedCache.get(cacheKey);
+    if (cached) return cached;
+
     // Find researchers followed by the user
-    const followingDocs = await Follow.find({ followerId: userId });
+    const followingDocs = await Follow.find({ followerId: userId }).lean();
     const followingIds = followingDocs.map(f => f.followingId);
 
     if (followingIds.length === 0) {
-      return { docs: [], total: 0, page: Number(options.page || 1), limit: Number(options.limit || 10), totalPages: 0 };
+      const emptyResult = { docs: [], total: 0, page: Number(page), limit: Number(limit), totalPages: 0 };
+      await FeedCache.set(cacheKey, emptyResult, 60);
+      return emptyResult;
     }
 
-    return await feedRepository.getPublications({ userId: { $in: followingIds } }, options);
+    const result = await feedRepository.getPublications({ userId: { $in: followingIds } }, options);
+    await FeedCache.set(cacheKey, result, 60); // 1 minute cache
+    return result;
   }
 
   // Publication CRUD
@@ -150,6 +189,10 @@ class FeedService {
     // Recalculate profile metrics after new publication
     await this.recalculateResearchScore(userId);
 
+    // Flush cache to ensure feed lists reflect the new publication
+    const { cacheService } = require('../../../cache/cache.service');
+    await cacheService.flush();
+
     return publication;
   }
 
@@ -162,7 +205,13 @@ class FeedService {
       throw new Error('Not authorized to update this publication.');
     }
 
-    return await feedRepository.updatePublication(id, pubData);
+    const updated = await feedRepository.updatePublication(id, pubData);
+    
+    // Flush cache on update
+    const { cacheService } = require('../../../cache/cache.service');
+    await cacheService.flush();
+
+    return updated;
   }
 
   async deletePublication(userId, id) {
@@ -175,6 +224,11 @@ class FeedService {
 
     const deleted = await feedRepository.deletePublication(id);
     await this.recalculateResearchScore(userId);
+
+    // Flush cache on deletion
+    const { cacheService } = require('../../../cache/cache.service');
+    await cacheService.flush();
+
     return deleted;
   }
 

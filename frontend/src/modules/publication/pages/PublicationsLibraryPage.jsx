@@ -29,7 +29,21 @@ const PublicationsLibraryPage = () => {
 
   // States
   const [viewMode, setViewMode] = useState('grid'); // grid | card | table
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      // Trigger search only if input is empty or has at least 2 characters
+      if (searchInput.trim().length === 0 || searchInput.trim().length >= 2) {
+        setSearchQuery(searchInput);
+        setPage(1);
+      }
+    }, 450);
+
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
   const [filterType, setFilterType] = useState('all');
   const [filterYear, setFilterYear] = useState('all');
   const [filterVisibility, setFilterVisibility] = useState('all');
@@ -555,11 +569,8 @@ const PublicationsLibraryPage = () => {
               <input
                 type="text"
                 placeholder="Search Title, DOI, Keyword, Author..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setPage(1);
-                }}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 rounded-[16px] border border-[#E2E8F0] text-xs focus:outline-none focus:ring-2 focus:ring-[#2563EB] text-[#0F172A]"
               />
             </div>

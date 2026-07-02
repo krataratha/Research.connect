@@ -304,20 +304,20 @@ const ProfileOverview = () => {
                         {/* Left Column */}
                         <div className="space-y-1.5 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
                           {[
-                            { label: 'Full Name', value: profile?.displayName || profile?.fullName || `${profile?.firstName || ''} ${profile?.lastName || ''}`, iconColor: 'bg-[#DBEAFE]' },
-                            { label: 'Date of Birth', value: profile?.dateOfBirth || 'N/A', iconColor: 'bg-[#DCFCE7]' },
-                            { label: 'Nationality', value: profile?.nationality || 'N/A', iconColor: 'bg-[#FEF3C7]' },
-                            { label: 'Designation', value: profile?.designation || 'Academic Researcher', iconColor: 'bg-[#EDE9FE]' },
-                            { label: 'Department', value: profile?.department || 'N/A', iconColor: 'bg-rose-100' },
-                            { label: 'Institution', value: profile?.institution || 'N/A', iconColor: 'bg-teal-100' },
-                            { label: 'Email ID', value: profile?.email || 'N/A', iconColor: 'bg-[#DBEAFE]', isEmail: true }
+                            { label: 'Full Name', value: profile?.displayName || profile?.fullName || `${profile?.firstName || ''} ${profile?.lastName || ''}`, bulletColor: 'bg-[#2563EB]' },
+                            { label: 'Date of Birth', value: profile?.dateOfBirth || 'N/A', bulletColor: 'bg-[#22C55E]' },
+                            { label: 'Nationality', value: profile?.nationality || 'N/A', bulletColor: 'bg-[#F59E0B]' },
+                            { label: 'Designation', value: profile?.designation || 'Academic Researcher', bulletColor: 'bg-[#4F46E5]' },
+                            { label: 'Department', value: profile?.department || 'N/A', bulletColor: 'bg-[#EF4444]' },
+                            { label: 'Institution', value: profile?.institution || 'N/A', bulletColor: 'bg-[#00CCBB]' },
+                            { label: 'Email ID', value: profile?.email || 'N/A', bulletColor: 'bg-[#2563EB]', isEmail: true }
                           ].map((item, idx) => (
-                            <div key={item.label} className={`flex justify-between items-center text-xs p-2.5 rounded-xl border border-transparent transition-all hover:bg-slate-50/50 ${idx % 2 === 0 ? 'bg-[#F8FAFC]/65' : 'bg-white'}`}>
+                            <div key={item.label} className={`flex justify-between items-center text-xs p-2.5 rounded-xl border border-transparent transition-all hover:bg-slate-50 ${idx % 2 === 0 ? 'bg-[#F1F5F9]/50' : 'bg-white'}`}>
                               <div className="flex items-center gap-2">
-                                <span className={`w-1.5 h-1.5 rounded-full ${item.iconColor}`} />
-                                <span className="font-extrabold text-[#475569]">{item.label}</span>
+                                <span className={`w-2 h-2 rounded-full ${item.bulletColor}`} />
+                                <span className="font-extrabold text-[#334155]">{item.label}</span>
                               </div>
-                              <span className={`font-bold text-[#0F172A] truncate max-w-[180px] sm:max-w-xs ${item.isEmail ? 'text-[#2563EB] font-extrabold' : ''}`}>
+                              <span className={`font-black text-[#0F172A] truncate max-w-[180px] sm:max-w-xs ${item.isEmail ? 'text-[#2563EB] hover:underline cursor-pointer' : ''}`}>
                                 {item.value}
                               </span>
                             </div>
