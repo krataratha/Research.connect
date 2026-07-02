@@ -22,9 +22,6 @@ const Footer = () => {
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-text-secondary hover:text-primary transition-colors">
-                <Github className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-text-secondary hover:text-primary transition-colors">
                 <Twitter className="w-5 h-5" />
               </a>
               <a href="#" className="text-text-secondary hover:text-primary transition-colors">
