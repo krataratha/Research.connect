@@ -15,6 +15,10 @@ router.get('/me', authMiddleware, profileController.getProfile);
 // Public route to view a researcher profile by slug
 router.get('/:profileSlug', profileController.getPublicProfile);
 
+// Public route to retrieve researcher publications portfolio by profile slug
+const { optionalAuth } = require('../../../common/middlewares/auth.middleware');
+router.get('/:profileSlug/publications', optionalAuth, profileController.getPublicationsByProfileSlug);
+
 // Secure routes below this point
 router.use(authMiddleware);
 

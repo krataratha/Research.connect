@@ -21,17 +21,17 @@ const Sidebar = () => {
     { name: 'Home Feed', path: '/', icon: Home },
     { name: 'Profile', path: user?.profileSlug ? `/profile/${user.profileSlug}` : '/profile', icon: User },
     { name: 'Research Identity', path: '/research-identity', icon: Globe },
-    { name: 'Publications', path: '/publication', icon: FileText },
-    { name: 'Projects', path: '/projects', icon: Briefcase },
+    { name: 'Publications', path: user?.profileSlug ? `/profile/${user.profileSlug}/publications` : '/profile', icon: FileText },
+    { name: 'Projects', path: user?.profileSlug ? `/profile/${user.profileSlug}/projects` : '/profile', icon: Briefcase },
     { name: 'Explore', path: '/explore', icon: Compass },
     { name: 'Messages', path: '/messages', icon: MessageSquare },
-    { name: 'Datasets', path: '/datasets', icon: Database },
+    { name: 'Datasets', path: user?.profileSlug ? `/profile/${user.profileSlug}/datasets` : '/profile', icon: Database },
     { name: 'Communities', path: '/communities', icon: Users },
     { name: 'Bookmarks', path: '/bookmarks', icon: Bookmark },
     { name: 'Saved', path: '/bookmarks', icon: Bookmark },
     { name: 'Followers', path: '/followers', icon: UserCheck },
     { name: 'Following', path: '/following', icon: UserPlus },
-    { name: 'Analytics', path: '/analytics', icon: BarChart2 },
+    { name: 'Analytics', path: user?.profileSlug ? `/profile/${user.profileSlug}/analytics` : '/profile', icon: BarChart2 },
     { name: 'Settings', path: '/settings', icon: Settings }
   ];
 
@@ -48,7 +48,7 @@ const Sidebar = () => {
   };
 
   const handleUploadPublication = () => {
-    toast.success('Upload publication modal opening...');
+    navigate('/publications/create');
   };
 
   return (

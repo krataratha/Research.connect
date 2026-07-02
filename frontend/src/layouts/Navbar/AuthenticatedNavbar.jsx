@@ -132,31 +132,31 @@ const AuthenticatedNavbar = () => {
               </button>
               {createOpen && (
                 <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50 text-left text-sm font-semibold text-slate-700">
-                  <button onClick={() => { setCreateOpen(false); toast.success('Upload Publication Modal'); }} className="w-full px-4 py-2 hover:bg-slate-50 hover:text-blue-600 text-left flex items-center gap-2">
+                  <button onClick={() => { setCreateOpen(false); navigate('/publications/create'); }} className="w-full px-4 py-2 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <FileText className="w-4 h-4 text-slate-400" /> Upload Publication
                   </button>
-                  <button onClick={() => { setCreateOpen(false); toast.success('Create Project Modal'); }} className="w-full px-4 py-2 hover:bg-slate-50 hover:text-blue-600 text-left flex items-center gap-2">
+                  <button onClick={() => { setCreateOpen(false); navigate('/projects/create'); }} className="w-full px-4 py-2 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <Briefcase className="w-4 h-4 text-slate-400" /> Create Research Project
                   </button>
-                  <button onClick={() => { setCreateOpen(false); toast.success('Share Dataset Modal'); }} className="w-full px-4 py-2 hover:bg-slate-50 hover:text-blue-600 text-left flex items-center gap-2">
+                  <button onClick={() => { setCreateOpen(false); navigate('/datasets/create'); }} className="w-full px-4 py-2 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-slate-400" /> Share Dataset
                   </button>
-                  <button onClick={() => { setCreateOpen(false); toast.success('Ask Question Modal'); }} className="w-full px-4 py-2 hover:bg-slate-50 hover:text-blue-600 text-left flex items-center gap-2">
+                  <button onClick={() => { setCreateOpen(false); navigate('/questions/create'); }} className="w-full px-4 py-2 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <HelpCircle className="w-4 h-4 text-slate-400" /> Ask Question
                   </button>
-                  <button onClick={() => { setCreateOpen(false); toast.success('Create Community Modal'); }} className="w-full px-4 py-2 hover:bg-slate-50 hover:text-blue-600 text-left flex items-center gap-2">
+                  <button onClick={() => { setCreateOpen(false); navigate('/communities/create'); }} className="w-full px-4 py-2 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <Users className="w-4 h-4 text-slate-400" /> Create Community
                   </button>
-                  <button onClick={() => { setCreateOpen(false); toast.success('Create Collaboration'); }} className="w-full px-4 py-2 hover:bg-slate-50 hover:text-blue-600 text-left flex items-center gap-2">
+                  <button onClick={() => { setCreateOpen(false); navigate('/collaborations/create'); }} className="w-full px-4 py-2 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <Plus className="w-4 h-4 text-slate-400" /> Create Collaboration
                   </button>
-                  <button onClick={() => { setCreateOpen(false); toast.success('Upload Patent'); }} className="w-full px-4 py-2 hover:bg-slate-50 hover:text-blue-600 text-left flex items-center gap-2">
+                  <button onClick={() => { setCreateOpen(false); navigate('/patents/create'); }} className="w-full px-4 py-2 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <Award className="w-4 h-4 text-slate-400" /> Upload Patent
                   </button>
-                  <button onClick={() => { setCreateOpen(false); toast.success('Write Article'); }} className="w-full px-4 py-2 hover:bg-slate-50 hover:text-blue-600 text-left flex items-center gap-2">
+                  <button onClick={() => { setCreateOpen(false); navigate('/articles/create'); }} className="w-full px-4 py-2 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <FileText className="w-4 h-4 text-slate-400" /> Write Article
                   </button>
-                  <button onClick={() => { setCreateOpen(false); toast.success('Create Event'); }} className="w-full px-4 py-2 hover:bg-slate-50 hover:text-blue-600 text-left flex items-center gap-2">
+                  <button onClick={() => { setCreateOpen(false); navigate('/events/create'); }} className="w-full px-4 py-2 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <Compass className="w-4 h-4 text-slate-400" /> Create Event
                   </button>
                 </div>

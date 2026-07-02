@@ -76,7 +76,31 @@ const hasRole = (...roles) => {
   };
 };
 
+const optionalAuth = asyncHandler(async (req, res, next) => {
+  let token = null;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = verifyAccessToken(token);
+    const user = await User.findOne({ _id: decoded.userId, isDeleted: { $ne: true } });
+    if (user && user.status === 'active' && !user.isBlocked) {
+      req.user = user;
+    }
+  } catch (error) {
+    // Silently catch and treat as guest
+  }
+  next();
+});
+
 module.exports = {
   authMiddleware,
+  optionalAuth,
   hasRole
 };

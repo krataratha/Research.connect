@@ -19,9 +19,30 @@ const PublicationAuthorSchema = new Schema(
       required: true,
       trim: true
     },
+    email: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    institution: {
+      type: String,
+      default: ''
+    },
+    department: {
+      type: String,
+      default: ''
+    },
     isCoAuthor: {
       type: Boolean,
       default: false
+    },
+    isCorresponding: {
+      type: Boolean,
+      default: false
+    },
+    order: {
+      type: Number,
+      default: 0
     }
   },
   {

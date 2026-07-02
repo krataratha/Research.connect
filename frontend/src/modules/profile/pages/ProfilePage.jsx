@@ -261,7 +261,21 @@ const ProfilePage = () => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  if (tab.id === 'publications') {
+                    navigate(`/profile/${profileSlug}/publications`);
+                  } else if (tab.id === 'projects') {
+                    navigate(`/profile/${profileSlug}/projects`);
+                  } else if (tab.id === 'patents') {
+                    navigate(`/profile/${profileSlug}/patents`);
+                  } else if (tab.id === 'books') {
+                    navigate(`/profile/${profileSlug}/books`);
+                  } else if (tab.id === 'analytics') {
+                    navigate(`/profile/${profileSlug}/analytics`);
+                  } else {
+                    setActiveTab(tab.id);
+                  }
+                }}
                 className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-primary text-white shadow-sm'

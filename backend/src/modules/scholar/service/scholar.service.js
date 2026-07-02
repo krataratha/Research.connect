@@ -262,18 +262,22 @@ class ScholarService {
             }
           });
         } else {
-          // Generate a new temporary ObjectId to link with authors
+          const { generateSlug } = require('../../publication/helper/slug.helper');
+          const slug = generateSlug(article.title);
           const tempPubId = new mongoose.Types.ObjectId();
-          
+
           newPubsToCreate.push({
             _id: tempPubId,
             userId,
+            ownerId: userId,
             title: article.title,
+            slug,
             authors: article.authors || '',
             publication: article.publication || '',
             year: article.year,
             citations: article.cited_by?.value || 0,
             citationId: article.citation_id || '',
+            googleScholarPublicationId: article.citation_id || '',
             paperURL: article.link || '',
             publisher: article.publisher || '',
             publicationType: 'Article'

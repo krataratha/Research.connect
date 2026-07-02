@@ -134,6 +134,71 @@ class ProfileController {
     });
   });
 
+  // Get public publications list of a researcher profile
+  getPublicationsByProfileSlug = asyncHandler(async (req, res) => {
+    const { profileSlug } = req.params;
+    const { page = 1, limit = 10, sort = '-createdAt', status, visibility, search } = req.query;
+
+    const profile = await profileService.getProfileBySlug(profileSlug);
+    if (!profile) {
+      throw new ValidationError('Profile not found.');
+    }
+
+    const ownerId = profile.userId;
+
+    // Check if requester is owner
+    const isOwner = req.user && req.user._id.toString() === ownerId.toString();
+    const isAdmin = req.user && req.user.role === 'admin';
+
+    const filter = { userId: ownerId };
+    
+    if (isOwner || isAdmin) {
+      if (status) filter.status = status;
+      if (visibility) filter.visibility = visibility;
+      filter.isDeleted = { $ne: true };
+    } else {
+      // General viewers can only see published, non-deleted, and visible publications
+      filter.status = 'published';
+      filter.isDeleted = { $ne: true };
+
+      if (req.user) {
+        // Logged-in user from same institution can see Public & Institution Only
+        if (req.user.institution && req.user.institution === profile.institution) {
+          filter.visibility = { $in: ['Public', 'Institution Only'] };
+        } else {
+          filter.visibility = 'Public';
+        }
+      } else {
+        // Guests can only see Public
+        filter.visibility = 'Public';
+      }
+    }
+
+    // Support search query
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      filter.$or = [
+        { title: searchRegex },
+        { abstract: searchRegex },
+        { keywords: searchRegex },
+        { publication: searchRegex }
+      ];
+    }
+
+    const publicationService = require('../../publication/service/publication.service');
+    const publicationDTO = require('../../publication/dto/publication.dto');
+    
+    const result = await publicationService.getPublications(filter, { page, limit, sort });
+
+    return res.success('Researcher publications retrieved successfully.', {
+      docs: publicationDTO.formatPublicationList(result.docs),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages
+    });
+  });
+
   // Soft delete researcher profile and user account
   deleteProfile = asyncHandler(async (req, res) => {
     await profileService.deleteProfile(req.user._id, req.user._id);
