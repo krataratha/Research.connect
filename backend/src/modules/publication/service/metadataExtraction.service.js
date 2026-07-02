@@ -104,8 +104,8 @@ class MetadataExtractionService {
   /**
    * Extraction algorithms using regex & heuristic logic
    */
-  _extractFields(text, info = {}) {
-    const cleanText = text.replace(/\r\n/g, '\n');
+  _extractFields(text, info = {}, originalName = '') {
+    const cleanText = (text || '').replace(/\r\n/g, '\n');
     const firstLines = cleanText.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 15);
     
     // 1. DOI Extraction (Standard DOI regex)
@@ -145,6 +145,16 @@ class MetadataExtractionService {
       }
     }
 
+    // Fall back to filename if still empty
+    if (!title && originalName) {
+      title = originalName.replace(/\.[^/.]+$/, "").replace(/[-_]+/g, ' ').trim();
+      titleConfidence = 35;
+    }
+    if (!title) {
+      title = 'Untitled Research Paper';
+      titleConfidence = 10;
+    }
+
     // 3. Abstract Extraction
     let abstract = '';
     let abstractConfidence = 0;
@@ -166,6 +176,20 @@ class MetadataExtractionService {
       
       // Clean leading characters like colons, spaces
       abstract = abstract.replace(/^[:\s\-]+/, '');
+    }
+
+    // Fall back to first 300 characters of page content if abstract keyword is missing
+    if (!abstract && cleanText.trim().length > 30) {
+      const lines = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
+      // Skip the title/author header block (lines 0 to 4)
+      const textBlock = lines.slice(4, 15).join(' ');
+      if (textBlock.trim().length > 50) {
+        abstract = textBlock.substring(0, 350).trim() + '...';
+        abstractConfidence = 45;
+      } else if (cleanText.length > 30) {
+        abstract = cleanText.substring(0, 350).trim() + '...';
+        abstractConfidence = 30;
+      }
     }
 
     // 4. Keywords Extraction

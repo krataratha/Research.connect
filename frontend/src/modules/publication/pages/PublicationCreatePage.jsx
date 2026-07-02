@@ -123,35 +123,35 @@ const PublicationCreatePage = () => {
           }
         };
 
-        if (extractedMetadata.title?.value && !prev.title) {
+        if (extractedMetadata.title?.value) {
           updated.title = extractedMetadata.title.value;
         }
-        if (extractedMetadata.abstract?.value && !prev.abstract) {
+        if (extractedMetadata.abstract?.value) {
           updated.abstract = extractedMetadata.abstract.value;
         }
-        if (extractedMetadata.doi?.value && !prev.doi) {
+        if (extractedMetadata.doi?.value) {
           updated.doi = extractedMetadata.doi.value;
         }
-        if (extractedMetadata.isbn?.value && !prev.isbn) {
+        if (extractedMetadata.isbn?.value) {
           updated.isbn = extractedMetadata.isbn.value;
         }
-        if (extractedMetadata.issn?.value && !prev.issn) {
+        if (extractedMetadata.issn?.value) {
           updated.issn = extractedMetadata.issn.value;
         }
-        if (extractedMetadata.journal?.value && !prev.publication) {
+        if (extractedMetadata.journal?.value) {
           updated.publication = extractedMetadata.journal.value;
           updated.journal = extractedMetadata.journal.value;
         }
-        if (extractedMetadata.publisher?.value && !prev.publisher) {
+        if (extractedMetadata.publisher?.value) {
           updated.publisher = extractedMetadata.publisher.value;
         }
-        if (extractedMetadata.year?.value && (prev.publicationDate === new Date().toISOString().split('T')[0] || !prev.publicationDate)) {
+        if (extractedMetadata.year?.value) {
           updated.publicationDate = `${extractedMetadata.year.value}-01-01`;
         }
-        if (extractedMetadata.keywords?.value && extractedMetadata.keywords.value.length > 0 && prev.keywords.length === 0) {
+        if (extractedMetadata.keywords?.value && extractedMetadata.keywords.value.length > 0) {
           updated.keywords = extractedMetadata.keywords.value;
         }
-        if (extractedMetadata.authorsList?.value && extractedMetadata.authorsList.value.length > 0 && prev.authorsList.length === 0) {
+        if (extractedMetadata.authorsList?.value && extractedMetadata.authorsList.value.length > 0) {
           updated.authorsList = extractedMetadata.authorsList.value.map((name, idx) => ({
             name,
             email: '',

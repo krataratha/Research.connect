@@ -83,23 +83,119 @@ class PublicationService {
       const scholarId = data.googleScholarPublicationId || data.citationId;
       if (scholarId) duplicateConditions.push({ googleScholarPublicationId: scholarId.trim() });
 
+      let existingPub = null;
       if (duplicateConditions.length > 0) {
-        const existingPub = await Publication.findOne({
+        existingPub = await Publication.findOne({
           userId,
           isDeleted: { $ne: true },
           $or: duplicateConditions
         });
-        if (existingPub) {
-          throw new ValidationError('A publication with this DOI or Google Scholar ID already exists in your library.');
-        }
       }
 
-      // Check title duplicate for user
-      const cleanTitle = data.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const userPublications = await Publication.find({ userId, isDeleted: { $ne: true } });
-      const duplicateByTitle = userPublications.find(p => p.title.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTitle);
-      if (duplicateByTitle) {
-        throw new ValidationError('A publication with this title already exists in your library.');
+      if (!existingPub) {
+        // Check title duplicate for user
+        const cleanTitle = data.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const userPublications = await Publication.find({ userId, isDeleted: { $ne: true } });
+        existingPub = userPublications.find(p => p.title.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTitle);
+      }
+
+      if (existingPub) {
+        // If it's a real duplicate manually uploaded that has a PDF attached, throw validation error
+        if (existingPub.status === 'published' && existingPub.cloudinaryFileUrl && !isDraft) {
+          throw new ValidationError('A publication with this title, DOI, or Scholar ID already exists in your library.');
+        }
+
+        // Merge/update the existing record!
+        const isPublishingDraft = existingPub.status === 'draft' && !isDraft;
+
+        const updatableFields = [
+          'title', 'subtitle', 'abstract', 'doi', 'isbn', 'issn',
+          'journal', 'conference', 'publisher', 'volume', 'issue', 'pages',
+          'publicationDate', 'language', 'visibility', 'publicationType',
+          'researchType', 'correspondingAuthor', 'institution', 'department', 'thumbnail'
+        ];
+
+        updatableFields.forEach(field => {
+          if (data[field] !== undefined) {
+            existingPub[field] = data[field];
+          }
+        });
+
+        if (isDraft) {
+          existingPub.status = 'draft';
+        } else {
+          existingPub.status = 'published';
+          existingPub.visibility = data.visibility || 'Public';
+          if (!existingPub.researchScore) {
+            existingPub.researchScore = 20 + Math.floor(Math.random() * 10);
+          }
+        }
+
+        if (data.fileDetails && data.fileDetails.secure_url) {
+          existingPub.cloudinaryFileUrl = data.fileDetails.secure_url;
+          existingPub.pdfURL = data.fileDetails.secure_url;
+
+          await PublicationFile.deleteMany({ publicationId: existingPub._id });
+          const fileDoc = new PublicationFile({
+            publicationId: existingPub._id,
+            secure_url: data.fileDetails.secure_url,
+            public_id: data.fileDetails.public_id,
+            resource_type: data.fileDetails.resource_type || 'raw',
+            bytes: data.fileDetails.bytes || 0,
+            format: data.fileDetails.format || ''
+          });
+          await fileDoc.save({ session });
+        }
+
+        if (scholarId) {
+          existingPub.googleScholarPublicationId = scholarId;
+          existingPub.citationId = scholarId;
+        }
+
+        const authorNames = data.authorsList && data.authorsList.length > 0
+          ? data.authorsList.map(a => a.name).join(', ')
+          : data.authors || existingPub.authors;
+        existingPub.authors = authorNames;
+
+        await existingPub.save({ session });
+
+        // Save detailed metadata in publicationMetadata
+        const PublicationMetadata = require('../../../models/PublicationMetadata');
+        await PublicationMetadata.findOneAndUpdate(
+          { publicationId: existingPub._id },
+          {
+            abstract: data.abstract || existingPub.abstract || '',
+            references: data.references || [],
+            publisher: data.publisher || existingPub.publisher || ''
+          },
+          { upsert: true, session }
+        );
+
+        // Save subcollections
+        await this._saveSubCollections(existingPub._id, userId, {
+          authorsList: data.authorsList,
+          keywords: data.keywords,
+          researchAreas: data.researchAreas
+        });
+
+        // History log
+        const historyDoc = new PublicationHistory({
+          publicationId: existingPub._id,
+          userId,
+          action: isPublishingDraft ? 'publish' : 'update',
+          changes: data
+        });
+        await historyDoc.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        // Recalculate metrics
+        try {
+          await profileService.calculateAndSaveResearchMetrics(userId);
+        } catch (e) {}
+
+        return existingPub;
       }
 
       // 2. Generate slug and basic metadata
