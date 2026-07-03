@@ -252,33 +252,15 @@ const AuthenticatedNavbar = () => {
                     <p className="font-extrabold text-slate-900 truncate">{user?.fullName || 'Researcher'}</p>
                     <p className="text-xs text-slate-400 truncate mt-0.5">{user?.email}</p>
                   </div>
-                  <div className="py-1 grid grid-cols-1 gap-0.5 max-h-[350px] overflow-y-auto">
+                  <div className="py-1 grid grid-cols-1 gap-0.5">
                     <Link to={user?.profileSlug ? `/profile/${user.profileSlug}` : '/profile'} onClick={() => setProfileOpen(false)} className="px-4 py-2 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors">
                       <User className="w-4 h-4 text-slate-400" /> My Profile
-                    </Link>
-                    <Link to="/research-identity" onClick={() => setProfileOpen(false)} className="px-4 py-2 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors">
-                      <Compass className="w-4 h-4 text-slate-400" /> Research Identity
-                    </Link>
-                    <Link to="/publication" onClick={() => setProfileOpen(false)} className="px-4 py-2 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors">
-                      <FileText className="w-4 h-4 text-slate-400" /> My Publications
-                    </Link>
-                    <Link to="/projects" onClick={() => setProfileOpen(false)} className="px-4 py-2 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors">
-                      <Briefcase className="w-4 h-4 text-slate-400" /> Projects
-                    </Link>
-                    <Link to="/bookmarks" onClick={() => setProfileOpen(false)} className="px-4 py-2 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors">
-                      <Bookmark className="w-4 h-4 text-slate-400" /> Bookmarks
                     </Link>
                     <Link to="/certificates" onClick={() => setProfileOpen(false)} className="px-4 py-2 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors">
                       <Award className="w-4 h-4 text-slate-400" /> Certificates
                     </Link>
                     <Link to="/achievements" onClick={() => setProfileOpen(false)} className="px-4 py-2 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors">
                       <Award className="w-4 h-4 text-slate-400" /> Achievements
-                    </Link>
-                    <Link to="/analytics" onClick={() => setProfileOpen(false)} className="px-4 py-2 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors">
-                      <Bookmark className="w-4 h-4 text-slate-400" /> Analytics
-                    </Link>
-                    <Link to="/settings" onClick={() => setProfileOpen(false)} className="px-4 py-2 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors">
-                      <Settings className="w-4 h-4 text-slate-400" /> Settings
                     </Link>
                     <Link to="/help" onClick={() => setProfileOpen(false)} className="px-4 py-2 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors">
                       <HelpCircle className="w-4 h-4 text-slate-400" /> Help Center

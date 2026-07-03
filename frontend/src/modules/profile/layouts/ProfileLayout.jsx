@@ -72,13 +72,13 @@ const ProfileLayout = () => {
           setIsMobileOpen={setIsMobileOpen}
         />
         
-        {/* Floating Menu Toggle Button for Mobile */}
+        {/* Menu Toggle Button for Mobile */}
         <button
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="md:hidden fixed bottom-6 right-6 z-40 p-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-xl active:scale-95 transition-all"
+          className="md:hidden fixed top-[76px] left-3 z-40 w-10 h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg active:scale-95 transition-all"
           title="Profile Menu"
         >
-          <Menu className="w-5.5 h-5.5" />
+          <Menu className="w-5 h-5" />
         </button>
 
         <main className="flex-grow overflow-x-hidden p-6 md:p-8">

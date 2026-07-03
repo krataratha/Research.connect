@@ -38,9 +38,6 @@ const AppRoutes = () => {
       </div>
     }>
       <Routes>
-        {/* Dynamic Landing / Feed Hub */}
-        <Route path="/" element={<HomeHub />} />
-
         {/* Authentication Layout */}
         <Route element={<AuthLayout />}>
           <Route path="login" element={
@@ -81,6 +78,7 @@ const AppRoutes = () => {
             <AppLayout />
           </ProtectedRoute>
         }>
+          <Route index element={<HomeHub />} />
           <Route path="profile" element={<ProfileRedirect />} />
           <Route path="research-identity" element={<ResearchIdentityPage />} />
           <Route path="publications/create" element={<PublicationCreatePage />} />
@@ -129,4 +127,3 @@ const AppRoutes = () => {
 };
 
 export default AppRoutes;
-
