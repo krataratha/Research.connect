@@ -80,4 +80,16 @@ router.get('/questions', responseCache(10), feedController.getQuestions);
 router.get('/projects', responseCache(10), feedController.getProjects);
 router.get('/events', responseCache(30), feedController.getEvents);
 
+// ══════════════════════════════════════════════════
+// PHASE 8 — MULTI-TYPE ACTIVITY FEED ROUTES
+// ══════════════════════════════════════════════════
+// Order matters: specific paths before generic :param paths
+router.get('/feed/activity/following', responseCache(5), feedController.getActivityFeedFollowing);
+router.get('/feed/activity/trending', responseCache(15), feedController.getActivityFeedTrending);
+router.get('/feed/activity/latest', responseCache(10), feedController.getActivityFeedLatest);
+router.get('/feed/activity', responseCache(5), feedController.getActivityFeed);
+router.get('/feed/sidebar', responseCache(10), feedController.getFeedSidebar);
+router.post('/feed/event', feedController.emitFeedEvent);
+router.post('/feed/interact', feedController.recordFeedInteraction);
+
 module.exports = router;

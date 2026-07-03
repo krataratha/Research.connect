@@ -23,6 +23,7 @@ const CoAuthor = require('../../../models/CoAuthor');
 const CitationGraph = require('../../../models/CitationGraph');
 const DerivedAnalytics = require('../../../models/DerivedAnalytics');
 const ActivityLog = require('../../../models/ActivityLog');
+const Follow = require('../../../models/Follow');
 const { NotFoundError, ValidationError } = require('../../../common/errors/AppError');
 
 class ProfileService {
@@ -170,6 +171,11 @@ class ProfileService {
       socialLinks,
       metrics,
       profileCompletion,
+      followersCount: profile.followersCount || 0,
+      followingCount: profile.followingCount || 0,
+      connectionsCount: profile.connectionsCount || 0,
+      pendingSentCount: profile.pendingSentCount || 0,
+      pendingReceivedCount: profile.pendingReceivedCount || 0,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt
     };
@@ -299,8 +305,6 @@ class ProfileService {
    * Calculate Research Score based on publications, citations, projects, and collaborations
    */
   async calculateAndSaveResearchMetrics(userId) {
-    const Follow = mongoose.models.Follow || mongoose.model('Follow');
-    
     // Run all database queries in parallel
     const [
       publicationsCount,

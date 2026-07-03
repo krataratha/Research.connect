@@ -405,6 +405,36 @@ class PublicationService {
         } catch (metricsError) {
           console.error('[METRICS RECALCULATION ERROR]:', metricsError);
         }
+
+        // Notify followers in the background
+        try {
+          const Follow = require('../../../models/Follow');
+          const User = require('../../../models/User');
+          const notificationService = require('../../notifications/service/notification.service');
+          
+          const actorUser = await User.findById(userId).select('firstName lastName').lean();
+          const actorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}` : 'A researcher';
+          const followers = await Follow.find({ followingId: userId }).select('followerId').lean();
+          
+          if (followers.length > 0) {
+            setImmediate(() => {
+              followers.forEach(async (f) => {
+                await notificationService.createNotification({
+                  recipientId: f.followerId,
+                  actorId: userId,
+                  type: 'publication_uploaded',
+                  title: 'New Publication Uploaded',
+                  message: `${actorName} published a new paper: "${publication.title}"`,
+                  targetType: 'Publication',
+                  targetId: publication._id,
+                  targetUrl: `/publication/${publication.slug}`
+                }).catch(err => console.error(`Failed to notify follower: ${err.message}`));
+              });
+            });
+          }
+        } catch (notifErr) {
+          console.error('[PUBLICATION UPLOAD NOTIFICATION ERROR]:', notifErr);
+        }
       }
 
       return publication;
@@ -1129,6 +1159,31 @@ class PublicationService {
         { $inc: { bookmarks: 1 } },
         { upsert: true }
       );
+
+      // Send Real-Time Notification to publication owner
+      const publication = await Publication.findById(publicationId);
+      if (publication && publication.userId.toString() !== userId.toString()) {
+        try {
+          const User = require('../../../models/User');
+          const notificationService = require('../../notifications/service/notification.service');
+          const actorUser = await User.findById(userId).select('firstName lastName').lean();
+          const actorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}` : 'A researcher';
+          
+          await notificationService.createNotification({
+            recipientId: publication.userId,
+            actorId: userId,
+            type: 'publication_bookmarked',
+            title: 'Publication Bookmarked',
+            message: `${actorName} bookmarked your publication: "${publication.title}"`,
+            targetType: 'Publication',
+            targetId: publicationId,
+            targetUrl: `/publication/${publication.slug}`
+          }).catch(err => console.error(`Failed to create bookmark notification: ${err.message}`));
+        } catch (err) {
+          console.error('Bookmark notification error:', err);
+        }
+      }
+
       return { bookmarked: true, folderName };
     }
   }
@@ -1494,6 +1549,66 @@ class PublicationService {
     const populated = await PublicationComment.findById(comment._id)
       .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
       .lean();
+
+    // Send Real-Time Notification to publication owner
+    if (publication.userId.toString() !== userId.toString()) {
+      try {
+        const User = require('../../../models/User');
+        const notificationService = require('../../notifications/service/notification.service');
+        const actorUser = await User.findById(userId).select('firstName lastName').lean();
+        const actorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}` : 'A researcher';
+        
+        await notificationService.createNotification({
+          recipientId: publication.userId,
+          actorId: userId,
+          type: 'publication_commented',
+          title: 'New Comment on Publication',
+          message: `${actorName} commented on your publication: "${publication.title}"`,
+          targetType: 'Comment',
+          targetId: comment._id,
+          targetUrl: `/publication/${publication.slug}`
+        }).catch(err => console.error(`Failed to create comment notification: ${err.message}`));
+      } catch (err) {
+        console.error('Comment notification error:', err);
+      }
+    }
+
+    // Parse and handle @username mentions in comments
+    const mentionRegex = /@([a-zA-Z0-9_\-]+)/g;
+    let match;
+    const mentionedUsernames = [];
+    while ((match = mentionRegex.exec(content.trim())) !== null) {
+      mentionedUsernames.push(match[1]);
+    }
+
+    if (mentionedUsernames.length > 0) {
+      try {
+        const User = require('../../../models/User');
+        const notificationService = require('../../notifications/service/notification.service');
+        const actorUser = await User.findById(userId).select('firstName lastName').lean();
+        const actorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}` : 'A researcher';
+        
+        // Find users with matching usernames
+        const mentionedUsers = await User.find({ username: { $in: mentionedUsernames } }).select('_id').lean();
+        
+        mentionedUsers.forEach(async (mu) => {
+          if (mu._id.toString() !== userId.toString()) { // Don't notify self-mentions
+            await notificationService.createNotification({
+              recipientId: mu._id,
+              actorId: userId,
+              type: 'mention',
+              title: 'You were mentioned',
+              message: `${actorName} mentioned you in a comment on "${publication.title}"`,
+              targetType: 'Comment',
+              targetId: comment._id,
+              targetUrl: `/publication/${publication.slug}`
+            }).catch(err => console.error(`Failed to create mention notification: ${err.message}`));
+          }
+        });
+      } catch (err) {
+        console.error('Mention parsing/notification error:', err);
+      }
+    }
 
     return populated;
   }

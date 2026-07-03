@@ -259,6 +259,63 @@ class FeedController {
     const list = await feedService.getTrendingFeed({ page: 1, limit: 3 });
     return res.success('AI recommendations retrieved successfully.', list.docs);
   });
+
+  // ═══════════════════════════════════════════════════════════
+  // PHASE 8 — ACTIVITY FEED CONTROLLER METHODS
+  // ═══════════════════════════════════════════════════════════
+
+  getActivityFeed = asyncHandler(async (req, res) => {
+    const { cursor, limit = 20 } = req.query;
+    const result = await feedService.getActivityFeed(req.user._id, { cursor, limit });
+    return res.success('Personalized activity feed retrieved successfully.', result);
+  });
+
+  getActivityFeedFollowing = asyncHandler(async (req, res) => {
+    const { cursor, limit = 20 } = req.query;
+    const result = await feedService.getActivityFeedFollowing(req.user._id, { cursor, limit });
+    return res.success('Following activity feed retrieved successfully.', result);
+  });
+
+  getActivityFeedTrending = asyncHandler(async (req, res) => {
+    const { cursor, limit = 20, windowHours = 24 } = req.query;
+    const result = await feedService.getActivityFeedTrending({ cursor, limit, windowHours });
+    return res.success('Trending activity feed retrieved successfully.', result);
+  });
+
+  getActivityFeedLatest = asyncHandler(async (req, res) => {
+    const { cursor, limit = 20 } = req.query;
+    const result = await feedService.getActivityFeedLatest({ cursor, limit });
+    return res.success('Latest activity feed retrieved successfully.', result);
+  });
+
+  getFeedSidebar = asyncHandler(async (req, res) => {
+    const result = await feedService.getFeedSidebar(req.user._id);
+    return res.success('Feed sidebar data retrieved successfully.', result);
+  });
+
+  emitFeedEvent = asyncHandler(async (req, res) => {
+    const { actorId, eventType, entityType, entityId, metadata } = req.body;
+    if (!eventType || !entityType || !entityId) {
+      return res.error('eventType, entityType, and entityId are required.', {}, 400);
+    }
+    const event = await feedService.recordFeedEvent({
+      actorId: actorId || req.user._id,
+      eventType,
+      entityType,
+      entityId,
+      metadata
+    });
+    return res.success('Feed event recorded successfully.', event, 201);
+  });
+
+  recordFeedInteraction = asyncHandler(async (req, res) => {
+    const { eventId, interactionType } = req.body;
+    if (!eventId || !interactionType) {
+      return res.error('eventId and interactionType are required.', {}, 400);
+    }
+    const result = await feedService.recordEventInteraction(req.user._id, eventId, interactionType);
+    return res.success('Interaction recorded successfully.', result);
+  });
 }
 
 module.exports = new FeedController();

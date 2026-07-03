@@ -3,38 +3,82 @@ const Schema = mongoose.Schema;
 
 const NotificationSchema = new Schema(
   {
-    userId: {
+    recipientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true
+    },
+    actorId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true
     },
-    title: {
+    type: {
       type: String,
       required: true,
-      trim: true
+      enum: [
+        'follow',
+        'connection_request',
+        'connection_accepted',
+        'connection_rejected',
+        'connection_removed',
+        'publication_uploaded',
+        'publication_updated',
+        'publication_commented',
+        'publication_recommended',
+        'publication_bookmarked',
+        'publication_shared',
+        'publication_cited',
+        'dataset_shared',
+        'project_invitation',
+        'collaboration_invitation',
+        'mention',
+        'community_invitation',
+        'community_announcement',
+        'system',
+        'admin'
+      ],
+      index: true
+    },
+    title: {
+      type: String,
+      required: true
     },
     message: {
       type: String,
-      required: true,
-      trim: true
+      required: true
     },
-    type: {
+    targetType: {
       type: String,
-      default: 'info'
+      enum: ['User', 'Publication', 'Dataset', 'Project', 'ConnectionRequest', 'Community', 'Comment', 'System'],
+      required: true
+    },
+    targetId: {
+      type: Schema.Types.ObjectId,
+      required: true
+    },
+    targetUrl: {
+      type: String,
+      default: ''
+    },
+    metadata: {
+      type: Map,
+      of: Schema.Types.Mixed
     },
     isRead: {
       type: Boolean,
-      default: false
+      default: false,
+      index: true
     }
   },
   {
-    timestamps: { createdAt: true, updatedAt: false }
+    timestamps: true
   }
 );
 
-NotificationSchema.index({ userId: 1, isRead: 1 });
-NotificationSchema.index({ createdAt: -1 });
+// Optimize sorting and unread retrieval
+NotificationSchema.index({ recipientId: 1, isRead: 1, createdAt: -1 });
+NotificationSchema.index({ recipientId: 1, createdAt: -1 });
 
-const Notification = mongoose.model('Notification', NotificationSchema);
-
-module.exports = Notification;
+module.exports = mongoose.model('Notification', NotificationSchema);

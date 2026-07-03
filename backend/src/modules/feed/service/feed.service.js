@@ -8,6 +8,17 @@ const Follow = require('../../../models/Follow');
 const Bookmark = require('../../../models/Bookmark');
 const Dataset = require('../../../models/Dataset');
 const Comment = require('../../../models/Comment');
+const Connection = require('../../../models/Connection');
+const FeedEvent = require('../../../models/FeedEvent');
+const FeedRanking = require('../../../models/FeedRanking');
+const rankingEngine = require('../ranking/feed.ranking');
+const {
+  buildPersonalizedPipeline,
+  buildFollowingPipeline,
+  buildTrendingPipeline,
+  buildLatestPipeline,
+  buildTrendingAreasPipeline
+} = require('../aggregation/feed.aggregation');
 
 class FeedService {
   async generatePersonalizedFeed(userId, options = {}) {
@@ -434,6 +445,212 @@ class FeedService {
     };
 
     await profile.save();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PHASE 8 — ACTIVITY FEED ENGINE
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Record a new activity event into the FeedEvent collection.
+   * Called by other modules (publication upload, follow, community post, etc.)
+   */
+  async recordFeedEvent({ actorId, eventType, entityType, entityId, metadata = {} }) {
+    try {
+      const event = await FeedEvent.create({
+        actorId,
+        eventType,
+        entityType,
+        entityId,
+        metadata
+      });
+      return event;
+    } catch (err) {
+      // Non-critical — log but never throw to caller
+      console.error('[FeedService] recordFeedEvent error:', err.message);
+      return null;
+    }
+  }
+
+  /**
+   * Build or refresh per-user ranking context cache.
+   */
+  async _buildUserContext(userId) {
+    // Check cache first
+    let ranking = await FeedRanking.findOne({ userId }).lean();
+    const cacheStale = !ranking || (Date.now() - new Date(ranking.lastComputedAt).getTime() > 5 * 60 * 1000);
+
+    if (!cacheStale) return ranking;
+
+    const [profile, followingDocs, connections] = await Promise.all([
+      Profile.findOne({ userId }).lean(),
+      Follow.find({ followerId: userId }).select('followingId').lean(),
+      Connection.find({
+        $or: [{ senderId: userId }, { receiverId: userId }],
+        status: 'accepted'
+      }).lean()
+    ]);
+
+    const followingIds = followingDocs.map(f => f.followingId);
+    const connectionIds = connections.map(c =>
+      c.senderId.toString() === userId.toString() ? c.receiverId : c.senderId
+    );
+
+    const researchInterests = [];
+    if (profile) {
+      (profile.skills || []).forEach(s => researchInterests.push(s.name?.toLowerCase()));
+      (profile.education || []).forEach(e => e.specialization && researchInterests.push(e.specialization.toLowerCase()));
+      (profile.researchAreas || []).forEach(r => r.name && researchInterests.push(r.name.toLowerCase()));
+    }
+
+    const context = {
+      userId,
+      followingIds,
+      connectionIds,
+      communityIds: [],
+      collaborationIds: [],
+      researchInterests: [...new Set(researchInterests.filter(Boolean))],
+      institution: profile?.institution || '',
+      country: profile?.country || '',
+      lastComputedAt: new Date()
+    };
+
+    await FeedRanking.findOneAndUpdate(
+      { userId },
+      context,
+      { upsert: true, new: true }
+    );
+
+    return context;
+  }
+
+  /**
+   * Personalized multi-type activity feed.
+   * Uses cursor-based pagination for performance.
+   */
+  async getActivityFeed(userId, { cursor, limit = 20 } = {}) {
+    const userContext = await this._buildUserContext(userId);
+    const pipeline = buildPersonalizedPipeline({
+      followingIds: userContext.followingIds,
+      cursor,
+      limit: Number(limit)
+    });
+
+    if (!pipeline.length) return { events: [], nextCursor: null };
+
+    const events = await FeedEvent.aggregate(pipeline);
+    const ranked = rankingEngine.rankEvents(events, userContext);
+    const nextCursor = ranked.length === Number(limit) ? ranked[ranked.length - 1]._id : null;
+    return { events: ranked, nextCursor };
+  }
+
+  /**
+   * Following-only activity feed.
+   */
+  async getActivityFeedFollowing(userId, { cursor, limit = 20 } = {}) {
+    const userContext = await this._buildUserContext(userId);
+    const { followingIds } = userContext;
+
+    if (!followingIds.length) return { events: [], nextCursor: null };
+
+    const pipeline = buildFollowingPipeline({ followingIds, cursor, limit: Number(limit) });
+    const events = await FeedEvent.aggregate(pipeline);
+    const ranked = rankingEngine.rankEvents(events, userContext);
+    const nextCursor = ranked.length === Number(limit) ? ranked[ranked.length - 1]._id : null;
+    return { events: ranked, nextCursor };
+  }
+
+  /**
+   * Trending feed — high-engagement events in 24h window.
+   */
+  async getActivityFeedTrending({ cursor, limit = 20, windowHours = 24 } = {}) {
+    const pipeline = buildTrendingPipeline({ cursor, limit: Number(limit), windowHours });
+    const events = await FeedEvent.aggregate(pipeline);
+    const nextCursor = events.length === Number(limit) ? events[events.length - 1]._id : null;
+    return { events, nextCursor };
+  }
+
+  /**
+   * Latest (chronological) feed.
+   */
+  async getActivityFeedLatest({ cursor, limit = 20 } = {}) {
+    const pipeline = buildLatestPipeline({ cursor, limit: Number(limit) });
+    const events = await FeedEvent.aggregate(pipeline);
+    const nextCursor = events.length === Number(limit) ? events[events.length - 1]._id : null;
+    return { events, nextCursor };
+  }
+
+  /**
+   * Sidebar bundle — all widget data in one request.
+   */
+  async getFeedSidebar(userId) {
+    const [trendingAreas, suggestedResearchers] = await Promise.all([
+      FeedEvent.aggregate(buildTrendingAreasPipeline({ limit: 5, windowHours: 48 })),
+      this.getSuggestedResearchers(userId)
+    ]);
+
+    // Upcoming conferences (from Event collection via repository)
+    let conferences = [];
+    let funding = [];
+    let jobs = [];
+    try {
+      const eventsRes = await feedRepository.getEvents({}, { page: 1, limit: 5 });
+      conferences = eventsRes?.docs || [];
+    } catch (_) {}
+
+    // Funding opportunities from FeedEvent collection
+    try {
+      funding = await FeedEvent.find({ eventType: 'funding_opportunity', isDeleted: { $ne: true } })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean();
+    } catch (_) {}
+
+    // Academic jobs from FeedEvent collection
+    try {
+      jobs = await FeedEvent.find({ eventType: 'academic_job', isDeleted: { $ne: true } })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean();
+    } catch (_) {}
+
+    return {
+      trendingAreas,
+      suggestedResearchers,
+      conferences,
+      funding,
+      jobs
+    };
+  }
+
+  /**
+   * Record user interaction with a feed event (impression, click, bookmark, like).
+   */
+  async recordEventInteraction(userId, eventId, interactionType) {
+    try {
+      await FeedInteraction.create({
+        userId,
+        publicationId: eventId, // Reuse existing schema — eventId stored in publicationId field
+        interactionType
+      });
+
+      // Increment engagement counters on FeedEvent for trending/ranking
+      const incrementMap = {
+        like: 'engagementCount.likes',
+        comment: 'engagementCount.comments',
+        share: 'engagementCount.shares',
+        bookmark: 'engagementCount.bookmarks'
+      };
+      if (incrementMap[interactionType]) {
+        await FeedEvent.findByIdAndUpdate(eventId, {
+          $inc: { [incrementMap[interactionType]]: 1 }
+        });
+      }
+      return { recorded: true };
+    } catch (err) {
+      console.error('[FeedService] recordEventInteraction error:', err.message);
+      return { recorded: false };
+    }
   }
 }
 

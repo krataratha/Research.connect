@@ -5,6 +5,8 @@ const PublicationKeyword = require('../../../models/PublicationKeyword');
 const PublicationResearchArea = require('../../../models/PublicationResearchArea');
 const SearchHistory = require('../../../models/SearchHistory');
 const SearchAnalytic = require('../../../models/SearchAnalytic');
+const User = require('../../../models/User');
+const Profile = require('../../../models/Profile');
 const { ValidationError } = require('../../../common/errors/AppError');
 
 // Sanitize a query string to prevent regex injection
@@ -252,6 +254,84 @@ class SearchService {
     const [result] = await PublicationAuthor.aggregate(pipeline);
     const results = result?.data || [];
     const total = result?.count?.[0]?.total || 0;
+
+    return { results, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
+  }
+
+  // ─── Researcher Search ────────────────────────────────────────────────────────
+  async searchResearchers(params) {
+    const { q = '', page = 1, limit = 20, country, institution, researchArea } = params;
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+    const skip = (pageNum - 1) * limitNum;
+
+    // Search query on user's fullName / email or profile's bio / institution / researchAreas
+    const userQuery = {};
+    const profileQuery = { isDeleted: { $ne: true } };
+
+    if (country) profileQuery['institutionLocation.country'] = country;
+    if (institution) profileQuery.institution = { $regex: institution, $options: 'i' };
+    if (researchArea) profileQuery.researchAreas = { $in: [new RegExp(researchArea, 'i')] };
+
+    if (q.trim()) {
+      const regex = buildRegex(q);
+      profileQuery.$or = [
+        { institution: regex },
+        { department: regex },
+        { biography: regex },
+        { researchAreas: { $in: [regex] } }
+      ];
+      userQuery.$or = [
+        { firstName: regex },
+        { lastName: regex },
+        { email: regex }
+      ];
+    }
+
+    // First find matching profiles
+    const matchedProfiles = await Profile.find(profileQuery).lean();
+    const matchedUserIdsFromProfiles = matchedProfiles.map(p => p.userId);
+
+    // Find users matching either userQuery OR having profile match
+    const finalUserFilter = {
+      isDeleted: { $ne: true },
+      isActive: true
+    };
+
+    if (q.trim()) {
+      finalUserFilter.$or = [
+        ...userQuery.$or,
+        { _id: { $in: matchedUserIdsFromProfiles } }
+      ];
+    } else if (matchedUserIdsFromProfiles.length > 0) {
+      finalUserFilter._id = { $in: matchedUserIdsFromProfiles };
+    } else if (country || institution || researchArea) {
+      // If filters applied but no profiles matched, we should return empty
+      return { results: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 };
+    }
+
+    const [users, total] = await Promise.all([
+      User.find(finalUserFilter)
+        .skip(skip)
+        .limit(limitNum)
+        .select('firstName lastName fullName email profileImage profileSlug researcherType institution')
+        .lean(),
+      User.countDocuments(finalUserFilter)
+    ]);
+
+    // Attach profile details
+    const userIds = users.map(u => u._id);
+    const profiles = await Profile.find({ userId: { $in: userIds }, isDeleted: { $ne: true } }).lean();
+
+    const results = users.map(user => {
+      const prof = profiles.find(p => p.userId.toString() === user._id.toString());
+      return {
+        ...user,
+        profile: prof || null,
+        institution: prof?.institution || user.institution || '',
+        researchAreas: prof?.researchAreas || []
+      };
+    });
 
     return { results, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
   }

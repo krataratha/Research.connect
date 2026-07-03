@@ -25,6 +25,12 @@ import {
   ResearchGateIcon, 
   WebsiteIcon 
 } from './BrandIcons';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import FollowButton from '../../follow/components/FollowButton';
+import ConnectButton from '../../connections/components/ConnectButton';
+import MutualFollowers from '../../follow/components/MutualFollowers';
+import followService from '../../follow/services/follow.service';
 
 
 const ProfileHeader = ({ 
@@ -43,6 +49,16 @@ const ProfileHeader = ({
 }) => {
   const defaultCover = 'https://iili.io/C7pZ8Ss.jpg';
   const coverInputRef = useRef(null);
+
+  // Fetch follow status for mutual followers preview
+  const { data: followStatus } = useQuery({
+    queryKey: ['followStatus', profile?.userId],
+    queryFn: async () => {
+      const res = await followService.getFollowStatus(profile.userId);
+      return res.data;
+    },
+    enabled: !!profile?.userId && !isOwnProfile
+  });
 
   const handleCoverClick = () => {
     coverInputRef.current?.click();
@@ -140,6 +156,28 @@ const ProfileHeader = ({
             <span>{profile?.country || user?.country || 'Global'}</span>
           </div>
 
+          {/* Followers, Following & Connections count block */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1.5 text-xs font-bold text-slate-500">
+            <Link to={`/profile/${profile?.profileSlug || profile?.username || 'me'}/followers`} className="hover:text-[#2563EB] transition-colors">
+              <span className="text-[#0F172A] font-black">{profile?.followersCount || 0}</span> Followers
+            </Link>
+            <span className="w-1 h-1 rounded-full bg-slate-300" />
+            <Link to={`/profile/${profile?.profileSlug || profile?.username || 'me'}/following`} className="hover:text-[#2563EB] transition-colors">
+              <span className="text-[#0F172A] font-black">{profile?.followingCount || 0}</span> Following
+            </Link>
+            <span className="w-1 h-1 rounded-full bg-slate-300" />
+            <Link to="/network/connections" className="hover:text-[#2563EB] transition-colors">
+              <span className="text-[#0F172A] font-black">{profile?.connectionsCount || 0}</span> Connections
+            </Link>
+          </div>
+
+          {/* Mutual followers preview stack */}
+          {!isOwnProfile && followStatus && followStatus.mutualCount > 0 && (
+            <div className="pt-2">
+              <MutualFollowers mutualCount={followStatus.mutualCount} mutualPreview={followStatus.mutualPreview || []} />
+            </div>
+          )}
+
           {/* Open to Opportunities Block */}
           <div className="flex items-center gap-1.5 pt-1 text-xs text-text-secondary">
             <HeartHandshake className="w-3.5 h-3.5 text-accent-indigo" />
@@ -189,19 +227,6 @@ const ProfileHeader = ({
                 <Share2 className="w-3.5 h-3.5" />
                 Share
               </button>
-              <button
-                onClick={onFollow}
-                className="flex items-center gap-1.5 px-4 py-2 border border-border bg-white rounded-xl text-xs font-bold text-text-secondary hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95"
-              >
-                Follow
-              </button>
-              <button
-                onClick={onConnect}
-                className="flex items-center gap-1.5 px-4 py-2 border border-border bg-white rounded-xl text-xs font-bold text-text-secondary hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                Connect
-              </button>
             </>
           ) : (
             <>
@@ -213,27 +238,8 @@ const ProfileHeader = ({
                 <Share2 className="w-3.5 h-3.5" />
                 Share
               </button>
-              <button
-                onClick={onFollow}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-                  isFollowing 
-                    ? 'border border-primary text-primary bg-primary/5 hover:bg-primary hover:text-white' 
-                    : 'bg-primary text-white hover:bg-primary-hover shadow-md shadow-primary/15'
-                }`}
-              >
-                {isFollowing ? 'Following' : 'Follow'}
-              </button>
-              <button
-                onClick={onConnect}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-                  isConnected 
-                    ? 'bg-slate-100 text-text-secondary hover:bg-primary hover:text-white hover:border-primary' 
-                    : 'bg-gradient-primary text-white hover:opacity-90 shadow-md shadow-primary/15'
-                }`}
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                {isConnected ? 'Connected' : 'Connect'}
-              </button>
+              <FollowButton targetUserId={profile?.userId} username={profile?.profileSlug || profile?.username} />
+              <ConnectButton targetUserId={profile?.userId} username={profile?.profileSlug || profile?.username} />
             </>
           )}
         </div>

@@ -237,12 +237,16 @@ class AuthService {
       logger.error('Failed to calculate profile completion/metrics on verify registration: ' + err.message);
     }
 
-    // Initialize Welcome Notification
+    // Initialize Welcome Notification conforming to Schema
     await Notification.create({
-      userId: user._id,
+      recipientId: user._id,
+      actorId: user._id,
+      type: 'system',
       title: 'Welcome to Research Connect!',
       message: 'Your account is active. Complete your profile to build your research identity.',
-      type: 'info',
+      targetType: 'System',
+      targetId: user._id,
+      targetUrl: '/profile',
       isRead: false
     });
 

@@ -14,14 +14,20 @@ const errorHandlerMiddleware = require("./common/middlewares/errorHandler.middle
 const landingModule = require("./modules/landing");
 const authModule = require("./modules/authentication");
 const profileModule = require("./modules/profile");
+const followModule = require("./modules/follow");
+const connectionsModule = require("./modules/connections");
 const scholarModule = require("./modules/scholar");
 const feedModule = require("./modules/feed");
 const publicationModule = require("./modules/publication");
-const messageModule = require("./modules/message");
+const messageModule = require("./modules/messages");
 const searchModule = require("./modules/search");
 const uploadModule = require("./modules/upload");
 const projectModule = require("./modules/project");
 const datasetModule = require("./modules/dataset");
+const notificationRoutes = require("./modules/notifications/routes/notification.routes");
+const collaborationRoutes = require("./modules/collaborations/routes/collaboration.routes");
+const communityRoutes = require("./modules/communities/routes/community.routes");
+const identityRoutes = require("./modules/identity/routes/identity.routes");
 
 const app = express();
 
@@ -61,6 +67,8 @@ app.use(responseFormatterMiddleware);
 app.use("/api", landingModule.routes);
 app.use("/api/v1/auth", authModule.routes);
 app.use("/api/v1/profile", profileModule.routes);
+app.use("/api/v1/follows", followModule.routes);
+app.use("/api/v1/connections", connectionsModule.routes);
 app.use("/api/v1", scholarModule.routes);
 app.use("/api/v1", feedModule.routes);
 app.use("/api/v1/publications", publicationModule.routes);
@@ -69,6 +77,10 @@ app.use("/api/v1/search", searchModule.routes);
 app.use("/api/v1/uploads", uploadModule.routes);
 app.use("/api/v1/projects", projectModule.routes);
 app.use("/api/v1/datasets", datasetModule.routes);
+app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/collaborations", collaborationRoutes);
+app.use("/api/v1/communities", communityRoutes);
+app.use("/api/v1/identity", identityRoutes);
 
 // Default root redirect to /api
 app.get("/", (req, res) => {

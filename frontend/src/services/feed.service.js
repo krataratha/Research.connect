@@ -106,6 +106,54 @@ class FeedService {
   async globalSearch(query = '', page = 1, limit = 10) {
     return await axiosInstance.get(`/v1/search?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
   }
+
+  // ════════════════════════════════════
+  // Phase 8 — Activity Feed APIs
+  // ════════════════════════════════════
+
+  async getActivityFeed({ cursor, limit = 20 } = {}) {
+    const params = new URLSearchParams({ limit });
+    if (cursor) params.set('cursor', cursor);
+    return await axiosInstance.get(`/v1/feed/activity?${params}`);
+  }
+
+  async getActivityFeedFollowing({ cursor, limit = 20 } = {}) {
+    const params = new URLSearchParams({ limit });
+    if (cursor) params.set('cursor', cursor);
+    return await axiosInstance.get(`/v1/feed/activity/following?${params}`);
+  }
+
+  async getActivityFeedTrending({ cursor, limit = 20, windowHours = 24 } = {}) {
+    const params = new URLSearchParams({ limit, windowHours });
+    if (cursor) params.set('cursor', cursor);
+    return await axiosInstance.get(`/v1/feed/activity/trending?${params}`);
+  }
+
+  async getActivityFeedLatest({ cursor, limit = 20 } = {}) {
+    const params = new URLSearchParams({ limit });
+    if (cursor) params.set('cursor', cursor);
+    return await axiosInstance.get(`/v1/feed/activity/latest?${params}`);
+  }
+
+  async getFeedSidebar() {
+    return await axiosInstance.get('/v1/feed/sidebar');
+  }
+
+  async emitFeedEvent({ eventType, entityType, entityId, metadata = {} }) {
+    return await axiosInstance.post('/v1/feed/event', { eventType, entityType, entityId, metadata });
+  }
+
+  async recordInteraction(eventId, interactionType) {
+    return await axiosInstance.post('/v1/feed/interact', { eventId, interactionType });
+  }
+
+  async bookmarkFeedEvent(eventId) {
+    return this.recordInteraction(eventId, 'bookmark');
+  }
+
+  async recommendFeedEvent(eventId) {
+    return this.recordInteraction(eventId, 'like');
+  }
 }
 
 export default new FeedService();

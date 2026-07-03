@@ -226,6 +226,34 @@ const ProfileSchema = new Schema(
       max: 100,
       default: 0
     },
+    followersCount: {
+      type: Number,
+      default: 0
+    },
+    followingCount: {
+      type: Number,
+      default: 0
+    },
+    connectionsCount: {
+      type: Number,
+      default: 0
+    },
+    pendingSentCount: {
+      type: Number,
+      default: 0
+    },
+    pendingReceivedCount: {
+      type: Number,
+      default: 0
+    },
+    notificationSettings: {
+      follow: { type: Boolean, default: true },
+      connection: { type: Boolean, default: true },
+      publication: { type: Boolean, default: true },
+      comment: { type: Boolean, default: true },
+      mention: { type: Boolean, default: true },
+      system: { type: Boolean, default: true }
+    },
     dataSourceTracking: {
       type: Map,
       of: new Schema({

@@ -40,6 +40,12 @@ class SearchController {
     return res.success('Authors search completed.', results);
   });
 
+  // GET /api/v1/search/researchers
+  searchResearchers = asyncHandler(async (req, res) => {
+    const results = await searchService.searchResearchers(req.query);
+    return res.success('Researchers search completed.', results);
+  });
+
   // GET /api/v1/search/journals
   searchJournals = asyncHandler(async (req, res) => {
     const results = await searchService.searchJournals(req.query);

@@ -17,18 +17,28 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 15, // Limit each IP to 15 authentication attempts (register, login, forgot/reset password)
+  limit: 100, // Increased from 15 to 100 for local development/testing
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: createMessage('Too many authentication attempts. Please try again after 15 minutes.', 'AUTH_BRUTE_FORCE')
 });
 
+// Strict limiter for OTP generation (send) — 30 sends per 5 minutes
 const otpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  limit: 5, // Limit each IP to 5 OTP generation or verification requests per 5 minutes
+  limit: 30, // Increased from 5 to 30
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: createMessage('Too many OTP attempts. Please wait 5 minutes before trying again.', 'OTP_THROTTLED')
+  message: createMessage('Too many OTP requests. Please wait 5 minutes before requesting again.', 'OTP_THROTTLED')
+});
+
+// More permissive limiter for OTP verification — 100 attempts per 5 minutes
+const verifyOtpLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 100, // Increased from 15 to 100
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: createMessage('Too many verification attempts. Please wait a few minutes and try again.', 'OTP_THROTTLED')
 });
 
 const searchLimiter = rateLimit({
@@ -59,6 +69,7 @@ module.exports = {
   globalLimiter,
   authLimiter,
   otpLimiter,
+  verifyOtpLimiter,
   searchLimiter,
   scholarSyncLimiter,
   uploadLimiter
