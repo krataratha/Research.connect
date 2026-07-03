@@ -5,7 +5,7 @@ import {
   Home, User, Compass, FileText, Briefcase,
   Users, MessageSquare, Bookmark, UserCheck,
   UserPlus, Settings, Upload, ChevronLeft,
-  ChevronRight, BarChart2, Globe, Database, X
+  ChevronRight, BarChart2, Globe, Database, X, Award
 } from 'lucide-react';
 
 const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) => {
@@ -25,8 +25,9 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
     { name: 'Messages', path: `/profile/${profileSlug}/messages`, icon: MessageSquare },
     { name: 'Followers', path: `/profile/${profileSlug}/followers`, icon: UserCheck },
     { name: 'Following', path: `/profile/${profileSlug}/following`, icon: UserPlus },
-    { name: 'Analytics', path: `/profile/${profileSlug}/analytics`, icon: BarChart2 },
-    { name: 'Settings', path: `/profile/${profileSlug}/settings`, icon: Settings }
+    { name: 'Analytics',  path: `/profile/${profileSlug}/analytics`,  icon: BarChart2 },
+    { name: 'Certificates', path: '/certificates', icon: Award },
+    { name: 'Settings',   path: `/profile/${profileSlug}/settings`,  icon: Settings  }
   ];
 
   const handleUploadPublication = () => {
