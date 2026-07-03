@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, GraduationCap, Building2, HeartPulse, UserCheck, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Share2, GraduationCap, Building2, HeartPulse, UserCheck, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import authService from '../../../services/auth.service';
 import { setOtpEmail, setOtpPurpose } from '../../../redux/slices/authSlice';
 import Input from '../../../components/common/inputs/Input';
@@ -25,24 +25,74 @@ const countriesList = [
   { value: 'Other', label: 'Other' }
 ];
 
+const researcherTypes = [
+  { key: 'academic', title: 'Academic', icon: GraduationCap, fg: 'text-primary', bg: 'bg-light-blue', ring: 'ring-primary' },
+  { key: 'corporate', title: 'Corporate / NGO', icon: Building2, fg: 'text-accent-indigo', bg: 'bg-light-purple', ring: 'ring-accent-indigo' },
+  { key: 'medical', title: 'Medical', icon: HeartPulse, fg: 'text-accent-green', bg: 'bg-light-green', ring: 'ring-accent-green' },
+  { key: 'non_researcher', title: 'Not a Researcher', icon: UserCheck, fg: 'text-accent-orange', bg: 'bg-light-orange', ring: 'ring-accent-orange' }
+];
+
+const getPasswordStrength = (value = '') => {
+  if (!value) return 0;
+  let score = 0;
+  if (value.length >= 6) score++;
+  if (value.length >= 10) score++;
+  if (/[A-Z]/.test(value) && /[a-z]/.test(value)) score++;
+  if (/\d/.test(value) && /[^A-Za-z0-9]/.test(value)) score++;
+  return score;
+};
+
+const strengthMeta = [
+  { label: '', color: 'bg-border' },
+  { label: 'Weak', color: 'bg-accent-red' },
+  { label: 'Fair', color: 'bg-accent-orange' },
+  { label: 'Good', color: 'bg-primary' },
+  { label: 'Strong', color: 'bg-accent-green' }
+];
+
+const affiliationFields = {
+  academic: [
+    { name: 'institution', label: 'University / Institution', placeholder: 'e.g. Stanford University', required: true },
+    { name: 'department', label: 'Department', placeholder: 'e.g. Computer Science', required: true },
+    { name: 'designation', label: 'Designation (Optional)', placeholder: 'e.g. Associate Professor', required: false }
+  ],
+  corporate: [
+    { name: 'company', label: 'Company / Organisation', placeholder: 'e.g. Google DeepMind', required: true },
+    { name: 'division', label: 'Division / Department', placeholder: 'e.g. AI Research Group', required: true },
+    { name: 'position', label: 'Position / Role', placeholder: 'e.g. Principal Scientist', required: true }
+  ],
+  medical: [
+    { name: 'hospital', label: 'Hospital / Medical Institute', placeholder: 'e.g. Mayo Clinic', required: true },
+    { name: 'department', label: 'Department', placeholder: 'e.g. Cardiology', required: true },
+    { name: 'designation', label: 'Designation / Rank', placeholder: 'e.g. Resident Physician', required: true }
+  ],
+  non_researcher: [
+    { name: 'organization', label: 'Organisation / Agency', placeholder: 'e.g. Nature Publishing Group', required: true },
+    { name: 'occupation', label: 'Occupation', placeholder: 'e.g. Scientific Editor', required: true },
+    { name: 'interest', label: 'Research Interest', placeholder: 'e.g. Quantum Computing', required: true }
+  ]
+};
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [researcherType, setResearcherType] = useState('');
 
-  // We use react-hook-form to manage form validation for each step
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     trigger,
     getValues,
     formState: { errors }
   } = useForm({
     mode: 'onTouched',
     defaultValues: {
+      researcherType: '',
       firstName: '',
       lastName: '',
       email: '',
@@ -50,59 +100,28 @@ const RegisterPage = () => {
       confirmPassword: '',
       country: '',
       phone: '',
-      acceptTerms: false,
-      acceptPrivacy: false,
-      // Step 2 academic
-      institution: '',
-      department: '',
-      designation: '',
-      // Step 2 corporate
-      company: '',
-      division: '',
-      position: '',
-      // Step 2 medical
+      acceptAll: false,
+      institution: '', department: '', designation: '',
+      company: '', division: '', position: '',
       hospital: '',
-      // Step 2 non-researcher
-      organization: '',
-      occupation: '',
-      interest: ''
+      organization: '', occupation: '', interest: ''
     }
   });
 
-  // Step 1: Researcher Type Select
-  const handleSelectType = (type) => {
-    setResearcherType(type);
-    setStep(2);
+  const researcherType = watch('researcherType');
+  const passwordValue = watch('password');
+  const strength = getPasswordStrength(passwordValue);
+
+  const handleSelectType = (key) => {
+    setValue('researcherType', key, { shouldValidate: true });
+    if (errors.researcherType) trigger('researcherType');
   };
 
-  // Transition from Step 2 to Step 3
-  const handleStep2Next = async () => {
-    let fieldsToValidate = [];
-    if (researcherType === 'academic') {
-      fieldsToValidate = ['institution', 'department'];
-    } else if (researcherType === 'corporate') {
-      fieldsToValidate = ['company', 'division', 'position'];
-    } else if (researcherType === 'medical') {
-      fieldsToValidate = ['hospital', 'department', 'designation'];
-    } else if (researcherType === 'non_researcher') {
-      fieldsToValidate = ['organization', 'occupation', 'interest'];
-    }
-
-    const isValid = await trigger(fieldsToValidate);
-    if (isValid) {
-      setStep(3);
-    }
-  };
-
-  // Step 3 Submission
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const payload = {
-        ...data,
-        researcherType
-      };
-
+      const { acceptAll, ...rest } = data;
+      const payload = { ...rest, acceptTerms: acceptAll, acceptPrivacy: acceptAll };
       const response = await authService.register(payload);
       if (response.success) {
         toast.success('Registration pending. Verify the OTP code sent to your email.');
@@ -117,40 +136,10 @@ const RegisterPage = () => {
     }
   };
 
-  const stepVariants = {
-    hidden: { opacity: 0, x: 50 },
-    visible: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -50 }
-  };
-
   return (
     <div className="w-full max-w-lg mx-auto">
-      {/* Progress bar */}
-      <div className="mb-8 flex items-center justify-between px-2">
-        <div className="flex items-center gap-1.5">
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-            step >= 1 ? 'bg-primary text-white' : 'bg-border text-text-secondary'
-          }`}>1</span>
-          <span className="text-xs font-bold text-text-secondary hidden sm:inline">Type</span>
-        </div>
-        <div className={`flex-grow h-0.5 mx-2 ${step >= 2 ? 'bg-primary' : 'bg-border'}`} />
-        <div className="flex items-center gap-1.5">
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-            step >= 2 ? 'bg-primary text-white' : 'bg-border text-text-secondary'
-          }`}>2</span>
-          <span className="text-xs font-bold text-text-secondary hidden sm:inline">Affiliation</span>
-        </div>
-        <div className={`flex-grow h-0.5 mx-2 ${step >= 3 ? 'bg-primary' : 'bg-border'}`} />
-        <div className="flex items-center gap-1.5">
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-            step >= 3 ? 'bg-primary text-white' : 'bg-border text-text-secondary'
-          }`}>3</span>
-          <span className="text-xs font-bold text-text-secondary hidden sm:inline">Account</span>
-        </div>
-      </div>
-
-      <div className="glass-card rounded-2xl p-8 shadow-xl border border-border bg-white bg-opacity-70 backdrop-blur-md">
-        <div className="flex flex-col items-center mb-6">
+      <div className="glass-card rounded-2xl p-4 sm:p-6 shadow-xl border border-border bg-white bg-opacity-70 backdrop-blur-md">
+        <div className="flex flex-col items-center mb-4">
           <Link to="/" className="flex items-center gap-2 mb-2">
             <span className="p-1.5 rounded-lg bg-gradient-primary text-white flex items-center justify-center shadow-sm">
               <Share2 className="w-4 h-4" />
@@ -159,346 +148,227 @@ const RegisterPage = () => {
               Research<span className="text-primary">Connect</span>
             </span>
           </Link>
-          <h2 className="text-xl font-bold text-text-primary tracking-tight">Create Researcher Account</h2>
+          <h2 className="text-lg font-bold text-text-primary tracking-tight text-center">Create Researcher Account</h2>
         </div>
 
-        <AnimatePresence mode="wait">
-          {/* STEP 1: Select Researcher Type */}
-          {step === 1 && (
-            <motion.div
-              key="step1"
-              variants={stepVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={{ duration: 0.3 }}
-              className="space-y-4"
-            >
-              <h3 className="text-sm font-semibold text-text-secondary mb-3">Select your researcher profile type:</h3>
-              <div className="grid grid-cols-1 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleSelectType('academic')}
-                  className="flex items-center gap-4 p-4 border border-border rounded-xl hover:border-primary hover:bg-light-blue bg-white bg-opacity-50 text-left transition-all duration-200 group"
-                >
-                  <span className="p-3 bg-light-blue text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
-                    <GraduationCap className="w-6 h-6" />
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-sm text-text-primary">Academic or Student</h4>
-                    <p className="text-xs text-text-secondary mt-0.5">Universities, institutes, research labs, colleges</p>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Profile type — single click, no page change */}
+          <div>
+            <label className="text-xs font-semibold text-text-secondary tracking-wide flex items-center gap-1 mb-2">
+              I am a <span className="text-accent-red font-bold">*</span>
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {researcherTypes.map(({ key, title, icon: Icon, fg, bg, ring }) => {
+                const selected = researcherType === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handleSelectType(key)}
+                    className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border text-center transition-all duration-150 ${
+                      selected ? `border-transparent ring-2 ${ring} ${bg}` : 'border-border bg-white bg-opacity-50 hover:border-primary'
+                    }`}
+                  >
+                    <span className={`p-1.5 rounded-lg ${bg} ${fg}`}>
+                      <Icon className="w-4 h-4" />
+                    </span>
+                    <span className="text-[10px] font-bold text-text-primary leading-tight">{title}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <input type="hidden" {...register('researcherType', { required: 'Please select a profile type' })} />
+            {errors.researcherType && (
+              <span className="text-xs font-medium text-accent-red">{errors.researcherType.message}</span>
+            )}
+          </div>
+
+          {/* Affiliation — appears the moment a type is picked */}
+          <AnimatePresence initial={false}>
+            {researcherType && (
+              <motion.div
+                key={researcherType}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2.5 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {affiliationFields[researcherType].slice(0, 2).map((f) => (
+                      <Input
+                        key={f.name}
+                        label={f.label}
+                        placeholder={f.placeholder}
+                        error={errors[f.name]?.message}
+                        autoComplete="organization"
+                        required={f.required}
+                        {...register(f.name, f.required ? { required: `${f.label.replace(' (Optional)', '')} is required` } : {})}
+                      />
+                    ))}
                   </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectType('corporate')}
-                  className="flex items-center gap-4 p-4 border border-border rounded-xl hover:border-primary hover:bg-light-blue bg-white bg-opacity-50 text-left transition-all duration-200 group"
-                >
-                  <span className="p-3 bg-light-purple text-accent-indigo rounded-lg group-hover:bg-accent-indigo group-hover:text-white transition-colors">
-                    <Building2 className="w-6 h-6" />
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-sm text-text-primary">Corporate, Government or NGO</h4>
-                    <p className="text-xs text-text-secondary mt-0.5">Corporate R&D units, departments, non-profits</p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectType('medical')}
-                  className="flex items-center gap-4 p-4 border border-border rounded-xl hover:border-primary hover:bg-light-blue bg-white bg-opacity-50 text-left transition-all duration-200 group"
-                >
-                  <span className="p-3 bg-light-green text-accent-green rounded-lg group-hover:bg-accent-green group-hover:text-white transition-colors">
-                    <HeartPulse className="w-6 h-6" />
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-sm text-text-primary">Medical & Clinical</h4>
-                    <p className="text-xs text-text-secondary mt-0.5">Hospitals, medical research labs, health agencies</p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectType('non_researcher')}
-                  className="flex items-center gap-4 p-4 border border-border rounded-xl hover:border-primary hover:bg-light-blue bg-white bg-opacity-50 text-left transition-all duration-200 group"
-                >
-                  <span className="p-3 bg-light-orange text-accent-orange rounded-lg group-hover:bg-accent-orange group-hover:text-white transition-colors">
-                    <UserCheck className="w-6 h-6" />
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-sm text-text-primary">Not a Researcher</h4>
-                    <p className="text-xs text-text-secondary mt-0.5">Academic publisher, reader, investor, enthusiast</p>
-                  </div>
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 2: Affiliation Details */}
-          {step === 2 && (
-            <motion.div
-              key="step2"
-              variants={stepVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={{ duration: 0.3 }}
-              className="space-y-4"
-            >
-              <h3 className="text-sm font-semibold text-text-secondary">Workplace & Affiliation details:</h3>
-
-              {researcherType === 'academic' && (
-                <div className="space-y-4">
-                  <Input
-                    label="University / Institution"
-                    placeholder="e.g. Stanford University"
-                    error={errors.institution?.message}
-                    required
-                    {...register('institution', { required: 'Institution is required' })}
-                  />
-                  <Input
-                    label="Department"
-                    placeholder="e.g. Department of Computer Science"
-                    error={errors.department?.message}
-                    required
-                    {...register('department', { required: 'Department is required' })}
-                  />
-                  <Input
-                    label="Academic Designation (Optional)"
-                    placeholder="e.g. Associate Professor / PhD Candidate"
-                    {...register('designation')}
-                  />
+                  {affiliationFields[researcherType].slice(2).map((f) => (
+                    <Input
+                      key={f.name}
+                      label={f.label}
+                      placeholder={f.placeholder}
+                      error={errors[f.name]?.message}
+                      required={f.required}
+                      {...register(f.name, f.required ? { required: `${f.label} is required` } : {})}
+                    />
+                  ))}
                 </div>
-              )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-              {researcherType === 'corporate' && (
-                <div className="space-y-4">
-                  <Input
-                    label="Company / Organisation"
-                    placeholder="e.g. Google DeepMind"
-                    error={errors.company?.message}
-                    required
-                    {...register('company', { required: 'Company is required' })}
-                  />
-                  <Input
-                    label="Division / Department"
-                    placeholder="e.g. AI Research Group"
-                    error={errors.division?.message}
-                    required
-                    {...register('division', { required: 'Division is required' })}
-                  />
-                  <Input
-                    label="Position / Role"
-                    placeholder="e.g. Principal Research Scientist"
-                    error={errors.position?.message}
-                    required
-                    {...register('position', { required: 'Position is required' })}
-                  />
-                </div>
-              )}
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="First Name"
+              placeholder="Alice"
+              error={errors.firstName?.message}
+              autoComplete="given-name"
+              required
+              {...register('firstName', { required: 'First name is required' })}
+            />
+            <Input
+              label="Last Name"
+              placeholder="Smith"
+              error={errors.lastName?.message}
+              autoComplete="family-name"
+              required
+              {...register('lastName', { required: 'Last name is required' })}
+            />
+          </div>
 
-              {researcherType === 'medical' && (
-                <div className="space-y-4">
-                  <Input
-                    label="Hospital / Medical Institute"
-                    placeholder="e.g. Mayo Clinic"
-                    error={errors.hospital?.message}
-                    required
-                    {...register('hospital', { required: 'Hospital name is required' })}
-                  />
-                  <Input
-                    label="Department"
-                    placeholder="e.g. Cardiology"
-                    error={errors.department?.message}
-                    required
-                    {...register('department', { required: 'Department is required' })}
-                  />
-                  <Input
-                    label="Designation / Medical Rank"
-                    placeholder="e.g. Resident Physician / Research Director"
-                    error={errors.designation?.message}
-                    required
-                    {...register('designation', { required: 'Designation is required' })}
-                  />
-                </div>
-              )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Select
+              label="Country"
+              placeholder="Select Country"
+              options={countriesList}
+              error={errors.country?.message}
+              required
+              {...register('country', { required: 'Country is required' })}
+            />
+            <Input
+              label="Email Address"
+              type="email"
+              placeholder="alice@university.edu"
+              error={errors.email?.message}
+              autoComplete="email"
+              inputMode="email"
+              required
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+                  message: 'Invalid email address format'
+                }
+              })}
+            />
+          </div>
 
-              {researcherType === 'non_researcher' && (
-                <div className="space-y-4">
-                  <Input
-                    label="Organisation / Agency"
-                    placeholder="e.g. Nature Publishing Group"
-                    error={errors.organization?.message}
-                    required
-                    {...register('organization', { required: 'Organization is required' })}
-                  />
-                  <Input
-                    label="Occupation"
-                    placeholder="e.g. Scientific Editor / Venture Capitalist"
-                    error={errors.occupation?.message}
-                    required
-                    {...register('occupation', { required: 'Occupation is required' })}
-                  />
-                  <Input
-                    label="Research Interest Summary"
-                    placeholder="e.g. Quantum Computing, Genomics"
-                    error={errors.interest?.message}
-                    required
-                    {...register('interest', { required: 'Interest details are required' })}
-                  />
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4">
-                <Button
-                  variant="secondary"
-                  className="flex-grow flex items-center justify-center gap-2"
-                  onClick={() => setStep(1)}
-                  icon={<ArrowLeft className="w-4 h-4" />}
-                >
-                  Back
-                </Button>
-                <Button
-                  variant="primary"
-                  className="flex-grow flex items-center justify-center gap-2"
-                  onClick={handleStep2Next}
-                  icon={<ArrowRight className="w-4 h-4" />}
-                >
-                  Next
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 3: Basic Account Information */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              variants={stepVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={{ duration: 0.3 }}
-            >
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <h3 className="text-sm font-semibold text-text-secondary">Basic Account Details:</h3>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label="First Name"
-                    placeholder="Alice"
-                    error={errors.firstName?.message}
-                    required
-                    {...register('firstName', { required: 'First name is required' })}
-                  />
-                  <Input
-                    label="Last Name"
-                    placeholder="Smith"
-                    error={errors.lastName?.message}
-                    required
-                    {...register('lastName', { required: 'Last name is required' })}
-                  />
-                </div>
-
-                <Select
-                  label="Country"
-                  placeholder="Select Country"
-                  options={countriesList}
-                  error={errors.country?.message}
-                  required
-                  {...register('country', { required: 'Country is required' })}
-                />
-
-                <Input
-                  label="Email Address"
-                  type="email"
-                  placeholder="alice.smith@university.edu"
-                  error={errors.email?.message}
-                  required
-                  {...register('email', {
-                    required: 'Email is required',
-                    pattern: {
-                      value: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-                      message: 'Invalid email address format'
-                    }
-                  })}
-                />
-
-                <Input
-                  label="Password"
-                  type="password"
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+            <div className="flex flex-col w-full space-y-1.5">
+              <label className="text-xs font-semibold text-text-secondary tracking-wide flex items-center gap-1">
+                Password <span className="text-accent-red font-bold">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  error={errors.password?.message}
-                  required
+                  autoComplete="new-password"
+                  className={`w-full px-4 py-2 pr-10 text-sm bg-bg-card border ${
+                    errors.password ? 'border-accent-red focus:ring-accent-red' : 'border-border focus:ring-primary'
+                  } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-40 transition-colors`}
                   {...register('password', {
                     required: 'Password is required',
-                    minLength: {
-                      value: 6,
-                      message: 'Password must be at least 6 characters long'
-                    }
+                    minLength: { value: 6, message: 'Minimum 6 characters' }
                   })}
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.password?.message ? (
+                <span className="text-xs font-medium text-accent-red">{errors.password.message}</span>
+              ) : passwordValue ? (
+                <div className="flex items-center gap-2 pt-0.5">
+                  <div className="flex gap-1 flex-grow">
+                    {[1, 2, 3, 4].map((i) => (
+                      <span key={i} className={`h-1 flex-1 rounded-full transition-colors ${strength >= i ? strengthMeta[strength].color : 'bg-border'}`} />
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-semibold text-text-secondary whitespace-nowrap">{strengthMeta[strength].label}</span>
+                </div>
+              ) : (
+                <span className="text-[11px] text-text-secondary">Minimum 6 characters</span>
+              )}
+            </div>
 
-                <Input
-                  label="Confirm Password"
-                  type="password"
+            <div className="flex flex-col w-full space-y-1.5">
+              <label className="text-xs font-semibold text-text-secondary tracking-wide flex items-center gap-1">
+                Confirm Password <span className="text-accent-red font-bold">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  error={errors.confirmPassword?.message}
-                  required
+                  autoComplete="new-password"
+                  className={`w-full px-4 py-2 pr-10 text-sm bg-bg-card border ${
+                    errors.confirmPassword ? 'border-accent-red focus:ring-accent-red' : 'border-border focus:ring-primary'
+                  } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-40 transition-colors`}
                   {...register('confirmPassword', {
                     required: 'Confirm password is required',
                     validate: (value) => value === getValues('password') || 'Passwords do not match'
                   })}
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.confirmPassword?.message && (
+                <span className="text-xs font-medium text-accent-red">{errors.confirmPassword.message}</span>
+              )}
+            </div>
+          </div>
 
-                <div className="space-y-2 pt-2">
-                  <Checkbox
-                    label="I accept the Terms of Service & Terms for Scholars"
-                    error={errors.acceptTerms?.message}
-                    required
-                    {...register('acceptTerms', { required: 'You must accept the terms of service' })}
-                  />
-                  <Checkbox
-                    label="I accept the Privacy Policy & Data Processing Rules"
-                    error={errors.acceptPrivacy?.message}
-                    required
-                    {...register('acceptPrivacy', { required: 'You must accept the privacy policy' })}
-                  />
-                </div>
+          <Checkbox
+            label="I accept the Terms of Service & Privacy Policy"
+            error={errors.acceptAll?.message}
+            required
+            {...register('acceptAll', { required: 'You must accept the terms to continue' })}
+          />
 
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="secondary"
-                    className="flex-grow flex items-center justify-center gap-2"
-                    onClick={() => setStep(2)}
-                    icon={<ArrowLeft className="w-4 h-4" />}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="flex-grow flex items-center justify-center gap-2 shadow-md"
-                    loading={loading}
-                    icon={<CheckCircle2 className="w-4 h-4" />}
-                  >
-                    Register Account
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full flex items-center justify-center gap-2 shadow-md"
+            loading={loading}
+            icon={<CheckCircle2 className="w-4 h-4" />}
+          >
+            Create Account
+          </Button>
+        </form>
       </div>
 
       <div className="mt-6 text-center">
         <p className="text-xs text-text-secondary">
           Already registered?{' '}
-          <Link
-            to="/login"
-            className="font-semibold text-primary hover:text-primary-hover transition-colors"
-          >
+          <Link to="/login" className="font-semibold text-primary hover:text-primary-hover transition-colors">
             Sign In Here
           </Link>
         </p>
