@@ -1,26 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const notificationController = require('../controller/notification.controller');
+const controller = require('../controller/notification.controller');
+const validator = require('../validator/notification.validator');
 const { authMiddleware } = require('../../../common/middlewares/auth.middleware');
-const { 
-  validateNotificationId, 
-  validateSettingsUpdate 
-} = require('../validators/notification.validator');
 
-// All routes are protected
 router.use(authMiddleware);
 
-// GET API endpoints
-router.get('/', notificationController.getNotifications);
-router.get('/unread-count', notificationController.getUnreadCount);
-
-// PATCH API endpoints
-router.patch('/read-all', notificationController.markAllRead);
-router.patch('/:notificationId/read', validateNotificationId, notificationController.markAsRead);
-router.patch('/settings', validateSettingsUpdate, notificationController.updateSettings);
-
-// DELETE API endpoints
-router.delete('/clear-all', notificationController.clearAllNotifications);
-router.delete('/:notificationId', validateNotificationId, notificationController.deleteNotification);
+router.get('/', validator.getNotificationsValidator, controller.getNotifications);
+router.get('/unread-count', controller.getUnreadCount);
+router.patch('/read-all', controller.markAllRead);
+router.patch('/settings', validator.updateSettingsValidator, controller.updateSettings);
+router.delete('/clear-all', controller.clearAllNotifications);
+router.patch('/:notificationId/read', validator.notificationIdValidator, controller.markAsRead);
+router.delete('/:notificationId', validator.notificationIdValidator, controller.deleteNotification);
 
 module.exports = router;

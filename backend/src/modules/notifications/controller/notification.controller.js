@@ -1,130 +1,62 @@
-const notificationService = require("../service/notification.service");
+const asyncHandler = require('../../../common/middlewares/asyncHandler.middleware');
+const ApiResponse = require('../../../common/responses/ApiResponse');
+const notificationService = require('../service/notification.service');
 
 class NotificationController {
-  async getNotifications(req, res, next) {
-    try {
-      const recipientId = req.user.id || req.user._id;
-      const { limit, cursor, type, isRead } = req.query;
+  getNotifications = asyncHandler(async (req, res) => {
+    const result = await notificationService.getNotifications(req.user._id, {
+      limit: req.query.limit || 20,
+      cursor: req.query.cursor || null,
+      type: req.query.type || null,
+      isRead: req.query.isRead !== undefined ? req.query.isRead : null
+    });
 
-      const data = await notificationService.getNotifications(recipientId, {
-        limit,
-        cursor,
-        type,
-        isRead
-      });
+    return ApiResponse.success(res, 'Notifications fetched successfully', result);
+  });
 
-      res.status(200).json({
-        success: true,
-        message: "Notifications retrieved successfully",
-        data,
-        error: null
-      });
-    } catch (err) {
-      next(err);
+  getUnreadCount = asyncHandler(async (req, res) => {
+    const result = await notificationService.getUnreadCount(req.user._id);
+    return ApiResponse.success(res, 'Unread count fetched successfully', result);
+  });
+
+  markAsRead = asyncHandler(async (req, res) => {
+    const { notificationId } = req.params;
+    const result = await notificationService.markAsRead(notificationId, req.user._id);
+    if (!result) {
+      return ApiResponse.error(res, 'Notification not found', { code: 'NOT_FOUND' }, 404);
     }
-  }
 
-  async getUnreadCount(req, res, next) {
-    try {
-      const recipientId = req.user.id || req.user._id;
-      const data = await notificationService.getUnreadCount(recipientId);
+    return ApiResponse.success(res, 'Notification marked as read', result);
+  });
 
-      res.status(200).json({
-        success: true,
-        message: "Unread count retrieved successfully",
-        data,
-        error: null
-      });
-    } catch (err) {
-      next(err);
+  markAllRead = asyncHandler(async (req, res) => {
+    const result = await notificationService.markAllRead(req.user._id);
+    return ApiResponse.success(res, 'All notifications marked as read', result);
+  });
+
+  deleteNotification = asyncHandler(async (req, res) => {
+    const { notificationId } = req.params;
+    const result = await notificationService.deleteNotification(notificationId, req.user._id);
+    if (!result) {
+      return ApiResponse.error(res, 'Notification not found', { code: 'NOT_FOUND' }, 404);
     }
-  }
 
-  async markAsRead(req, res, next) {
-    try {
-      const recipientId = req.user.id || req.user._id;
-      const { notificationId } = req.params;
+    return ApiResponse.success(res, 'Notification deleted successfully', result);
+  });
 
-      const data = await notificationService.markAsRead(notificationId, recipientId);
+  clearAllNotifications = asyncHandler(async (req, res) => {
+    const result = await notificationService.clearAllNotifications(req.user._id);
+    return ApiResponse.success(res, 'All notifications cleared', result);
+  });
 
-      res.status(200).json({
-        success: true,
-        message: "Notification marked as read",
-        data,
-        error: null
-      });
-    } catch (err) {
-      next(err);
+  updateSettings = asyncHandler(async (req, res) => {
+    const result = await notificationService.updateSettings(req.user._id, req.body);
+    if (!result) {
+      return ApiResponse.error(res, 'Notification settings could not be updated', { code: 'INVALID_SETTINGS' }, 400);
     }
-  }
 
-  async markAllRead(req, res, next) {
-    try {
-      const recipientId = req.user.id || req.user._id;
-      await notificationService.markAllRead(recipientId);
-
-      res.status(200).json({
-        success: true,
-        message: "All notifications marked as read",
-        data: null,
-        error: null
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async deleteNotification(req, res, next) {
-    try {
-      const recipientId = req.user.id || req.user._id;
-      const { notificationId } = req.params;
-
-      await notificationService.deleteNotification(notificationId, recipientId);
-
-      res.status(200).json({
-        success: true,
-        message: "Notification deleted successfully",
-        data: null,
-        error: null
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async clearAllNotifications(req, res, next) {
-    try {
-      const recipientId = req.user.id || req.user._id;
-      await notificationService.clearAllNotifications(recipientId);
-
-      res.status(200).json({
-        success: true,
-        message: "All notifications cleared successfully",
-        data: null,
-        error: null
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async updateSettings(req, res, next) {
-    try {
-      const userId = req.user.id || req.user._id;
-      const settings = req.body;
-
-      const data = await notificationService.updateSettings(userId, settings);
-
-      res.status(200).json({
-        success: true,
-        message: "Notification settings updated successfully",
-        data,
-        error: null
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
+    return ApiResponse.success(res, 'Notification preferences updated', result);
+  });
 }
 
 module.exports = new NotificationController();

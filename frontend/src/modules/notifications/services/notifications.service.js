@@ -7,7 +7,7 @@ class NotificationsService {
    */
   async getNotifications(params = {}) {
     const res = await axiosInstance.get('/v1/notifications', { params });
-    return res.data;
+    return res;
   }
 
   /**
@@ -15,7 +15,7 @@ class NotificationsService {
    */
   async getUnreadCount() {
     const res = await axiosInstance.get('/v1/notifications/unread-count');
-    return res.data;
+    return res;
   }
 
   /**
@@ -23,7 +23,7 @@ class NotificationsService {
    */
   async markAsRead(notificationId) {
     const res = await axiosInstance.patch(`/v1/notifications/${notificationId}/read`);
-    return res.data;
+    return res;
   }
 
   /**
@@ -31,7 +31,7 @@ class NotificationsService {
    */
   async markAllRead() {
     const res = await axiosInstance.patch('/v1/notifications/read-all');
-    return res.data;
+    return res;
   }
 
   /**
@@ -39,7 +39,7 @@ class NotificationsService {
    */
   async deleteNotification(notificationId) {
     const res = await axiosInstance.delete(`/v1/notifications/${notificationId}`);
-    return res.data;
+    return res;
   }
 
   /**
@@ -47,7 +47,7 @@ class NotificationsService {
    */
   async clearAllNotifications() {
     const res = await axiosInstance.delete('/v1/notifications/clear-all');
-    return res.data;
+    return res;
   }
 
   /**
@@ -55,7 +55,7 @@ class NotificationsService {
    */
   async updateSettings(settings = {}) {
     const res = await axiosInstance.patch('/v1/notifications/settings', settings);
-    return res.data;
+    return res;
   }
 }
 

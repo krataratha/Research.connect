@@ -1,166 +1,163 @@
-const Notification = require("../../../models/Notification");
-const notificationRepository = require("../repository/notification.repository");
-const Profile = require("../../../models/Profile");
-const { emitToUser } = require("../../../config/socket");
-const logger = require("../../../common/logger/winston");
-const { NotFoundError, UnauthorizedError } = require("../../../common/errors/AppError");
+const BaseService = require('../../../common/service/base.service');
+const notificationRepository = require('../repository/notification.repository');
+const Notification = require('../../../models/Notification');
+const Profile = require('../../../models/Profile');
+const socketService = require('../../../config/socket');
+const logger = require('../../../common/logger/winston');
 
-class NotificationService {
-  /**
-   * Helper to map notification type to profile settings key
-   */
-  _getSettingsKey(type) {
-    if (type.startsWith('follow')) return 'follow';
-    if (type.startsWith('connection')) return 'connection';
-    if (type.startsWith('publication')) return 'publication';
-    if (type.startsWith('comment')) return 'comment';
-    if (type.startsWith('mention')) return 'mention';
-    return 'system';
+class NotificationService extends BaseService {
+  constructor() {
+    super(notificationRepository);
   }
 
-  /**
-   * Create a notification and dispatch via WebSockets
-   */
-  async createNotification(data) {
-    const { recipientId, actorId, type, title, message, targetType, targetId, targetUrl, metadata } = data;
+  async createNotification(payload) {
+    const recipientId = payload.recipientId;
+    const actorId = payload.actorId;
 
-    // Check recipient's notification preference settings
-    const profile = await Profile.findOne({ userId: recipientId });
-    if (profile && profile.notificationSettings) {
-      const settingsKey = this._getSettingsKey(type);
-      const isEnabled = profile.notificationSettings[settingsKey];
-      if (isEnabled === false) {
-        logger.info(`Skipping notification of type [${type}] for user [${recipientId}] per notification settings.`);
-        return null;
-      }
+    if (!recipientId || !actorId) {
+      return null;
     }
 
-    // Save notification
-    const notification = await notificationRepository.create({
-      recipientId,
-      actorId,
-      type,
-      title,
-      message,
-      targetType,
-      targetId,
-      targetUrl,
-      metadata
-    });
+    const profile = await Profile.findOne({ userId: recipientId }).lean();
+    const settings = this._getNotificationSettings(profile);
+    const preferenceKey = this._getPreferenceKey(payload.type);
 
-    // Populate actor details for client display
+    if (preferenceKey && settings[preferenceKey] === false) {
+      return null;
+    }
+
+    const notification = await this.repository.create(payload);
     const populated = await Notification.findById(notification._id)
-      .populate('actorId', 'firstName lastName username email profileImage')
+      .populate('actorId', 'firstName lastName fullName profileImage username profileSlug')
       .lean();
 
-    // Get updated unread count
-    const unreadCount = await notificationRepository.getUnreadCount(recipientId);
-
-    // Emit real-time WebSocket events
-    emitToUser(recipientId, "notification:new", populated);
-    emitToUser(recipientId, "notification:count", { count: unreadCount });
+    this._emitToRecipient(recipientId, 'notification:new', populated);
+    this._emitToRecipient(recipientId, 'notification:count', {
+      count: await this.repository.countUnreadByRecipient(recipientId)
+    });
 
     return populated;
   }
 
-  /**
-   * Get paginated notifications list
-   */
-  async getNotifications(recipientId, options = {}) {
-    return await notificationRepository.getNotificationsWithCursor(recipientId, options);
+  async getNotifications(recipientId, queryOptions = {}) {
+    return await this.repository.findByRecipient(recipientId, queryOptions);
   }
 
-  /**
-   * Get unread count
-   */
   async getUnreadCount(recipientId) {
-    const count = await notificationRepository.getUnreadCount(recipientId);
+    const count = await this.repository.countUnreadByRecipient(recipientId);
     return { count };
   }
 
-  /**
-   * Mark single notification as read
-   */
   async markAsRead(notificationId, recipientId) {
-    const notification = await notificationRepository.findById(notificationId);
-    if (!notification) {
-      throw new NotFoundError("Notification not found");
+    const updated = await this.repository.markAsRead(notificationId, recipientId);
+    if (!updated) {
+      return null;
     }
 
-    if (notification.recipientId.toString() !== recipientId.toString()) {
-      throw new UnauthorizedError("You are not authorized to access this notification");
-    }
+    this._emitToRecipient(recipientId, 'notification:update', updated);
+    this._emitToRecipient(recipientId, 'notification:count', {
+      count: await this.repository.countUnreadByRecipient(recipientId)
+    });
 
-    notification.isRead = true;
-    await notification.save();
-
-    const unreadCount = await notificationRepository.getUnreadCount(recipientId);
-    emitToUser(recipientId, "notification:update", notification);
-    emitToUser(recipientId, "notification:count", { count: unreadCount });
-
-    return notification;
+    return updated;
   }
 
-  /**
-   * Mark all notifications as read
-   */
   async markAllRead(recipientId) {
-    await notificationRepository.updateMany({ recipientId, isRead: false }, { isRead: true });
-    
-    emitToUser(recipientId, "notification:count", { count: 0 });
-    return { success: true, message: "All notifications marked as read." };
+    await this.repository.markAllRead(recipientId);
+    this._emitToRecipient(recipientId, 'notification:count', { count: 0 });
+    return { success: true, count: 0 };
   }
 
-  /**
-   * Delete single notification
-   */
   async deleteNotification(notificationId, recipientId) {
-    const notification = await notificationRepository.findById(notificationId);
-    if (!notification) {
-      throw new NotFoundError("Notification not found");
+    const deleted = await this.repository.deleteForRecipient(notificationId, recipientId);
+    if (!deleted) {
+      return null;
     }
 
-    if (notification.recipientId.toString() !== recipientId.toString()) {
-      throw new UnauthorizedError("You are not authorized to delete this notification");
-    }
+    this._emitToRecipient(recipientId, 'notification:delete', notificationId.toString());
+    this._emitToRecipient(recipientId, 'notification:count', {
+      count: await this.repository.countUnreadByRecipient(recipientId)
+    });
 
-    await notificationRepository.delete(notificationId);
-
-    const unreadCount = await notificationRepository.getUnreadCount(recipientId);
-    emitToUser(recipientId, "notification:count", { count: unreadCount });
-
-    return { success: true, message: "Notification deleted." };
+    return { success: true, deletedId: notificationId.toString() };
   }
 
-  /**
-   * Clear all notifications
-   */
   async clearAllNotifications(recipientId) {
-    await notificationRepository.model.deleteMany({ recipientId });
-    emitToUser(recipientId, "notification:count", { count: 0 });
-    return { success: true, message: "All notifications cleared." };
+    await this.repository.clearAll(recipientId);
+    this._emitToRecipient(recipientId, 'notification:delete', 'all');
+    this._emitToRecipient(recipientId, 'notification:count', { count: 0 });
+    return { success: true };
   }
 
-  /**
-   * Update notification settings preferences
-   */
-  async updateSettings(userId, settings = {}) {
-    const profile = await Profile.findOne({ userId });
-    if (!profile) {
-      throw new NotFoundError("Profile not found");
+  async updateSettings(recipientId, settings) {
+    const allowedKeys = ['follow', 'connection', 'publication', 'comment', 'mention', 'system'];
+    const updates = Object.keys(settings || {}).reduce((acc, key) => {
+      if (allowedKeys.includes(key)) {
+        acc[key] = Boolean(settings[key]);
+      }
+      return acc;
+    }, {});
+
+    if (Object.keys(updates).length === 0) {
+      return null;
     }
 
-    // Merge settings
-    profile.notificationSettings = {
-      ...profile.notificationSettings.toObject(),
-      ...settings
+    const currentProfile = await Profile.findOne({ userId: recipientId }).lean();
+    const mergedSettings = {
+      ...(await this._getDefaultSettings()),
+      ...(currentProfile?.notificationSettings || {}),
+      ...updates
     };
 
-    await profile.save();
+    const profile = await Profile.findOneAndUpdate(
+      { userId: recipientId },
+      { $set: { notificationSettings: mergedSettings } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    ).lean();
+
     return profile.notificationSettings;
   }
+
+  _emitToRecipient(recipientId, event, payload) {
+    try {
+      socketService.emitToUser(recipientId.toString(), event, payload);
+    } catch (error) {
+      logger.error(`Notification socket emit failed: ${error.message}`);
+    }
+  }
+
+  _getNotificationSettings(profile) {
+    return {
+      follow: true,
+      connection: true,
+      publication: true,
+      comment: true,
+      mention: true,
+      system: true,
+      ...(profile?.notificationSettings || {})
+    };
+  }
+
+  async _getDefaultSettings() {
+    return {
+      follow: true,
+      connection: true,
+      publication: true,
+      comment: true,
+      mention: true,
+      system: true
+    };
+  }
+
+  _getPreferenceKey(type) {
+    if (type === 'follow') return 'follow';
+    if (['connection_request', 'connection_accepted', 'connection_rejected', 'connection_removed'].includes(type)) return 'connection';
+    if (type === 'publication_commented') return 'comment';
+    if (['publication_uploaded', 'publication_updated', 'publication_bookmarked', 'publication_shared', 'publication_cited', 'publication_recommended'].includes(type)) return 'publication';
+    if (type === 'mention') return 'mention';
+    if (['system', 'admin'].includes(type)) return 'system';
+    return null;
+  }
 }
-
-
 
 module.exports = new NotificationService();
