@@ -4,11 +4,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logoutSuccess } from '../../redux/slices/authSlice';
 import authService from '../../services/auth.service';
-import connectionsService from '../../services/connections.service';
+import connectionsService from "../../modules/connections/services/connections.service";
 import searchService from '../../services/search.service';
 import { setQuery } from '../../redux/slices/searchSlice';
 import { setChatOpen } from '../../redux/slices/messageSlice';
-import NotificationBell from './NotificationBell';
+import NotificationBell from "../../modules/notifications/components/NotificationBell";
 import {
   Bell, MessageSquare, UserPlus, Plus, ChevronDown,
   Search, LogOut, User, Compass, X,
