@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import AuthLayout from '../layouts/AuthLayout';
 import AppLayout from '../layouts/AppLayout';
 import ComingSoon from '../components/common/ComingSoon';
+import ProjectsPage from "../modules/project/pages/ProjectsPage";
 const HomeHub = React.lazy(() => import('./HomeHub'));
 
 // Guards
@@ -101,6 +102,7 @@ const AppRoutes = () => {
           <Route path="research-identity" element={<ResearchIdentityPage />} />
           <Route path="publications/create" element={<PublicationCreatePage />} />
           <Route path="publications" element={<PublicationsLibraryPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
           <Route path="publications/drafts" element={<PublicationsLibraryPage />} />
           <Route path="publications/published" element={<PublicationsLibraryPage />} />
           <Route path="publications/trash" element={<PublicationsLibraryPage />} />
