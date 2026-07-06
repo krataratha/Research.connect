@@ -5,8 +5,12 @@ import Input from '../../../components/common/inputs/Input';
 import Button from '../../../components/common/buttons/Button';
 
 const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) => {
-  const [activeTab, setActiveTab] = useState('general'); // 'general', 'education', 'projects', 'socials', 'output', 'metrics'
+  const [activeTab, setActiveTab] = useState('general');
   
+  // URL Default Fallbacks (Pure White Cover and Default Guest)
+  const defaultAvatarUrl = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+  const defaultWhiteCoverUrl = 'https://dummyimage.com/1200x400/ffffff/ffffff.png'; 
+
   // Local Form state
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -32,7 +36,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
     openToMentor: !!profile?.openToMentor,
     openToResearch: !!profile?.openToResearch,
     emailVisibility: profile?.emailVisibility || 'private',
-    // Lists
     education: profile?.education || [],
     experience: profile?.experience || [],
     projects: profile?.projects || [],
@@ -41,7 +44,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
     books: profile?.books || [],
     awards: profile?.awards || profile?.achievements || [],
     certificates: profile?.certificates || profile?.certifications || [],
-    // Social Links
     socialLinks: {
       orcid: profile?.socialLinks?.orcid || '',
       googleScholar: profile?.socialLinks?.googleScholar || '',
@@ -52,7 +54,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
       twitter: profile?.socialLinks?.twitter || '',
       youtube: profile?.socialLinks?.youtube || ''
     },
-    // Metrics Manual Overrides
     metrics: {
       publicationsCount: profile?.metrics?.publicationsCount || 0,
       citationsCount: profile?.metrics?.citationsCount || profile?.metrics?.totalCitations || 0,
@@ -67,9 +68,7 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
   });
 
   const getValue = (val) => {
-    if (val && typeof val === 'object' && val.target !== undefined) {
-      return val.target.value;
-    }
+    if (val && typeof val === 'object' && val.target !== undefined) return val.target.value;
     return val;
   };
 
@@ -95,7 +94,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
     }));
   };
 
-  // Generic List Handlers
   const addListItem = (field, defaultValue) => {
     setFormData(prev => ({ ...prev, [field]: [...prev[field], defaultValue] }));
   };
@@ -117,7 +115,15 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    const payload = { ...formData };
+    payload.education = payload.education.filter(e => e.degree && e.university && e.duration);
+    payload.experience = payload.experience.filter(e => e.designation && e.institution && e.duration);
+    payload.projects = payload.projects.filter(p => p.title);
+    payload.skills = payload.skills.filter(s => s.name);
+    payload.awards = payload.awards.filter(a => a.title && a.organization);
+    payload.certificates = payload.certificates.filter(c => c.name && c.organization);
+
+    onSave(payload);
   };
 
   if (!isOpen) return null;
@@ -131,7 +137,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="bg-white rounded-3xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-border"
         >
-          {/* Modal Header */}
           <div className="p-6 border-b border-border flex items-center justify-between">
             <div>
               <h3 className="text-lg font-black text-text-primary tracking-tight">Edit Researcher Profile</h3>
@@ -142,7 +147,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
             </button>
           </div>
 
-          {/* Modal Tabs */}
           <div className="flex flex-shrink-0 border-b border-border bg-bg-page/20 px-6 py-2 gap-2 overflow-x-auto overflow-y-hidden scrollbar-none">
             {[
               { id: 'general', label: 'General & Bio' },
@@ -165,11 +169,10 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
             ))}
           </div>
 
-          {/* Modal Form Scroll Container */}
           <div className="flex-grow overflow-y-auto p-6 space-y-6 scrollbar-thin">
-            {/* General Tab */}
             {activeTab === 'general' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
                 <Input label="First Name" value={formData.firstName} onChange={val => handleTextChange('firstName', val)} required />
                 <Input label="Last Name" value={formData.lastName} onChange={val => handleTextChange('lastName', val)} required />
                 <Input label="SEO Username" value={formData.username} onChange={val => handleTextChange('username', val)} placeholder="e.g. sushilkumar" />
@@ -186,8 +189,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
                 <Input label="Date of Birth" value={formData.dateOfBirth} onChange={val => handleTextChange('dateOfBirth', val)} type="date" />
                 <Input label="Nationality" value={formData.nationality} onChange={val => handleTextChange('nationality', val)} placeholder="e.g. Indian" />
                 <Input label="Availability / Status" value={formData.availability} onChange={val => handleTextChange('availability', val)} placeholder="e.g. Open for PhD positions starting Fall 2026" />
-                <Input label="Profile Photo URL" value={formData.profileImage} onChange={val => handleTextChange('profileImage', val)} />
-                <Input label="Cover Banner URL" value={formData.coverImage} onChange={val => handleTextChange('coverImage', val)} />
                 
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-text-secondary uppercase">Email Visibility</label>
@@ -220,17 +221,60 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
                   </div>
                 </div>
 
-                <div className="md:col-span-2 space-y-1">
+                <div className="md:col-span-2 space-y-1 mb-4">
                   <label className="text-[11px] font-bold text-text-secondary uppercase">Short Bio (max 500 characters)</label>
                   <textarea rows={2} value={formData.bio} onChange={e => handleTextChange('bio', e.target.value)} className="w-full text-xs p-3 border border-border rounded-xl focus:outline-none focus:border-primary bg-bg-page/10" maxLength={500} />
                 </div>
+
+                {/* --- MINIMALIST IMAGES ROW SECTION (MOVED TO VERY BOTTOM) --- */}
+                <div className="md:col-span-2 space-y-3 pt-6 mt-2 border-t border-slate-200">
+                  <label className="text-[11px] font-black text-primary uppercase tracking-wider block mb-2">Profile & Cover Images</label>
+                  
+                  {/* Profile Pic Row */}
+                  <div className="flex items-center justify-between bg-slate-50 border border-border p-2 rounded-xl shadow-sm">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase w-1/4 pl-2 shrink-0">Profile Pic URL</span>
+                    <input 
+                      type="text" 
+                      value={formData.profileImage} 
+                      onChange={e => handleTextChange('profileImage', e.target.value)} 
+                      className="flex-grow text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-primary px-3 py-2 text-text-primary"
+                      placeholder="Paste Profile Image URL"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => handleTextChange('profileImage', defaultAvatarUrl)} 
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-red-600 hover:text-red-700 bg-red-100 hover:bg-red-200 px-4 py-2 rounded-lg transition-colors ml-3 shrink-0"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Remove
+                    </button>
+                  </div>
+
+                  {/* Cover Pic Row */}
+                  <div className="flex items-center justify-between bg-slate-50 border border-border p-2 rounded-xl shadow-sm">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase w-1/4 pl-2 shrink-0">Cover Pic URL</span>
+                    <input 
+                      type="text" 
+                      value={formData.coverImage} 
+                      onChange={e => handleTextChange('coverImage', e.target.value)} 
+                      className="flex-grow text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-primary px-3 py-2 text-text-primary"
+                      placeholder="Paste Cover Image URL"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => handleTextChange('coverImage', defaultWhiteCoverUrl)} 
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-red-600 hover:text-red-700 bg-red-100 hover:bg-red-200 px-4 py-2 rounded-lg transition-colors ml-3 shrink-0"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Remove
+                    </button>
+                  </div>
+                </div>
+                {/* --- END MINIMALIST IMAGES SECTION --- */}
+
               </div>
             )}
 
-            {/* Education & Experience Tab */}
             {activeTab === 'education' && (
               <div className="space-y-6">
-                {/* Education section */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-border pb-2">
                     <h4 className="text-xs font-bold text-primary uppercase">Education Timeline</h4>
@@ -254,7 +298,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
                   ))}
                 </div>
 
-                {/* Experience section */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-border pb-2">
                     <h4 className="text-xs font-bold text-primary uppercase">Work Experience</h4>
@@ -279,7 +322,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
               </div>
             )}
 
-            {/* Projects & Skills Tab */}
             {activeTab === 'projects' && (
               <div className="space-y-6">
                 <div className="space-y-4">
@@ -336,7 +378,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
               </div>
             )}
 
-            {/* Social Links Tab */}
             {activeTab === 'socials' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input label="Google Scholar Profile URL" icon={<Globe className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.googleScholar} onChange={val => handleSocialChange('googleScholar', val)} />
@@ -350,10 +391,8 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
               </div>
             )}
 
-            {/* Academic Output Tab */}
             {activeTab === 'output' && (
               <div className="space-y-6">
-                {/* Patents */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-border pb-2">
                     <h4 className="text-xs font-bold text-primary uppercase flex items-center gap-1.5">
@@ -380,7 +419,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
                   ))}
                 </div>
 
-                {/* Books */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-border pb-2">
                     <h4 className="text-xs font-bold text-primary uppercase flex items-center gap-1.5">
@@ -408,7 +446,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
                   ))}
                 </div>
 
-                {/* Awards */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-border pb-2">
                     <h4 className="text-xs font-bold text-primary uppercase flex items-center gap-1.5">
@@ -433,7 +470,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
                   ))}
                 </div>
 
-                {/* Certificates */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-border pb-2">
                     <h4 className="text-xs font-bold text-primary uppercase flex items-center gap-1.5">
@@ -460,7 +496,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
               </div>
             )}
 
-            {/* Metrics Override Tab */}
             {activeTab === 'metrics' && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b border-border pb-2">
@@ -486,7 +521,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
             )}
           </div>
 
-          {/* Modal Footer */}
           <div className="p-6 border-t border-border flex justify-end gap-3 bg-bg-page/20">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel

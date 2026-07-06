@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import store from './redux';
 import App from './App';
+import { SocketProvider } from './context/SocketContext';
+import { AuthProvider } from './context/AuthContext';
 import './styles/index.css';
 
 // Initialize React Query client
@@ -24,7 +26,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <App />
+          <AuthProvider>
+            <SocketProvider>
+              <App />
+            </SocketProvider>
+          </AuthProvider>
           <Toaster 
             position="top-right" 
             toastOptions={{

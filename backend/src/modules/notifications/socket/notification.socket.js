@@ -1,21 +1,16 @@
-const logger = require("../../../common/logger/winston");
+const logger = require('../../../common/logger/winston');
 
 module.exports = (io, socket) => {
-  const userId = socket.user.id || socket.user._id;
+  const userId = socket.user?.id || socket.user?._id;
 
-  // Handle manual topic subscriptions
-  socket.on("notification:subscribe", (roomName) => {
-    if (roomName) {
-      socket.join(roomName);
-      logger.info(`Socket ${socket.id} subscribed to room: ${roomName}`);
-    }
+  socket.on('notification:join', () => {
+    if (!userId) return;
+    socket.join(`notification:${userId}`);
+    logger.info(`🔔 Socket ${socket.id} joined notification room for user ${userId}`);
   });
 
-  // Handle manual topic unsubscribes
-  socket.on("notification:unsubscribe", (roomName) => {
-    if (roomName) {
-      socket.leave(roomName);
-      logger.info(`Socket ${socket.id} unsubscribed from room: ${roomName}`);
-    }
+  socket.on('notification:leave', () => {
+    if (!userId) return;
+    socket.leave(`notification:${userId}`);
   });
 };

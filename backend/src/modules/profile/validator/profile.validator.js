@@ -3,59 +3,50 @@ const validationMiddleware = require('../../../common/middlewares/validation.mid
 
 const updateProfileValidator = [
   body('firstName')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
-    .notEmpty()
-    .withMessage('First name cannot be empty')
     .isLength({ max: 50 })
     .withMessage('First name cannot exceed 50 characters'),
   body('lastName')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
-    .notEmpty()
-    .withMessage('Last name cannot be empty')
     .isLength({ max: 50 })
     .withMessage('Last name cannot exceed 50 characters'),
   body('bio')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isLength({ max: 500 })
     .withMessage('Bio description cannot exceed 500 characters'),
   body('country')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('Country cannot be empty'),
-  body('phone')
-    .optional()
+    .optional({ checkFalsy: true }) // empty string accept karega ab error nahi aayega
     .trim()
     .isString(),
-  body('profileImage')
-    .optional()
+  body('phone')
+    .optional({ checkFalsy: true })
     .trim()
     .isString(),
   body('institution')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isString(),
   body('department')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isString(),
   body('designation')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isString(),
   body('company')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isString(),
   body('division')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isString(),
   body('position')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isString(),
   body('socialLinks')
@@ -63,57 +54,38 @@ const updateProfileValidator = [
     .isObject()
     .withMessage('socialLinks must be an object'),
   body('socialLinks.orcid')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
   body('socialLinks.googleScholar')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
   body('socialLinks.researchGate')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
   body('socialLinks.linkedin')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
   body('socialLinks.website')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
   body('socialLinks.scopus')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
   body('dateOfBirth')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
   body('nationality')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
+  
+  // Image removals explicitly allowed
   body('coverImage')
-    .optional()
+    .optional({ checkFalsy: true }) 
     .trim()
     .isString(),
   body('profileImage')
-    .optional()
+    .optional({ checkFalsy: true }) 
     .trim()
     .isString(),
+    
   body('researchSummary')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
   body('currentResearch')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
   body('researchVision')
-    .optional()
-    .trim()
-    .isString(),
+    .optional({ checkFalsy: true }).trim().isString(),
 
   // Arrays validations
   body('education')
@@ -121,44 +93,36 @@ const updateProfileValidator = [
     .isArray()
     .withMessage('Education must be an array'),
   body('education.*.degree')
-    .notEmpty()
-    .withMessage('Degree is required in education'),
+    .notEmpty().withMessage('Degree is required in education'),
   body('education.*.university')
-    .notEmpty()
-    .withMessage('University is required in education'),
+    .notEmpty().withMessage('University is required in education'),
   body('education.*.duration')
-    .notEmpty()
-    .withMessage('Duration is required in education'),
+    .notEmpty().withMessage('Duration is required in education'),
 
   body('experience')
     .optional()
     .isArray()
     .withMessage('Experience must be an array'),
   body('experience.*.designation')
-    .notEmpty()
-    .withMessage('Designation is required in experience'),
+    .notEmpty().withMessage('Designation is required in experience'),
   body('experience.*.institution')
-    .notEmpty()
-    .withMessage('Institution is required in experience'),
+    .notEmpty().withMessage('Institution is required in experience'),
   body('experience.*.duration')
-    .notEmpty()
-    .withMessage('Duration is required in experience'),
+    .notEmpty().withMessage('Duration is required in experience'),
 
   body('projects')
     .optional()
     .isArray()
     .withMessage('Projects must be an array'),
   body('projects.*.title')
-    .notEmpty()
-    .withMessage('Project title is required'),
+    .notEmpty().withMessage('Project title is required'),
 
   body('skills')
     .optional()
     .isArray()
     .withMessage('Skills must be an array'),
   body('skills.*.name')
-    .notEmpty()
-    .withMessage('Skill name is required'),
+    .notEmpty().withMessage('Skill name is required'),
   body('skills.*.category')
     .optional()
     .isIn(['Programming', 'AI', 'ML', 'Cloud', 'Research', 'Writing', 'Statistics', 'Other'])
@@ -169,14 +133,9 @@ const updateProfileValidator = [
     .isArray()
     .withMessage('Achievements must be an array'),
   body('achievements.*.title')
-    .notEmpty()
-    .withMessage('Achievement title is required'),
-  body('achievements.*.type')
-    .isIn(['Award', 'Patent', 'Honor', 'Recognition'])
-    .withMessage('Invalid achievement type'),
+    .notEmpty().withMessage('Achievement title is required'),
   body('achievements.*.organization')
-    .notEmpty()
-    .withMessage('Achievement organization is required'),
+    .notEmpty().withMessage('Achievement organization is required'),
   body('achievements.*.year')
     .isInt({ min: 1900, max: 2100 })
     .withMessage('Achievement year must be a valid integer'),
@@ -186,11 +145,9 @@ const updateProfileValidator = [
     .isArray()
     .withMessage('Certifications must be an array'),
   body('certifications.*.name')
-    .notEmpty()
-    .withMessage('Certification name is required'),
+    .notEmpty().withMessage('Certification name is required'),
   body('certifications.*.organization')
-    .notEmpty()
-    .withMessage('Certification organization is required'),
+    .notEmpty().withMessage('Certification organization is required'),
 
   body('metrics')
     .optional()

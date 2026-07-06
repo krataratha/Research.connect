@@ -1,59 +1,103 @@
-const BaseRepository = require("../../../common/repository/base.repository");
-const Notification = require("../../../models/Notification");
+const BaseRepository = require('../../../common/repository/base.repository');
+const Notification = require('../../../models/Notification');
 
 class NotificationRepository extends BaseRepository {
   constructor() {
     super(Notification);
   }
 
-  /**
-   * Get cursor paginated notifications
-   * @param {string} recipientId 
-   * @param {object} options 
-   */
-  async getNotificationsWithCursor(recipientId, options = {}) {
-    const { limit = 20, cursor = null, type = null, isRead = null } = options;
-    const query = { recipientId };
+  async findByRecipient(recipientId, queryOptions = {}) {
+    const {
+      limit = 20,
+      cursor = null,
+      type = null,
+      isRead = null,
+      sort = '-createdAt'
+    } = queryOptions;
+
+    const filter = { recipientId };
 
     if (type) {
-      query.type = type;
+      const normalizedType = this._normalizeTypeFilter(type);
+      if (Array.isArray(normalizedType)) {
+        filter.type = { $in: normalizedType };
+      } else {
+        filter.type = normalizedType;
+      }
     }
-    
-    if (isRead !== null) {
-      query.isRead = isRead === 'true' || isRead === true;
+
+    if (isRead !== null && isRead !== undefined) {
+      filter.isRead = isRead === true || isRead === 'true';
     }
 
     if (cursor) {
-      query._id = { $lt: cursor }; // Since we sort by -createdAt / -_id, previous pages are "newer", so we get ids less than cursor
+      filter.createdAt = { $lt: new Date(cursor) };
     }
 
-    // Fetch limit + 1 documents to determine if there is a next page
-    const docs = await this.model.find(query)
-      .sort({ _id: -1 })
+    const docs = await this.model
+      .find(filter)
+      .sort(sort)
       .limit(Number(limit) + 1)
-      .populate('actorId', 'firstName lastName username email profileImage')
+      .populate('actorId', 'firstName lastName fullName profileImage username profileSlug')
       .lean();
 
-    const hasNextPage = docs.length > limit;
-    if (hasNextPage) {
-      docs.pop();
-    }
-
-    const nextCursor = docs.length > 0 ? docs[docs.length - 1]._id : null;
+    const hasNextPage = docs.length > Number(limit);
+    const pageDocs = docs.slice(0, Number(limit));
+    const nextCursor = hasNextPage && pageDocs.length > 0
+      ? pageDocs[pageDocs.length - 1].createdAt.toISOString()
+      : null;
 
     return {
-      docs,
+      docs: pageDocs,
       nextCursor,
-      hasNextPage
+      hasNextPage,
+      total: await this.model.countDocuments(filter)
     };
   }
 
-  /**
-   * Get total unread notifications count
-   * @param {string} recipientId 
-   */
-  async getUnreadCount(recipientId) {
+  async countUnreadByRecipient(recipientId) {
     return await this.model.countDocuments({ recipientId, isRead: false });
+  }
+
+  async markAsRead(notificationId, recipientId) {
+    return await this.model.findOneAndUpdate(
+      { _id: notificationId, recipientId },
+      { $set: { isRead: true } },
+      { new: true }
+    );
+  }
+
+  async markAllRead(recipientId) {
+    return await this.model.updateMany(
+      { recipientId, isRead: false },
+      { $set: { isRead: true } }
+    );
+  }
+
+  async deleteForRecipient(notificationId, recipientId) {
+    return await this.model.findOneAndDelete({ _id: notificationId, recipientId });
+  }
+
+  async clearAll(recipientId) {
+    return await this.model.deleteMany({ recipientId });
+  }
+
+  _normalizeTypeFilter(type) {
+    if (!type) return null;
+
+    if (type === 'connection') {
+      return ['connection_request', 'connection_accepted', 'connection_rejected', 'connection_removed'];
+    }
+
+    if (type === 'publication') {
+      return ['publication_uploaded', 'publication_updated', 'publication_commented', 'publication_bookmarked', 'publication_shared', 'publication_cited', 'publication_recommended'];
+    }
+
+    if (type === 'system') {
+      return ['system', 'admin'];
+    }
+
+    return type;
   }
 }
 

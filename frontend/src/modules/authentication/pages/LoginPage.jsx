@@ -425,8 +425,7 @@ const LoginPage = () => {
                 <span className="text-xs font-medium text-text-secondary">Keep me signed in on this device</span>
               </label>
             </motion.div>
-
-            <motion.div variants={fieldVariants}>
+             <motion.div variants={fieldVariants}>
               <Button
                 type="submit"
                 variant="primary"
@@ -435,14 +434,7 @@ const LoginPage = () => {
                 disabled={loading}
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    'Verify Credentials'
-                  )}
+                  {loading ? 'Verifying...' : 'Verify Credentials'}
                 </span>
                 <span
                   aria-hidden="true"
