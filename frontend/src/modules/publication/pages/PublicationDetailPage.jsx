@@ -9,10 +9,40 @@ import { toast } from 'react-hot-toast';
 import publicationService from '../../../services/publication.service';
 import PDFReader from '../components/PDFReader';
 
+const PUB_CATEGORIES = ['General Paper', 'Conference Paper', 'Patent', 'Book Chapter', 'Book'];
+
+const getPublicationCategory = (pub) => {
+  const explicitType = (pub.publicationType || '').trim().toLowerCase();
+  const normalizedMatch = PUB_CATEGORIES.find((c) => c.toLowerCase() === explicitType);
+  if (normalizedMatch) return normalizedMatch;
+
+  const haystack = [pub.publication, pub.journal, pub.conference, pub.publisher]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (explicitType === 'patent' || haystack.includes('patent')) return 'Patent';
+  if (explicitType === 'book chapter' || haystack.includes('book chapter') || haystack.includes('chapter in')) return 'Book Chapter';
+  if (explicitType === 'book' || (haystack.includes('book') && !haystack.includes('chapter'))) return 'Book';
+  if (
+    explicitType === 'conference' ||
+    pub.conference ||
+    haystack.includes('proceedings') ||
+    haystack.includes('conference') ||
+    haystack.includes('symposium') ||
+    haystack.includes('workshop')
+  ) {
+    return 'Conference Paper';
+  }
+  return 'General Paper';
+};
+
 const PublicationDetailPage = () => {
   const { slug, publicationSlug } = useParams();
   const activeSlug = slug || publicationSlug;
   const navigate = useNavigate();
+  const fileInputRef = React.useRef(null);
+  const [isUploading, setIsUploading] = React.useState(false);
 
   // Query to fetch publication details (dynamic view counts tracked on backend)
   const { data, isLoading, error, refetch } = useQuery({
@@ -23,6 +53,37 @@ const PublicationDetailPage = () => {
     },
     staleTime: 0 // Fetch views freshest
   });
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const uploadResponse = await publicationService.uploadFile(formData);
+      if (uploadResponse.success) {
+        await publicationService.updatePublication(data.id || data._id, {
+          fileDetails: {
+            ...uploadResponse.data,
+            originalName: file.name
+          }
+        });
+        toast.success('Document uploaded successfully!');
+        refetch();
+      } else {
+        toast.error(uploadResponse.message || 'File upload failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Error occurred during file upload.');
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
 
   const handleDownload = async () => {
     if (!data) return;
@@ -107,6 +168,30 @@ const PublicationDetailPage = () => {
               <p className="text-xs text-slate-400 max-w-xs leading-normal">
                 This publication was published as metadata-only. Full text PDF is not available.
               </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed px-4 py-2 rounded-xl transition-all"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5 rotate-180" />
+                    Upload Document
+                  </>
+                )}
+              </button>
             </div>
           )}
 
@@ -116,7 +201,7 @@ const PublicationDetailPage = () => {
               
               <div className="space-y-2">
                 <span className="inline-flex items-center gap-1 text-[9px] font-extrabold tracking-wider uppercase bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded">
-                  {data.publicationType || 'RESEARCH ARTICLE'}
+                  {getPublicationCategory(data)}
                 </span>
                 <h1 className="text-base font-extrabold text-slate-950 leading-snug">
                   {data.title}
