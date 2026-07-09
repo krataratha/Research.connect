@@ -35,12 +35,20 @@ const router = express.Router();
 // Apply protect middleware to routes requiring auth
 router.use(protect);
 
-// Main publication search & CRUD
+// ─── Static / specific routes MUST come before /:id ────────────────────────
+// Listing & search
 router.get('/', publicationController.searchPublications);
 router.get('/my', publicationController.getMyPublications);
-router.post('/', publicationController.createPublication);
+
+// DOI resolution
 router.get('/doi/:doi', publicationController.resolveDoi);
 
+// File operations (static segments — must be before /:id)
+router.post('/upload', upload.single('file'), publicationController.uploadFile);
+router.get('/download/:fileId', publicationController.downloadFile);
+router.delete('/files/:fileId', publicationController.removeFile);
+
+// ─── Dynamic /:id routes ─────────────────────────────────────────────────────
 router.get('/:id', publicationController.getPublicationDetails);
 router.put('/:id', publicationController.updatePublication);
 router.delete('/:id', publicationController.deletePublication);
@@ -48,11 +56,6 @@ router.delete('/:id', publicationController.deletePublication);
 // Version history
 router.get('/:id/versions', publicationController.getVersionHistory);
 router.post('/:id/rollback', publicationController.rollbackVersion);
-
-// Files
-router.post('/upload', upload.single('file'), publicationController.uploadFile);
-router.delete('/files/:fileId', publicationController.removeFile);
-router.get('/download/:fileId', publicationController.downloadFile);
 
 // Comments
 router.get('/:id/comments', publicationController.getComments);

@@ -1,3 +1,4 @@
+import path from 'path';
 import * as publicationService from '../services/publication.service.js';
 import * as metadataService from '../services/metadata.service.js';
 import * as uploadService from '../services/upload.service.js';

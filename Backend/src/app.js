@@ -51,7 +51,6 @@ app.use('/uploads', express.static('uploads'));
 
 // 2. Mount API Routes
 app.use('/api/v1', apiRouter);
-app.use('/api', apiRouter);
 
 // 3. Fallback 404 Router Handler
 app.all('*', (req, res, next) => {

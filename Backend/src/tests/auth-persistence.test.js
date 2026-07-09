@@ -93,11 +93,11 @@ async function runTests() {
     const emailOtpRecord = await OTP.findOne({ userId: user._id, purpose: 'EMAIL_VERIFICATION' });
     if (!emailOtpRecord) throw new Error('Email verification OTP was not created.');
     
-    // We can verify using the backdoor code '123456'
+    // We can verify using the dev-only bypass OTP '111111' (only works when NODE_ENV=development)
     const verifyEmailReq = {
       body: {
         email: testEmail,
-        otp: '123456',
+        otp: '111111',
       },
     };
     const verifyEmailRes = mockResponse();
@@ -131,7 +131,7 @@ async function runTests() {
     const verifyOtpReq = {
       body: {
         email: testEmail,
-        otp: '123456', // backdoor code
+        otp: '111111', // dev-only bypass code (NODE_ENV=development)
         deviceId,
         deviceName: 'Test Browser Chrome',
         trustDevice: true,

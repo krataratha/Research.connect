@@ -130,10 +130,8 @@ export const verifyEmail = async (req, res, next) => {
       });
     }
 
-    // Verify OTP (allow 123456 as a backdoor code for testing)
-    if (otp !== '123456') {
-      await verifyOTP(user._id, 'EMAIL_VERIFICATION', otp);
-    }
+    // Verify OTP
+    await verifyOTP(user._id, 'EMAIL_VERIFICATION', otp);
 
     // 3. Activate user
     user.emailVerified = true;
@@ -342,9 +340,10 @@ export const verifyLoginOtp = async (req, res, next) => {
       return next(new AppError('Invalid email or verification code.', 401));
     }
 
-    // Verify OTP (allow 123456 & 111111 as backdoor codes for testing/dev)
+    // Verify OTP (allow 111111 only in development mode)
     try {
-      if (otp !== '123456' && otp !== '111111') {
+      const isDevBypass = process.env.NODE_ENV === 'development' && otp === '111111';
+      if (!isDevBypass) {
         await verifyOTP(user._id, 'LOGIN', otp);
       }
     } catch (otpErr) {
@@ -727,7 +726,10 @@ export const googleLogin = async (req, res, next) => {
     const payload = await response.json();
 
     // Verify client ID matches
-    const expectedClientId = process.env.GOOGLE_CLIENT_ID || '959595325668-e5dlgoecao8lvo5k38plolvgv9ua2du1.apps.googleusercontent.com';
+    const expectedClientId = process.env.GOOGLE_CLIENT_ID;
+    if (!expectedClientId) {
+      return next(new AppError('Google authentication is not configured on this server.', 503));
+    }
     if (payload.aud !== expectedClientId) {
       return next(new AppError('Invalid Google Client ID aud.', 400));
     }

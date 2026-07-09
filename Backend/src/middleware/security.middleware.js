@@ -19,8 +19,8 @@ export const rateLimiter = (options = {}) => {
   const message = options.message || 'Too many requests from this IP. Please try again later.';
 
   return (req, res, next) => {
-    // Bypass rate limiting in development mode
-    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+    // Bypass rate limiting in test mode only
+    if (process.env.NODE_ENV === 'test') {
       return next();
     }
 
