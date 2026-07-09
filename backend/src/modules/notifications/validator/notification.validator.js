@@ -16,6 +16,9 @@ exports.updateSettingsValidator = [
   body('comment').optional().isBoolean().withMessage('comment must be a boolean'),
   body('mention').optional().isBoolean().withMessage('mention must be a boolean'),
   body('system').optional().isBoolean().withMessage('system must be a boolean'),
+  body('emailAlerts').optional().isBoolean().withMessage('emailAlerts must be a boolean'),
+  body('weeklyDigest').optional().isBoolean().withMessage('weeklyDigest must be a boolean'),
+  body('newMessages').optional().isBoolean().withMessage('newMessages must be a boolean'),
   validationMiddleware
 ];
 

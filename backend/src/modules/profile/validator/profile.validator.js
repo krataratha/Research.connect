@@ -65,6 +65,8 @@ const updateProfileValidator = [
     .optional({ checkFalsy: true }).trim().isString(),
   body('socialLinks.scopus')
     .optional({ checkFalsy: true }).trim().isString(),
+  body('socialLinks.github')
+    .optional({ checkFalsy: true }).trim().isString(),
   body('dateOfBirth')
     .optional({ checkFalsy: true }).trim().isString(),
   body('nationality')
@@ -149,10 +151,35 @@ const updateProfileValidator = [
   body('certifications.*.organization')
     .notEmpty().withMessage('Certification organization is required'),
 
+  body('displayName')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Display name cannot exceed 100 characters'),
+  body('username')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters')
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage('Username can only contain alphanumeric characters, hyphens, and underscores'),
+  body('researchAreas')
+    .optional()
+    .isArray()
+    .withMessage('Research areas must be an array'),
   body('metrics')
     .optional()
     .isObject()
     .withMessage('Metrics must be an object'),
+  body('privacySettings')
+    .optional()
+    .isObject()
+    .withMessage('privacySettings must be an object'),
+  body('themePreference')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isIn(['light', 'dark', 'system'])
+    .withMessage('themePreference must be light, dark, or system'),
   
   validationMiddleware
 ];

@@ -31,6 +31,9 @@ router.post('/refresh-token', authController.refreshAccessToken);
 router.post('/logout', authController.logout);
 
 // Protected Routes (Require Access Token)
+const { changePasswordValidator } = require('../validator/auth.validator');
+router.post('/change-password', authMiddleware, changePasswordValidator, authController.changePassword);
+router.post('/deactivate', authMiddleware, authController.deactivate);
 router.post('/logout-all', authMiddleware, authController.logoutAll);
 router.get('/me', authMiddleware, authController.getMe);
 

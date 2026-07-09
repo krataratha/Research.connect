@@ -1,14 +1,19 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
-import ComingSoon from '../../../components/common/ComingSoon';
+import SettingsPage from '../../settings/pages/SettingsPage';
 
 const Settings = () => {
-  const { profile } = useOutletContext();
+  const { profile, refetch, isOwnProfile, username } = useOutletContext();
+
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm">
-      <ComingSoon title={`${profile?.displayName || 'Researcher'}'s Profile Settings Coming Soon`} />
-    </div>
+    <SettingsPage
+      profile={profile}
+      refetch={refetch}
+      isOwnProfile={isOwnProfile}
+      username={username}
+    />
   );
 };
 
 export default Settings;
+

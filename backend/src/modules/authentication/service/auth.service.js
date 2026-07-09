@@ -675,6 +675,44 @@ class AuthService {
     const profile = await Profile.findOne({ userId });
     return { user, profile };
   }
+
+  // Change Password
+  async changePassword(userId, currentPassword, newPassword, clientInfo = {}) {
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      throw new AppError('User not found.', 404, 'NOT_FOUND');
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      throw new ValidationError('Current password is incorrect.', { currentPassword: 'Current password is incorrect.' });
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    await this._logSecurityEvent(userId, user.email, 'PASSWORD_CHANGE_SUCCESS', 'Password updated successfully.', clientInfo);
+    return { success: true };
+  }
+
+  // Deactivate Account
+  async deactivate(userId, clientInfo = {}) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new AppError('User not found.', 404, 'NOT_FOUND');
+    }
+
+    user.status = 'suspended';
+    user.isActive = false;
+    await user.save();
+
+    await RefreshToken.deleteMany({ userId });
+    await Session.updateMany({ userId, active: true }, { active: false, logoutTime: new Date() });
+
+    await this._logSecurityEvent(userId, user.email, 'ACCOUNT_DEACTIVATED', 'User temporarily deactivated their account.', clientInfo);
+    return { success: true };
+  }
 }
 
 module.exports = new AuthService();

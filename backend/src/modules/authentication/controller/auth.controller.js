@@ -129,6 +129,22 @@ class AuthController {
     return res.success('Password reset successfully. You can now log in.');
   });
 
+  // Change Password
+  changePassword = asyncHandler(async (req, res) => {
+    const clientInfo = getClientInfo(req);
+    const { currentPassword, newPassword } = req.body;
+    await authService.changePassword(req.user._id, currentPassword, newPassword, clientInfo);
+    return res.success('Password changed successfully.');
+  });
+
+  // Deactivate Account
+  deactivate = asyncHandler(async (req, res) => {
+    const clientInfo = getClientInfo(req);
+    await authService.deactivate(req.user._id, clientInfo);
+    clearRefreshTokenCookie(res);
+    return res.success('Account deactivated successfully.');
+  });
+
   // Refresh Token Rotation
   refreshAccessToken = asyncHandler(async (req, res) => {
     const clientInfo = getClientInfo(req);

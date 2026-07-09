@@ -81,7 +81,7 @@ class ProfileService {
     ]);
 
     const socialLinks = socialLinksObj || profile.socialLinks || {
-      orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', scopus: ''
+      orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', scopus: '', github: ''
     };
 
     let profileCompletion = completionObj ? completionObj.percentage : 0;
@@ -130,6 +130,14 @@ class ProfileService {
       openToMentor: !!profile.openToMentor,
       openToResearch: !!profile.openToResearch,
       emailVisibility: profile.emailVisibility || 'private',
+      themePreference: profile.themePreference || 'light',
+      privacySettings: profile.privacySettings || {
+        publicProfile: true,
+        showInstitution: true,
+        showFollowers: true,
+        searchEngineIndexing: true,
+        researchVisibility: true
+      },
       education: education || [],
       experience: experience || [],
       skills: skills || [],
@@ -369,7 +377,7 @@ class ProfileService {
       'bio', 'displayName', 'headline', 'coverImage', 'profileImage',
       'dateOfBirth', 'nationality', 'country', 'state', 'city', 'institution', 'department', 'designation',
       'organization', 'researchGroup', 'languages', 'availability', 'openToCollaborate', 'openToMentor', 'openToResearch', 'emailVisibility',
-      'researchSummary', 'currentResearch', 'researchVision'
+      'researchSummary', 'currentResearch', 'researchVision', 'themePreference'
     ];
 
     if (!profile.dataSourceTracking) {
@@ -423,6 +431,24 @@ class ProfileService {
     // 5. Update Metrics Override if supplied
     if (updateData.metrics !== undefined) {
       await ResearchMetric.findOneAndUpdate({ userId }, { ...updateData.metrics, userId }, { upsert: true, new: true });
+    }
+
+    // Update Research Areas if supplied
+    if (updateData.researchAreas !== undefined) {
+      await ResearchArea.deleteMany({ userId });
+      if (updateData.researchAreas && updateData.researchAreas.length > 0) {
+        const formatted = updateData.researchAreas.map(name => ({ userId, name }));
+        await ResearchArea.insertMany(formatted);
+      }
+    }
+
+    // Update Privacy Settings if supplied
+    if (updateData.privacySettings !== undefined) {
+      profile.privacySettings = {
+        ...((profile.privacySettings && typeof profile.privacySettings.toObject === 'function') ? profile.privacySettings.toObject() : profile.privacySettings || {}),
+        ...updateData.privacySettings
+      };
+      await profile.save();
     }
 
     // 6. Recalculate and Sync

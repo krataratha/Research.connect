@@ -252,7 +252,22 @@ const ProfileSchema = new Schema(
       publication: { type: Boolean, default: true },
       comment: { type: Boolean, default: true },
       mention: { type: Boolean, default: true },
-      system: { type: Boolean, default: true }
+      system: { type: Boolean, default: true },
+      emailAlerts: { type: Boolean, default: true },
+      weeklyDigest: { type: Boolean, default: true },
+      newMessages: { type: Boolean, default: true }
+    },
+    privacySettings: {
+      publicProfile: { type: Boolean, default: true },
+      showInstitution: { type: Boolean, default: true },
+      showFollowers: { type: Boolean, default: true },
+      searchEngineIndexing: { type: Boolean, default: true },
+      researchVisibility: { type: Boolean, default: true }
+    },
+    themePreference: {
+      type: String,
+      enum: ['light', 'dark', 'system'],
+      default: 'light'
     },
     dataSourceTracking: {
       type: Map,

@@ -48,6 +48,18 @@ class AuthService {
   async getMe() {
     return await axiosInstance.get('/v1/auth/me');
   }
+
+  async changePassword(currentPassword, newPassword, confirmPassword) {
+    return await axiosInstance.post('/v1/auth/change-password', {
+      currentPassword,
+      newPassword,
+      confirmPassword
+    });
+  }
+
+  async deactivateAccount() {
+    return await axiosInstance.post('/v1/auth/deactivate');
+  }
 }
 
 export default new AuthService();
