@@ -1,5 +1,13 @@
 const mongoose = require('mongoose');
 const logger = require('../../common/logger/winston');
+const dns = require('dns');
+
+// Fallback to Google and Cloudflare public DNS in case system DNS cannot resolve MongoDB SRV records
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+} catch (err) {
+  logger.warn('Failed to set fallback DNS servers:', err.message);
+}
 
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
