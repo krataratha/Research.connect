@@ -4,6 +4,8 @@ import AuthLayout from '../layouts/AuthLayout';
 import AppLayout from '../layouts/AppLayout';
 import ComingSoon from '../components/common/ComingSoon';
 import ProjectsPage from "../modules/project/pages/ProjectsPage";
+import HomeFeed from '../modules/home/pages/HomeFeed';
+import MessagesView from '../modules/message/components/MessagesView';
 const HomeHub = React.lazy(() => import('./HomeHub'));
 
 // Guards
@@ -91,13 +93,22 @@ const AppRoutes = () => {
           } />
         </Route>
 
+        {/* Public Root Route — handles guest landing page or auth redirect to /home */}
+        <Route path="/" element={<HomeHub />} />
+
         {/* Dashboard & Modules Layout (No Sidebar) */}
         <Route element={
           <ProtectedRoute>
             <AppLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<HomeHub />} />
+          {/* /home — Authenticated Home Feed */}
+          <Route path="home" element={
+            <>
+              <HomeFeed />
+              <MessagesView />
+            </>
+          } />
           <Route path="profile" element={<ProfileRedirect />} />
           <Route path="research-identity" element={<ResearchIdentityPage />} />
           <Route path="publications/create" element={<PublicationCreatePage />} />
