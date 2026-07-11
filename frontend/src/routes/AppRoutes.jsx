@@ -42,6 +42,7 @@ const NotificationCenter = React.lazy(() => import('../modules/notifications/pag
 const MyWorkspaces = React.lazy(() => import('../modules/collaborations/pages/MyWorkspaces'));
 const WorkspaceOverview = React.lazy(() => import('../modules/collaborations/pages/WorkspaceOverview'));
 const CreateWorkspace = React.lazy(() => import('../modules/collaborations/pages/CreateWorkspace'));
+const WorkspaceSettings = React.lazy(() => import('../modules/collaborations/pages/WorkspaceSettings'));
 
 
 
@@ -50,6 +51,9 @@ const HomeFeedV2 = React.lazy(() => import('../modules/feed/pages/HomeFeedV2'));
 const TrendingFeed = React.lazy(() => import('../modules/feed/pages/TrendingFeed'));
 const LatestFeed = React.lazy(() => import('../modules/feed/pages/LatestFeed'));
 const BookmarksFeed = React.lazy(() => import('../modules/feed/pages/BookmarksFeed'));
+
+// Help Center
+const HelpCenterPage = React.lazy(() => import('../modules/helpcenter/pages/HelpCenterPage'));
 
 // Profile module routes nested
 import profileRoutes from '../modules/profile/routes/profile.routes';
@@ -117,6 +121,7 @@ const AppRoutes = () => {
           <Route path="collaborations/create" element={<CreateWorkspace />} />
           <Route path="collaborations" element={<MyWorkspaces />} />
           <Route path="collaborations/:slug" element={<WorkspaceOverview />} />
+          <Route path="collaborations/:slug/settings" element={<WorkspaceSettings />} />
           <Route path="patents/create" element={<ComingSoon title="Upload Patent Coming Soon" />} />
           <Route path="articles/create" element={<ComingSoon title="Write Article Coming Soon" />} />
           <Route path="events/create" element={<ComingSoon title="Create Event Coming Soon" />} />
@@ -161,6 +166,9 @@ const AppRoutes = () => {
           <Route path="latest" element={<LatestFeed />} />
           <Route path="bookmarks" element={<BookmarksFeed />} />
           <Route path="discover" element={<DiscoverResearchersPage />} />
+
+          {/* Help Center */}
+          <Route path="help" element={<HelpCenterPage />} />
         </Route>
 
         {/* Profile Module Nested Routes (ProfileLayout handles sidebar) */}

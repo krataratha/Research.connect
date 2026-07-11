@@ -21,7 +21,7 @@ export default function ResearcherInfoPanel() {
   const [isLoading, setIsLoading] = useState(false);
 
   const otherParticipant = getOtherParticipant(activeConversationId);
-  const userId = otherParticipant?.id;
+  const userId = otherParticipant?.profileSlug || otherParticipant?.backendId || otherParticipant?.id;
 
   useEffect(() => {
     if (!userId) {
@@ -99,7 +99,9 @@ export default function ResearcherInfoPanel() {
               <img src={profile.avatarUrlLg || profile.avatarUrl} alt={profile.fullName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
             </div>
             <h2 className="font-bold text-lg text-[#0F172A] group-hover:text-[#2563EB] transition-colors">{profile.fullName}</h2>
-            <p className="text-sm text-[#475569] mt-0.5">{profile.positionTitle} • {profile.department}</p>
+            <p className="text-sm text-[#475569] mt-0.5">
+              {[profile.positionTitle, profile.institution || profile.department].filter(Boolean).join(' • ')}
+            </p>
             <div className="flex gap-2 mt-4">
               <button
                 onClick={() => navigate(`/profile/${profile?.profileSlug || profile?.username || userId}`)}
@@ -152,7 +154,7 @@ export default function ResearcherInfoPanel() {
                     <div
                       key={idx}
                       className="pub-row cursor-pointer"
-                      onClick={() => window.dispatchEvent(new CustomEvent('openGlobalSearch', { detail: profile.fullName }))}
+                      onClick={() => navigate(`/profile/${profile?.profileSlug || profile?.username || userId}`)}
                     >
                       <p className="pub-title text-sm font-medium text-[#0F172A] line-clamp-2">
                         {pub.title}
@@ -161,7 +163,7 @@ export default function ResearcherInfoPanel() {
                     </div>
                   ))}
                   <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('openGlobalSearch', { detail: profile.fullName }))}
+                    onClick={() => navigate(`/profile/${profile?.profileSlug || profile?.username || userId}`)}
                     className="view-all-btn block mx-auto text-xs font-bold text-[#2563EB] py-1"
                   >
                     View all publications

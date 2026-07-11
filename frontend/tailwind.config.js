@@ -76,6 +76,43 @@ export default {
           from: { transform: 'translateX(-50%)' },
           to: { transform: 'translateX(0)' },
         },
+        'slide-in-left': {
+          from: { opacity: '0', transform: 'translateX(-28px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        'slide-in-right': {
+          from: { opacity: '0', transform: 'translateX(28px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        'blob-move': {
+          '0%,100%': { borderRadius: '60% 40% 30% 70% / 60% 30% 70% 40%' },
+          '50%': { borderRadius: '30% 60% 70% 40% / 50% 60% 30% 60%' },
+        },
+        'chat-bubble-in': {
+          from: { opacity: '0', transform: 'translateY(12px) scale(0.95)' },
+          to: { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'typing-dot': {
+          '0%,100%': { transform: 'translateY(0)', opacity: '0.4' },
+          '50%': { transform: 'translateY(-4px)', opacity: '1' },
+        },
+        'accordion-open': {
+          from: { maxHeight: '0', opacity: '0' },
+          to: { maxHeight: '600px', opacity: '1' },
+        },
+        'notification-in': {
+          from: { opacity: '0', transform: 'translateX(100%)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        'bot-wave': {
+          '0%,100%': { transform: 'rotate(0deg)' },
+          '25%': { transform: 'rotate(-15deg)' },
+          '75%': { transform: 'rotate(15deg)' },
+        },
+        'progress-fill': {
+          from: { width: '0%' },
+          to: { width: 'var(--w)' },
+        },
         'pulse-ring': {
           '0%': { transform: 'scale(1)', opacity: '0.8' },
           '100%': { transform: 'scale(2.2)', opacity: '0' },
@@ -210,6 +247,15 @@ export default {
         'slide-left': 'slide-left 25s linear infinite',
         'slide-right': 'slide-right 40s linear infinite',
         'slide-left-slow': 'slide-left 30s linear infinite',
+        'slide-in-left': 'slide-in-left 0.5s ease-out forwards',
+        'slide-in-right': 'slide-in-right 0.5s ease-out forwards',
+        'blob-move': 'blob-move 8s ease-in-out infinite',
+        'chat-bubble-in': 'chat-bubble-in 0.3s ease-out forwards',
+        'typing-dot': 'typing-dot 1s ease-in-out infinite',
+        'accordion-open': 'accordion-open 0.35s ease-out forwards',
+        'notification-in': 'notification-in 0.35s cubic-bezier(0.34,1.2,0.64,1) forwards',
+        'bot-wave': 'bot-wave 0.6s ease-in-out',
+        'progress-fill': 'progress-fill 1.2s ease-out forwards',
         'pulse-ring': 'pulse-ring 1.5s ease-out infinite',
         'pulse-ring-notif': 'pulse-ring-notif 2s ease-out infinite',
         'pulse-dot': 'pulse-dot 2s ease-in-out infinite',

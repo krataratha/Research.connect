@@ -15,12 +15,21 @@ const SearchPage = () => {
   const dispatch = useDispatch();
 
   const qParam = searchParams.get('q') || '';
-  const [query, setQuery] = useState(qParam);
+  const citationsParam = searchParams.get('citations') || '';
+  const yearParam = searchParams.get('year') || '';
+  const locationParam = searchParams.get('location') || '';
 
-  // Sync URL → state
+  const [query, setQuery] = useState(qParam);
+  const [filters, setFilters] = useState({ citations: citationsParam, year: yearParam, location: locationParam });
+
+  // Sync URL state
   useEffect(() => {
     const q = searchParams.get('q') || '';
+    const c = searchParams.get('citations') || '';
+    const y = searchParams.get('year') || '';
+    const l = searchParams.get('location') || '';
     setQuery(q);
+    setFilters({ citations: c, year: y, location: l });
     dispatch(setGlobalQuery(q));
   }, [searchParams, dispatch]);
 
@@ -32,8 +41,15 @@ const SearchPage = () => {
     hasNextPage,
     isFetchingNextPage
   } = useInfiniteQuery({
-    queryKey: ['searchResearchers', query],
-    queryFn: ({ pageParam = 1 }) => searchService.searchResearchers({ q: query, page: pageParam, limit: 10 }),
+    queryKey: ['searchResearchers', query, filters.citations, filters.year, filters.location],
+    queryFn: ({ pageParam = 1 }) => searchService.searchResearchers({ 
+      q: query, 
+      citations: filters.citations,
+      year: filters.year,
+      location: filters.location,
+      page: pageParam, 
+      limit: 10 
+    }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       if (lastPage.page < lastPage.totalPages) {

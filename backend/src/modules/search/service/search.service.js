@@ -260,7 +260,7 @@ class SearchService {
 
   // ─── Researcher Search ────────────────────────────────────────────────────────
   async searchResearchers(params) {
-    const { q = '', page = 1, limit = 20, country, institution, researchArea, currentUserId } = params;
+    const { q = '', page = 1, limit = 20, country, institution, researchArea, citations, location, currentUserId } = params;
     const pageNum = Math.max(1, parseInt(page, 10));
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
     const skip = (pageNum - 1) * limitNum;
@@ -273,14 +273,39 @@ class SearchService {
     if (institution) profileQuery.institution = { $regex: institution, $options: 'i' };
     if (researchArea) profileQuery.researchAreas = { $in: [new RegExp(researchArea, 'i')] };
 
+    if (citations) {
+      profileQuery['metrics.totalCitations'] = { $gte: parseInt(citations, 10) };
+    }
+    if (location) {
+      const locRegex = new RegExp(location, 'i');
+      profileQuery.$or = [
+        { city: locRegex },
+        { state: locRegex },
+        { country: locRegex },
+        { institution: locRegex }
+      ];
+    }
+
     if (q.trim()) {
       const regex = buildRegex(q);
-      profileQuery.$or = [
+      const orConditions = [
         { institution: regex },
         { department: regex },
         { biography: regex },
         { researchAreas: { $in: [regex] } }
       ];
+      
+      if (profileQuery.$or) {
+        // if location already added an $or, we merge them with $and
+        profileQuery.$and = [
+          { $or: profileQuery.$or },
+          { $or: orConditions }
+        ];
+        delete profileQuery.$or;
+      } else {
+        profileQuery.$or = orConditions;
+      }
+
       userQuery.$or = [
         { firstName: regex },
         { lastName: regex },
@@ -305,7 +330,7 @@ class SearchService {
       ];
     } else if (matchedUserIdsFromProfiles.length > 0) {
       finalUserFilter._id = { $in: matchedUserIdsFromProfiles };
-    } else if (country || institution || researchArea) {
+    } else if (country || institution || researchArea || citations || location) {
       // If filters applied but no profiles matched, we should return empty
       return { results: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 };
     }

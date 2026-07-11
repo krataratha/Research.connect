@@ -68,6 +68,9 @@ const AuthenticatedNavbar = () => {
   const [notifOpen, setNotifOpen] = useState(false);
   const [reqOpen, setReqOpen] = useState(false);
   const [navFilterOpen, setNavFilterOpen] = useState(false);
+  const [filterCitations, setFilterCitations] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
 
   const profileRef = useRef(null);
   const createRef = useRef(null);
@@ -106,9 +109,14 @@ const AuthenticatedNavbar = () => {
   };
 
   const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchState.query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchState.query)}`);
+    if (e) e.preventDefault();
+    if (searchState.query.trim() || filterCitations || filterYear || filterLocation) {
+      let url = `/search?q=${encodeURIComponent(searchState.query)}`;
+      if (filterCitations) url += `&citations=${encodeURIComponent(filterCitations)}`;
+      if (filterYear) url += `&year=${encodeURIComponent(filterYear)}`;
+      if (filterLocation) url += `&location=${encodeURIComponent(filterLocation)}`;
+      navigate(url);
+      setNavFilterOpen(false);
     }
   };
 
@@ -166,25 +174,25 @@ const AuthenticatedNavbar = () => {
                       {/* Citations */}
                       <div>
                         <label className="text-[12px] font-bold text-[#475569] mb-1.5 block">Min Citations</label>
-                        <input type="number" placeholder="e.g. 50" className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors" />
+                        <input type="number" value={filterCitations} onChange={(e) => setFilterCitations(e.target.value)} placeholder="e.g. 50" className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors" />
                       </div>
                       
                       {/* Publishing Year */}
                       <div className="opacity-0 animate-fade-up" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
                         <label className="text-[12px] font-bold text-[#475569] mb-1.5 block">Publishing Year</label>
-                        <input type="number" placeholder="e.g. 2024" min="1900" max="2099" className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all" />
+                        <input type="number" value={filterYear} onChange={(e) => setFilterYear(e.target.value)} placeholder="e.g. 2024" min="1900" max="2099" className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all" />
                       </div>
 
                       {/* City */}
                       <div className="opacity-0 animate-fade-up" style={{ animationDelay: '150ms', animationFillMode: 'forwards' }}>
                         <label className="text-[12px] font-bold text-[#475569] mb-1.5 block">City / Location</label>
-                        <input type="text" placeholder="e.g. New York, London" className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all" />
+                        <input type="text" value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)} placeholder="e.g. New York, London" className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all" />
                       </div>
                     </div>
                     
                     <div className="mt-5 pt-4 border-t border-[#E2E8F0] flex justify-end gap-3 opacity-0 animate-fade-up" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
-                      <button type="button" onClick={() => setNavFilterOpen(false)} className="px-4 py-2 text-[12px] font-bold text-[#64748B] hover:text-[#0F172A] hover:bg-slate-50 rounded-lg transition-all">Cancel</button>
-                      <button type="button" onClick={() => setNavFilterOpen(false)} className="px-4 py-2 text-[12px] font-bold bg-[#2563EB] text-white rounded-lg hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all">Apply</button>
+                      <button type="button" onClick={() => { setFilterCitations(''); setFilterYear(''); setFilterLocation(''); setNavFilterOpen(false); }} className="px-4 py-2 text-[12px] font-bold text-[#64748B] hover:text-[#0F172A] hover:bg-slate-50 rounded-lg transition-all">Clear & Close</button>
+                      <button type="button" onClick={handleSearchSubmit} className="px-4 py-2 text-[12px] font-bold bg-[#2563EB] text-white rounded-lg hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all">Apply</button>
                     </div>
                   </div>
                 )}

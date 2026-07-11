@@ -279,19 +279,60 @@ export const messagingApi = {
   },
 
   async getUserProfile(userId) {
-    return profileCache.get(userId) || {
-      id: userId,
-      fullName: 'Researcher',
-      avatarUrl: DEFAULT_AVATAR,
-      avatarUrlLg: DEFAULT_AVATAR,
-      institution: '',
-      department: '',
-      positionTitle: 'Researcher',
-      citationsCount: 0,
-      hIndex: 0,
-      topPublications: [],
-      sharedProjects: [],
-    };
+    // We want to fetch the real, full profile with metrics and publications from the backend.
+    // The previously cached version (from normalizeUser) only has basic data (name/avatar).
+    try {
+      // Try fetching by profileSlug first (more reliable), then fall back to userId
+      const response = await axiosInstance.get(`/v1/profile/${userId}`);
+      const raw = response?.data?.data || response?.data || {};
+
+      const profile = {
+        id: userId,
+        backendId: raw._id || raw.id || userId,
+        profileSlug: raw.profileSlug || raw.username || userId,
+        fullName:
+          raw.fullName ||
+          [raw.firstName, raw.lastName].filter(Boolean).join(' ') ||
+          'Researcher',
+        avatarUrl:
+          raw.profileImage || raw.avatarUrl || raw.avatar ||
+          makeAvatarUrl(raw.fullName || 'Researcher'),
+        avatarUrlLg:
+          raw.profileImageLg || raw.profileImage || raw.avatarUrl || raw.avatar ||
+          makeAvatarUrl(raw.fullName || 'Researcher'),
+        institution: raw.institution || raw.organization || '',
+        department: raw.department || raw.researcherType || '',
+        positionTitle: raw.positionTitle || raw.role || 'Researcher',
+        citationsCount:
+          raw.citationsCount || raw.metrics?.citationsCount || raw.totalCitations || 0,
+        hIndex:
+          raw.hIndex || raw.metrics?.hIndex || raw.h_index || 0,
+        topPublications: (raw.topPublications || raw.publications || []).slice(0, 3).map((p) => ({
+          title: p.title || p.name || '',
+          journal: p.journal || p.venue || p.publisher || '',
+          year: p.year || p.publishedYear || '',
+        })),
+        sharedProjects: [],
+      };
+
+      profileCache.set(userId, profile);
+      return profile;
+    } catch {
+      // Return minimal fallback — don't crash the UI
+      return profileCache.get(userId) || {
+        id: userId,
+        fullName: 'Researcher',
+        avatarUrl: makeAvatarUrl('Researcher'),
+        avatarUrlLg: makeAvatarUrl('Researcher'),
+        institution: '',
+        department: '',
+        positionTitle: 'Researcher',
+        citationsCount: 0,
+        hIndex: 0,
+        topPublications: [],
+        sharedProjects: [],
+      };
+    }
   },
 
   async updatePresence(isOnline) {
