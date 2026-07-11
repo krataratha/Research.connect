@@ -129,7 +129,7 @@ class SearchService {
     if (institution) baseFilter.institution = buildRegex(institution);
     if (language) baseFilter.language = buildRegex(language);
     if (openAccess === 'true' || openAccess === true) baseFilter.openAccess = true;
-    if (hasPDF === 'true' || hasPDF === true) baseFilter.cloudinaryFileUrl = { $ne: '' };
+    if (hasPDF === 'true' || hasPDF === true) baseFilter.pdfUrl = { $ne: '' };
     if (isScholarImported === 'true' || isScholarImported === true) baseFilter.googleScholarVerified = true;
 
     // ── Author sub-query (for author-type search) ────────────────────
@@ -187,7 +187,7 @@ class SearchService {
       conference: 1, publisher: 1, year: 1, publicationDate: 1,
       publicationType: 1, abstract: 1, keywords: 1, researchAreas: 1,
       slug: 1, doi: 1, views: 1, downloads: 1, citations: 1,
-      recommendations: 1, cloudinaryFileUrl: 1, thumbnail: 1,
+      recommendations: 1, pdfUrl: 1, thumbnail: 1,
       openAccess: 1, googleScholarVerified: 1, institution: 1,
       language: 1, readingTime: 1, researchScore: 1, createdAt: 1,
       publicationCode: 1,
@@ -221,7 +221,7 @@ class SearchService {
       ...pub,
       id: pub._id,
       authorsList: authorsMap[pub._id.toString()] || [],
-      hasPDF: !!(pub.cloudinaryFileUrl),
+      hasPDF: !!(pub.pdfUrl),
     }));
 
     return {

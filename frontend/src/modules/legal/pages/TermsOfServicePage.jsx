@@ -160,7 +160,7 @@ const TermsOfServicePage = () => {
             <section id="third-party">
               <h2 className="text-xl font-bold text-slate-900 mb-3">9. Third-party services</h2>
               <p>
-                The Platform integrates with third-party services for file storage and delivery (Cloudinary, Cloudflare R2),
+                The Platform integrates with third-party services for file storage and delivery (Cloudflare R2),
                 academic data retrieval (SerpApi / Google Scholar), and other infrastructure providers. Your use of these
                 integrations is also subject to the respective third party's terms, and Research Connect is not responsible
                 for their independent acts or omissions.

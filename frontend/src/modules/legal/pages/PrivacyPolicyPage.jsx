@@ -114,7 +114,7 @@ const PrivacyPolicyPage = () => {
               <p>We do not sell your personal data. We may share data with:</p>
               <ul className="list-disc list-inside space-y-1.5 mt-2 ml-1">
                 <li><span className="text-slate-900 font-medium">Other users:</span> your public profile, publications, and activity visible per your privacy settings</li>
-                <li><span className="text-slate-900 font-medium">Service providers:</span> Cloudinary and Cloudflare R2 for file storage, MongoDB/Redis infrastructure providers, and email delivery services</li>
+                <li><span className="text-slate-900 font-medium">Service providers:</span> Cloudflare R2 for file storage, MongoDB/Redis infrastructure providers, and email delivery services</li>
                 <li><span className="text-slate-900 font-medium">Legal authorities:</span> where required by law, court order, or to protect the rights and safety of users</li>
               </ul>
             </section>

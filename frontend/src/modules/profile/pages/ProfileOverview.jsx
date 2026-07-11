@@ -563,7 +563,7 @@ const ProfileOverview = () => {
         {filteredPubs.map((pub) => {
           const id = pub.id || pub._id;
           const isScholarImport = !!pub.googleScholarPublicationId;
-          const hasPDF = !!pub.cloudinaryFileUrl;
+          const hasPDF = !!pub.pdfUrl;
 
           return (
             <div key={id} className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col md:flex-row md:items-start justify-between gap-4">

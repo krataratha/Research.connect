@@ -106,7 +106,7 @@ const PublicationSchema = new Schema(
       enum: ['draft', 'published'],
       default: 'published'
     },
-    cloudinaryFileUrl: {
+    pdfUrl: {
       type: String,
       default: ''
     },
@@ -136,7 +136,7 @@ const PublicationSchema = new Schema(
       uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' },
       uploadedAt: { type: Date },
       lastModified: { type: Date },
-      storageProvider: { type: String, default: 'cloudflare_r2' },
+      storageProvider: { type: String, default: 'cloudflare-r2' },
       version: { type: Number, default: 1 }
     },
     attachments: [

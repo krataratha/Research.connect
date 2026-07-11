@@ -218,7 +218,10 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
       objectKey: uploadedAsset.public_id,
       mimeType: file.mimetype || `image/${uploadedAsset.format}`,
       fileSize: uploadedAsset.bytes,
-      uploadedAt: uploadedAsset.uploadedAt || new Date()
+      uploadedAt: uploadedAsset.uploadedAt || new Date(),
+      storageProvider: 'cloudflare-r2',
+      bucket: env.r2?.bucketName || 'research-connect',
+      fileName: file.originalname || ''
     };
 
     // 5. Update the parent MongoDB resource (Profile + User for avatar)
@@ -383,7 +386,7 @@ const deleteUploadInternal = async (assetId, userId, useTransaction = true) => {
         await Profile.findOneAndUpdate({ userId }, { coverImage: DEFAULT_BANNER });
       }
     } else if (upload.purpose === 'publication-pdf') {
-      const update = { cloudinaryFileUrl: '', 'fileDetails.secure_url': '' };
+      const update = { pdfUrl: '', 'document.url': '' };
       if (useTransaction && session) {
         await Publication.findOneAndUpdate({ publicationId: upload.resourceId }, update, { session });
       } else {

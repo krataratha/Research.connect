@@ -22,7 +22,6 @@
     "@aws-sdk/s3-request-presigner": "^3.1084.0",
     "axios": "^1.18.1",
     "bcryptjs": "^2.4.3",
-    "cloudinary": "^2.10.0",
     "compression": "^1.7.4",
     "compromise": "^14.15.1",
     "compromise-paragraphs": "^0.1.0",

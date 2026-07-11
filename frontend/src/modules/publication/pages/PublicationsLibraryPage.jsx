@@ -213,13 +213,13 @@ const PublicationsLibraryPage = () => {
 
   // Download PDF attachment
   const handleDownload = async (pub) => {
-    if (!pub.cloudinaryFileUrl) {
+    if (!pub.pdfUrl) {
       toast.error('No attached PDF available for download.');
       return;
     }
     try {
       await publicationService.trackDownload(pub.id || pub._id);
-      window.open(pub.cloudinaryFileUrl, '_blank');
+      window.open(pub.pdfUrl, '_blank');
       refetch();
     } catch (err) {
       console.error(err);
@@ -684,7 +684,7 @@ const PublicationsLibraryPage = () => {
                   const id = pub.id || pub._id;
                   const isSelected = selectedIds.includes(id);
                   const isScholarImport = !!pub.googleScholarPublicationId;
-                  const hasPDF = !!pub.cloudinaryFileUrl;
+                  const hasPDF = !!pub.pdfUrl;
                   
                   return (
                     <motion.div
@@ -722,7 +722,7 @@ const PublicationsLibraryPage = () => {
                               <span className="text-[8px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-[8px]" title="Imported from Google Scholar">Scholar</span>
                             )}
                             {hasPDF && (
-                              <span className="text-[8px] font-black bg-[#2563EB] text-white px-2 py-0.5 rounded-[8px]" title="Cloudinary Attached PDF">PDF</span>
+                              <span className="text-[8px] font-black bg-[#2563EB] text-white px-2 py-0.5 rounded-[8px]" title="Cloudflare R2 Attached PDF">PDF</span>
                             )}
                             {pub.status === 'draft' && (
                               <span className="text-[8px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-[8px]">Draft</span>
@@ -870,7 +870,7 @@ const PublicationsLibraryPage = () => {
                   const id = pub.id || pub._id;
                   const isSelected = selectedIds.includes(id);
                   const isScholarImport = !!pub.googleScholarPublicationId;
-                  const hasPDF = !!pub.cloudinaryFileUrl;
+                  const hasPDF = !!pub.pdfUrl;
                   
                   return (
                     <motion.div
@@ -1340,10 +1340,10 @@ const PublicationsLibraryPage = () => {
               {/* Main Content Areas */}
               <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2 h-full min-h-[450px]">
-                  {activeReadPub.cloudinaryFileUrl ? (
+                  {activeReadPub.pdfUrl ? (
                     <PDFReader
                       title={activeReadPub.title}
-                      pdfUrl={activeReadPub.cloudinaryFileUrl}
+                      pdfUrl={activeReadPub.pdfUrl}
                       authors={activeReadPub.authors}
                       journal={activeReadPub.publication || activeReadPub.journal}
                       year={activeReadPub.year}

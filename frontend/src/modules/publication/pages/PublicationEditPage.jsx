@@ -106,7 +106,7 @@ const PublicationEditPage = () => {
         researchAreas: pubRes.researchAreasList || pubRes.researchAreas || [],
         keywords: pubRes.keywordsList || pubRes.keywords || [],
         visibility: pubRes.visibility || 'Public',
-        fileDetails: pubRes.cloudinaryFileUrl ? { secure_url: pubRes.cloudinaryFileUrl, originalName: pubRes.title + '.pdf' } : null,
+        fileDetails: pubRes.pdfUrl ? { secure_url: pubRes.pdfUrl, originalName: pubRes.title + '.pdf' } : null,
         extractionConfidences: null
       });
     }
@@ -129,9 +129,9 @@ const PublicationEditPage = () => {
     setStep(3);
   };
 
-  const handleUploadSuccess = ({ cloudinaryData, extractedMetadata, originalName }) => {
+  const handleUploadSuccess = ({ r2Data, extractedMetadata, originalName }) => {
     handleFieldChange('fileDetails', {
-      ...cloudinaryData,
+      ...r2Data,
       originalName
     });
     setStep(4);
@@ -182,8 +182,8 @@ const PublicationEditPage = () => {
       keywords: formData.keywords,
       visibility: formData.visibility,
       status: status,
-      // If full file details exist, pass Cloudinary URL
-      cloudinaryFileUrl: formData.fileDetails?.secure_url || null
+      // If full file details exist, pass pdfUrl
+      pdfUrl: formData.fileDetails?.secure_url || null
     };
   };
 
