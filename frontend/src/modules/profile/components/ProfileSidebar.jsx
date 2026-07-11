@@ -46,7 +46,7 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
 
       <aside
         className={`bg-white border-r border-slate-200 h-full fixed top-0 left-0 z-[60] flex flex-col transition-transform duration-300 ease-out md:sticky md:top-[65px] md:h-[calc(100vh-65px)] md:z-30 md:translate-x-0 overflow-visible shadow-2xl md:shadow-none
-          ${isMobileOpen ? 'translate-x-0 w-72' : '-translate-x-full md:translate-x-0'}
+          ${isMobileOpen ? 'translate-x-0 w-[80vw] max-w-72' : '-translate-x-full md:translate-x-0'}
           ${isCollapsed ? 'md:w-20' : 'md:w-64'}
         `}
       >

@@ -473,7 +473,7 @@ const HomeFeed = () => {
     const scorePercent = Math.min(100, Math.round((rawScore / 100) * 100));
 
     return (
-      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4 text-left">
+      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
         <div className="flex justify-between items-start">
           <div className="space-y-0.5">
             <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
@@ -531,7 +531,7 @@ const HomeFeed = () => {
     );
 
     return (
-      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4 text-left">
+      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
         <div className="flex justify-between items-center">
           <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-[#2563EB]" /> Trending Keywords
@@ -584,7 +584,7 @@ const HomeFeed = () => {
 
   const renderSuggestedResearchers = () => {
     return (
-      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4 text-left">
+      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
         <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
           <Users className="w-4 h-4 text-[#4F46E5]" /> Suggested Researchers
         </h3>
@@ -651,7 +651,7 @@ const HomeFeed = () => {
 
   const renderTopCoAuthors = () => {
     return (
-      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4 text-left">
+      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
         <div className="flex justify-between items-center">
           <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
             <Users className="w-4 h-4 text-[#4F46E5]" /> Top Co-authors
@@ -718,7 +718,7 @@ const HomeFeed = () => {
     const strokeDash = `${impactPercentile}, 100`;
 
     return (
-      <div className="bg-white border border-slate-200 p-6 rounded-[18px] shadow-sm space-y-5 text-left">
+      <div className="bg-white border border-slate-200 p-4 sm:p-6 rounded-[18px] shadow-sm space-y-5 text-left">
         <div className="flex justify-between items-center pb-2 border-b border-slate-55">
           <h3 className="font-bold text-xs text-slate-400 uppercase tracking-wider flex items-center gap-2">
             <Network className="w-4 h-4 text-indigo-500" /> Google Scholar Analytics
@@ -736,31 +736,31 @@ const HomeFeed = () => {
         {/* 4 Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col items-start relative overflow-hidden group">
-            <span className="text-[10px] text-slate-450 block font-bold uppercase tracking-wider">Total Citations</span>
-            <span className="font-extrabold text-xl text-slate-900 mt-1">{citationsVal}</span>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-              <Network className="w-4 h-4" />
+            <span className="text-[10px] text-slate-450 block font-bold uppercase tracking-wider pr-7">Total Citations</span>
+            <span className="font-extrabold text-base sm:text-xl text-slate-900 mt-1 pr-7 w-full break-all">{citationsVal}</span>
+            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+              <Network className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col items-start relative overflow-hidden">
-            <span className="text-[10px] text-slate-450 block font-bold uppercase tracking-wider">Publication Count</span>
-            <span className="font-extrabold text-xl text-slate-900 mt-1">{publicationsCount}</span>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <BookOpen className="w-4 h-4" />
+            <span className="text-[10px] text-slate-450 block font-bold uppercase tracking-wider pr-7">Publication Count</span>
+            <span className="font-extrabold text-base sm:text-xl text-slate-900 mt-1 pr-7 w-full break-all">{publicationsCount}</span>
+            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col items-start relative overflow-hidden">
-            <span className="text-[10px] text-slate-455 block font-bold uppercase tracking-wider">Citation Growth</span>
-            <span className="font-extrabold text-xl text-emerald-600 mt-1">{citationGrowth}</span>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
-              <TrendingUp className="w-4 h-4" />
+            <span className="text-[10px] text-slate-455 block font-bold uppercase tracking-wider pr-7">Citation Growth</span>
+            <span className="font-extrabold text-base sm:text-xl text-emerald-600 mt-1 pr-7 w-full break-all">{citationGrowth}</span>
+            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shrink-0">
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col items-start relative overflow-hidden">
-            <span className="text-[10px] text-slate-455 block font-bold uppercase tracking-wider">Research Score</span>
-            <span className="font-extrabold text-xl text-purple-600 mt-1">{researchScore}</span>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
-              <Award className="w-4 h-4" />
+            <span className="text-[10px] text-slate-455 block font-bold uppercase tracking-wider pr-7">Research Score</span>
+            <span className="font-extrabold text-base sm:text-xl text-purple-600 mt-1 pr-7 w-full break-all">{researchScore}</span>
+            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
         </div>
@@ -798,31 +798,31 @@ const HomeFeed = () => {
 
   return (
     <div className="bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
         
         {/* CENTER FEED SECTION (8 Cols) */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="border border-[#E2E8F0] p-8 rounded-3xl shadow-sm text-left relative overflow-hidden bg-gradient-to-tr from-[#F8FAFC] to-[#FFFFFF]">
+          <div className="border border-[#E2E8F0] p-5 sm:p-8 rounded-3xl shadow-sm text-left relative overflow-hidden bg-gradient-to-tr from-[#F8FAFC] to-[#FFFFFF]">
             {/* Background elements */}
             <div className="absolute right-0 top-0 w-96 h-96 bg-gradient-to-bl from-[#2563EB]/10 via-[#4F46E5]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
             
             <div className="relative z-10 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#0F172A] tracking-tight">
                       Welcome back, {user?.firstName || 'Scholar'} {user?.lastName || ''}
                     </h1>
                     <span className="inline-flex items-center justify-center bg-[#DBEAFE] text-[#2563EB] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#DBEAFE]">
                       Active
                     </span>
                   </div>
-                  <p className="text-sm text-[#475569] mt-1 font-semibold">Your research feed is dynamically optimized based on your interests.</p>
+                  <p className="text-xs sm:text-sm text-[#475569] mt-1 font-semibold">Your research feed is dynamically optimized based on your interests.</p>
                 </div>
                 
                 {/* Micro metrics */}
-                <div className="flex gap-4 shrink-0">
+                <div className="flex gap-3 sm:gap-4 shrink-0">
                   <div className="text-left">
                     <span className="text-[10px] text-[#475569]/70 uppercase font-bold tracking-wider block">New Citations</span>
                     <span className="text-lg font-black text-[#2563EB] flex items-center gap-1">
@@ -841,7 +841,7 @@ const HomeFeed = () => {
 
               {/* Research Insights Banner */}
               {sidebarData?.aiInsight && (
-                <div className="bg-[#EDE9FE]/40 border border-[#EDE9FE] rounded-2xl p-4 flex gap-3 items-start">
+                <div className="bg-[#EDE9FE]/40 border border-[#EDE9FE] rounded-2xl p-3 sm:p-4 flex gap-3 items-start">
                   <BrainCircuit className="w-5 h-5 text-[#4F46E5] shrink-0 mt-0.5" />
                   <div>
                     <h4 className="text-xs font-bold text-[#0F172A]">Today's Research Insights</h4>
@@ -856,27 +856,27 @@ const HomeFeed = () => {
               <div className="flex flex-wrap gap-3 pt-2">
                 <button 
                   onClick={() => navigate(user?.profileSlug ? `/profile/${user.profileSlug}` : '/profile')}
-                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm"
+                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm"
                 >
                   Continue Profile
                 </button>
                 <button 
                   onClick={handleSyncScholar}
                   disabled={syncing}
-                  className="bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm flex items-center gap-1.5"
+                  className="bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-xs px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm flex items-center gap-1.5"
                 >
                   {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                   Sync Scholar
                 </button>
                 <button 
                   onClick={() => toast.success('Upload Publication Modal')}
-                  className="bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm"
+                  className="bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-xs px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm"
                 >
                   Create Publication
                 </button>
                 <button 
                   onClick={() => toast.success('Create Project Modal')}
-                  className="bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm"
+                  className="bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-xs px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm"
                 >
                   Create Project
                 </button>
@@ -885,7 +885,7 @@ const HomeFeed = () => {
           </div>
 
           {/* Feed Tabs Container */}
-          <div className="flex overflow-x-auto whitespace-nowrap border-b border-slate-200 text-sm font-semibold text-slate-500 no-scrollbar">
+          <div className="flex items-center justify-between sm:justify-start overflow-x-auto whitespace-nowrap border-b border-slate-200 text-xs sm:text-sm font-semibold text-slate-500 no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
             {[
               { id: 'recommended', label: 'AI Recommended', icon: Sparkles },
               { id: 'trending', label: 'Trending', icon: Flame },
@@ -901,14 +901,15 @@ const HomeFeed = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-4 py-3 border-b-2 transition-all font-semibold ${
+                  title={tab.label}
+                  className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-4 py-2.5 sm:py-3 border-b-2 transition-all font-semibold shrink-0 ${
                     isActive 
                       ? 'border-blue-600 text-blue-600' 
                       : 'border-transparent text-slate-500 hover:text-slate-900'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
+                  <Icon className="w-4 h-4 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
                 </button>
               );
             })}
@@ -917,7 +918,7 @@ const HomeFeed = () => {
           {/* Share Dataset Form Popup overlay */}
           {sharingDataset && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
-              <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white border border-slate-200 p-6 rounded-[18px] max-w-md w-full text-left space-y-4 shadow-xl">
+              <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white border border-slate-200 p-4 sm:p-6 rounded-[18px] max-w-md w-full text-left space-y-4 shadow-xl">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-100">
                   <h3 className="font-extrabold text-sm text-slate-900">Share New Research Dataset</h3>
                   <button onClick={() => setSharingDataset(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -975,13 +976,13 @@ const HomeFeed = () => {
                   activeList.map(proj => (
                     <motion.div 
                       key={proj._id}
-                      className="bg-white border border-slate-200 p-6 rounded-[18px] shadow-sm text-left relative overflow-hidden transition-all hover:shadow-lg"
+                      className="bg-white border border-slate-200 p-4 sm:p-6 rounded-[18px] shadow-sm text-left relative overflow-hidden transition-all hover:shadow-lg"
                       whileHover={{ y: -2 }}
                     >
-                      <span className="absolute top-4 right-4 text-xs font-bold bg-[#DBEAFE] text-blue-600 px-2.5 py-0.5 rounded-full">
+                      <span className="absolute top-3 right-3 sm:top-4 sm:right-4 text-[10px] sm:text-xs font-bold bg-[#DBEAFE] text-blue-600 px-2 sm:px-2.5 py-0.5 rounded-full">
                         {proj.status}
                       </span>
-                      <h3 className="font-bold text-base text-slate-900 leading-snug">{proj.title}</h3>
+                      <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-snug pr-16 sm:pr-20">{proj.title}</h3>
                       <p className="text-xs text-slate-500 mt-1">Lead: {proj.userId?.fullName || 'Researcher'} • {proj.researchAreas?.join(', ')}</p>
                       <p className="text-sm text-slate-600 mt-3 leading-relaxed font-normal">{proj.description}</p>
                     </motion.div>
@@ -990,12 +991,12 @@ const HomeFeed = () => {
                   activeList.map(q => (
                     <motion.div 
                       key={q._id}
-                      className="bg-white border border-slate-200 p-6 rounded-[18px] shadow-sm text-left hover:shadow-lg transition-all"
+                      className="bg-white border border-slate-200 p-4 sm:p-6 rounded-[18px] shadow-sm text-left hover:shadow-lg transition-all"
                       whileHover={{ y: -2 }}
                     >
-                      <h3 className="font-bold text-base text-slate-900 flex items-center gap-2 leading-snug">
-                        <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded text-xs font-bold">Q</span>
-                        {q.title}
+                      <h3 className="font-bold text-sm sm:text-base text-slate-900 flex items-start gap-2 leading-snug">
+                        <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded text-xs font-bold shrink-0">Q</span>
+                        <span>{q.title}</span>
                       </h3>
                       <p className="text-xs text-slate-500 mt-1">Asked by {q.userId?.fullName || 'Scholar'} • {q.researchAreas?.join(', ')}</p>
                       <p className="text-sm text-slate-600 mt-3 leading-relaxed font-normal">{q.description}</p>
@@ -1014,14 +1015,14 @@ const HomeFeed = () => {
                     {activeList.map(ds => (
                       <motion.div 
                         key={ds._id}
-                        className="bg-white border border-slate-200 p-6 rounded-[18px] shadow-sm text-left relative hover:shadow-lg transition-all"
+                        className="bg-white border border-slate-200 p-4 sm:p-6 rounded-[18px] shadow-sm text-left relative hover:shadow-lg transition-all"
                         whileHover={{ y: -2 }}
                       >
-                        <div className="flex justify-between items-start gap-4">
-                          <div>
-                            <h3 className="font-bold text-base text-slate-900 flex items-center gap-1.5 leading-snug">
-                              <Database className="w-4.5 h-4.5 text-blue-500" />
-                              {ds.title}
+                        <div className="flex flex-wrap justify-between items-start gap-3 sm:gap-4">
+                          <div className="min-w-0">
+                            <h3 className="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-1.5 leading-snug">
+                              <Database className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-blue-500 shrink-0" />
+                              <span className="truncate">{ds.title}</span>
                             </h3>
                             <p className="text-xs text-slate-500 mt-1">Shared by {ds.userId?.fullName || 'Scholar'} • Format: <span className="font-bold text-indigo-600">{ds.format}</span> ({ds.size || '12 MB'})</p>
                           </div>
@@ -1030,7 +1031,7 @@ const HomeFeed = () => {
                               toast.success('Downloading dataset...');
                               if (ds.url) window.open(ds.url, '_blank');
                             }}
-                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 rounded-lg flex items-center gap-1.5 transition-colors"
+                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 rounded-lg flex items-center gap-1.5 transition-colors shrink-0"
                           >
                             <Download className="w-3.5 h-3.5" /> Download
                           </button>
@@ -1092,7 +1093,7 @@ const HomeFeed = () => {
 
 
           {/* 8. Upcoming Conferences */}
-          <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4">
+          <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4">
             <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
               <Calendar className="w-4 h-4 text-[#22C55E]" /> Upcoming Conferences
             </h3>
@@ -1102,10 +1103,10 @@ const HomeFeed = () => {
               ) : (
                 conferences.slice(0, 3).map((e, idx) => (
                   <div key={idx} className="flex gap-3 text-xs text-left">
-                    <div className="w-10 h-10 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex flex-col items-center justify-center font-bold border border-[#DCFCE7]/60 shrink-0">
-                      <span className="text-[10px] uppercase font-black">{e.type}</span>
+                    <div className="w-12 sm:w-14 shrink-0 self-start rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center font-bold border border-[#DCFCE7]/60 px-1 py-2 overflow-hidden">
+                      <span className="block w-full min-w-0 text-[8px] uppercase font-black leading-tight text-center break-words [overflow-wrap:anywhere]">{e.type}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <h4 
                         onClick={() => e.link && window.open(e.link, '_blank')}
                         className="font-bold text-[#0F172A] hover:underline cursor-pointer leading-tight"
@@ -1121,7 +1122,7 @@ const HomeFeed = () => {
           </div>
 
           {/* 9. Funding Opportunities */}
-          <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4">
+          <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4">
             <h3 className="font-bold text-xs text-[#F59E0B] uppercase tracking-wider flex items-center gap-2">
               <Award className="w-4 h-4 text-[#F59E0B]" /> Funding Opportunities
             </h3>
@@ -1153,7 +1154,7 @@ const HomeFeed = () => {
           </div>
 
           {/* 10. Profile Completion */}
-          <div ref={profileCompletionRef} className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4">
+          <div ref={profileCompletionRef} className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4">
             <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-[#22C55E]" /> Profile Completion
             </h3>
@@ -1202,7 +1203,7 @@ const HomeFeed = () => {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-[24px] max-w-lg w-full text-left space-y-4 shadow-2xl relative max-h-[85vh] flex flex-col"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-6 rounded-[24px] max-w-lg w-full text-left space-y-4 shadow-2xl relative max-h-[85vh] flex flex-col"
             >
               <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
                 <h3 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
@@ -1255,9 +1256,9 @@ const HomeFeed = () => {
       </AnimatePresence>
 
       {/* Premium Footer Section */}
-      <footer className="mt-24 border-t border-slate-200 pt-16 pb-12 bg-white text-left text-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+      <footer className="mt-12 sm:mt-24 border-t border-slate-200 pt-10 sm:pt-16 pb-10 sm:pb-12 bg-white text-left text-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 sm:space-y-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
             {/* Column 1: Brand details */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center gap-2">
