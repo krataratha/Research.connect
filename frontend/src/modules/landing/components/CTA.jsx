@@ -1,111 +1,75 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
-
-const perks = [
-  'Free forever on core features',
-  'No credit card required',
-  'Google Scholar sync',
-  'AI-powered recommendations',
-];
-
-// Floating particles
-const Particle = ({ style }) => (
-  <div
-    className="absolute rounded-full bg-indigo-500/20 border border-indigo-500/10"
-    style={style}
-  />
-);
-
-const particles = Array.from({ length: 12 }, (_, i) => ({
-  width: Math.random() * 80 + 20,
-  height: Math.random() * 80 + 20,
-  top: `${Math.random() * 100}%`,
-  left: `${Math.random() * 100}%`,
-  animationDelay: `${Math.random() * 4}s`,
-  animationDuration: `${Math.random() * 6 + 4}s`,
-}));
+import { Link } from 'react-router-dom';
+import { ArrowRight, Shield } from 'lucide-react';
+import imgMeet from '../../../assets/researchers-meeting.jpg';
 
 const CTA = () => {
-  const navigate = useNavigate();
-
   return (
-    <section id="contact" className="py-24 bg-[#030712] relative overflow-hidden">
-      {/* Particles */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {particles.map((p, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-indigo-500/10 border border-indigo-500/10"
-            style={{ width: p.width, height: p.height, top: p.top, left: p.left }}
-            animate={{ y: [0, -30, 0], opacity: [0.2, 0.6, 0.2] }}
-            transition={{ duration: parseFloat(p.animationDuration), delay: parseFloat(p.animationDelay), repeat: Infinity, ease: 'easeInOut' }}
-          />
-        ))}
-      </div>
-
-      {/* Top border */}
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
-
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        {/* Glow orb */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px]" />
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative space-y-8"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
-            Join 1,400+ Researchers
-          </div>
-
-          <h2 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white leading-tight tracking-tight">
-            Start your research{' '}
-            <span className="text-gradient animate-gradient-text bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400">
-              journey today
-            </span>
-          </h2>
-
-          <p className="text-slate-400 text-xl max-w-2xl mx-auto">
-            Join thousands of researchers worldwide who are accelerating their academic careers with Research Connect.
-          </p>
-
-          {/* Perks */}
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2">
-            {perks.map(perk => (
-              <div key={perk} className="flex items-center gap-2 text-sm text-slate-400">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                {perk}
+    <section className="py-24 bg-white relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-blue-600 rounded-3xl overflow-hidden shadow-2xl relative">
+          <div className="grid lg:grid-cols-2">
+            
+            {/* Left Content */}
+            <div className="p-10 md:p-16 lg:p-20 flex flex-col justify-center relative z-10">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                Ready to accelerate your research?
+              </h2>
+              <p className="text-blue-100 text-lg md:text-xl mb-10 max-w-xl leading-relaxed">
+                Join thousands of researchers worldwide who are already using our platform to discover, collaborate, and innovate.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link to="/register">
+                  <motion.button
+                    whileHover={{ scale: 1.06, y: -3 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                    className="w-full sm:w-auto px-8 py-4 bg-white text-blue-600 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    Create Free Account <ArrowRight className="w-5 h-5" />
+                  </motion.button>
+                </Link>
+                <Link to="/about">
+                  <motion.button
+                    whileHover={{ scale: 1.06, y: -3 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                    className="w-full sm:w-auto px-8 py-4 bg-blue-700 text-white rounded-xl font-bold shadow-lg border border-blue-500"
+                  >
+                    Learn More
+                  </motion.button>
+                </Link>
               </div>
-            ))}
-          </div>
+            </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-wrap justify-center gap-4 pt-2">
-            <motion.button
-              onClick={() => navigate('/register')}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-2 px-8 py-4 text-base font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all animate-pulse-glow"
-            >
-              <Sparkles className="w-4.5 h-4.5 w-[18px] h-[18px]" />
-              Create Free Account
-              <ArrowRight className="w-4.5 h-4.5 w-[18px] h-[18px]" />
-            </motion.button>
-            <motion.button
-              onClick={() => navigate('/login')}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-2 px-8 py-4 text-base font-medium text-slate-300 glass-card border border-white/10 rounded-2xl hover:border-white/20 hover:bg-white/10 transition-all"
-            >
-              Sign In Instead
-            </motion.button>
+            {/* Right Image */}
+            <div className="hidden lg:block relative min-h-[400px] group overflow-hidden">
+              <img 
+                src={imgMeet} 
+                alt="Researchers meeting" 
+                className="absolute inset-0 w-full h-full object-cover opacity-90 transition-transform duration-1000 group-hover:scale-110 group-hover:rotate-1"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-transparent w-48 z-10" />
+              <div className="absolute inset-0 bg-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20 pointer-events-none" />
+              
+              <motion.div 
+                animate={{ 
+                  opacity: [0.2, 0.5, 0.2],
+                  scale: [1, 1.2, 1]
+                }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute top-1/2 right-1/4 -translate-y-1/2 w-64 h-64 bg-blue-400 rounded-full blur-[80px] pointer-events-none z-0" 
+              />
+            </div>
+
           </div>
-        </motion.div>
+          
+          {/* Decorative background elements for small screens */}
+          <div className="lg:hidden absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-50 pointer-events-none" />
+          <div className="lg:hidden absolute bottom-0 left-0 -mb-16 -ml-16 w-64 h-64 bg-blue-700 rounded-full blur-3xl opacity-50 pointer-events-none" />
+        </div>
       </div>
     </section>
   );

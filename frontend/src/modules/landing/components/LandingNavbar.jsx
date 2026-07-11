@@ -1,152 +1,128 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, Menu, X, ChevronDown, Sparkles } from 'lucide-react';
-
-const navLinks = [
-  { name: 'Home', href: '#hero' },
-  { name: 'Features', href: '#features' },
-  { name: 'How It Works', href: '#how-it-works' },
-  { name: 'Researchers', href: '#researchers' },
-  { name: 'About', href: '#about' },
-  { name: 'Contact', href: '#contact' },
-];
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, X, Share2, LogIn, UserPlus } from 'lucide-react';
 
 const LandingNavbar = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const [scrolled, setScrolled] = useState(false);
-  const [visible, setVisible] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentY = window.scrollY;
-      setScrolled(currentY > 20);
-      if (currentY < 60) {
-        setVisible(true);
-      } else {
-        setVisible(currentY < lastScrollY.current);
-      }
-      lastScrollY.current = currentY;
+      setIsScrolled(window.scrollY > 20);
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleNavClick = (href) => {
-    setMobileOpen(false);
-    if (href.startsWith('#')) {
-      const el = document.querySelector(href);
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+  const navLinks = [
+    { label: 'Features', href: '#features' },
+    { label: 'How it Works', href: '#how-it-works' },
+    { label: 'Testimonials', href: '#testimonials' },
+    { label: 'FAQ', href: '#faq' },
+  ];
 
   return (
-    <motion.nav
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-        scrolled ? 'glass-nav shadow-lg shadow-black/20' : 'bg-transparent'
-      }`}
-      initial={{ y: 0 }}
-      animate={{ y: visible ? 0 : -100 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 lg:h-[70px]">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group" onClick={() => handleNavClick('#hero')}>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:shadow-indigo-500/50 transition-shadow">
-              <Share2 className="w-4.5 h-4.5 text-white w-[18px] h-[18px]" />
+    <>
+      <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-200' : 'bg-transparent'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:shadow-blue-600/40 transition-all">
+                <Share2 className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold text-xl tracking-tight text-slate-900">
+                Research<span className="text-blue-600">Connect</span>
+              </span>
+            </Link>
+
+            {/* Desktop Links */}
+            <div className="hidden md:flex flex-1 justify-center">
+              <div className="flex items-center gap-8">
+                {navLinks.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
             </div>
-            <span className="font-bold text-lg tracking-tight text-white">
-              Research<span className="text-indigo-400">Connect</span>
-            </span>
-          </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden lg:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <button
-                key={link.name}
-                onClick={() => handleNavClick(link.href)}
-                className="relative px-3.5 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-lg hover:bg-white/5 group"
+            {/* Desktop Actions */}
+            <div className="hidden md:flex items-center gap-4">
+              <Link to="/login" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+                Sign In
+              </Link>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
+                <Link to="/register" className="text-sm font-semibold text-white bg-blue-600 px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-md shadow-blue-600/10 inline-block">
+                  Create Account
+                </Link>
+              </motion.div>
+            </div>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden flex items-center">
+              <motion.button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="text-slate-600 hover:text-blue-600 focus:outline-none p-2"
               >
-                {link.name}
-                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-indigo-400 rounded-full group-hover:w-4 transition-all duration-300" />
-              </button>
-            ))}
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </motion.button>
+            </div>
           </div>
-
-          {/* CTA Buttons */}
-          <div className="hidden lg:flex items-center gap-3">
-            <button
-              onClick={() => navigate('/login')}
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded-lg hover:bg-white/8 border border-transparent hover:border-white/10"
-            >
-              Sign In
-            </button>
-            <motion.button
-              onClick={() => navigate('/register')}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="px-5 py-2.5 text-sm font-semibold text-white rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 transition-all duration-200 flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Get Started
-            </motion.button>
-          </div>
-
-          {/* Mobile Toggle */}
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-2 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
-      </div>
+      </nav>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Menu */}
       <AnimatePresence>
-        {mobileOpen && (
+        {mobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="lg:hidden glass-nav border-t border-white/5 overflow-hidden"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed inset-x-0 top-20 bg-white border-b border-slate-200 z-40 md:hidden shadow-xl"
           >
-            <div className="px-4 py-4 space-y-1">
+            <div className="px-4 pt-2 pb-6 space-y-1">
               {navLinks.map((link) => (
-                <button
-                  key={link.name}
-                  onClick={() => handleNavClick(link.href)}
-                  className="block w-full text-left px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                <a
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-3 py-3 text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
                 >
-                  {link.name}
-                </button>
+                  {link.label}
+                </a>
               ))}
-              <div className="pt-3 border-t border-white/5 flex flex-col gap-2">
-                <button
-                  onClick={() => { setMobileOpen(false); navigate('/login'); }}
-                  className="w-full px-4 py-3 text-sm font-medium text-slate-300 hover:text-white border border-white/10 rounded-xl hover:bg-white/5 transition-colors"
+              <div className="pt-4 mt-2 border-t border-slate-100 flex flex-col gap-3">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 text-base font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100"
                 >
+                  <LogIn className="w-5 h-5" />
                   Sign In
-                </button>
-                <button
-                  onClick={() => { setMobileOpen(false); navigate('/register'); }}
-                  className="w-full px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center gap-2"
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 text-base font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700"
                 >
-                  <Sparkles className="w-4 h-4" />
+                  <UserPlus className="w-5 h-5" />
                   Get Started Free
-                </button>
+                </Link>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </>
   );
 };
 

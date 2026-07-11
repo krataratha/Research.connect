@@ -1,147 +1,103 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { UserPlus, Upload, Search, Handshake, ArrowRight } from 'lucide-react';
+import { UserPlus, Upload, Search, Handshake } from 'lucide-react';
 
 const steps = [
   {
     number: '01',
-    title: 'Create Your Research Profile',
-    description: 'Build a comprehensive researcher profile with your expertise, publications, and research interests. Connect your Google Scholar and ORCID.',
-    icon: UserPlus,
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/20',
-    gradient: 'from-blue-500/20 to-blue-600/20',
+    title: 'Create Your Profile',
+    desc: 'Join the platform and set up your research identity in minutes.',
+    icon: UserPlus
   },
   {
     number: '02',
-    title: 'Import Your Publications',
-    description: 'Auto-sync from Google Scholar or manually upload PDFs. Our AI automatically extracts metadata, keywords, and citation counts.',
-    icon: Upload,
-    color: 'text-indigo-400',
-    bg: 'bg-indigo-500/10',
-    border: 'border-indigo-500/20',
-    gradient: 'from-indigo-500/20 to-indigo-600/20',
+    title: 'Add Publications',
+    desc: 'Sync with Google Scholar or upload your papers directly.',
+    icon: Upload
   },
   {
     number: '03',
-    title: 'Discover Researchers & Papers',
-    description: 'AI-powered semantic search finds relevant papers and researchers matching your work. Explore citation networks and collaboration graphs.',
-    icon: Search,
-    color: 'text-violet-400',
-    bg: 'bg-violet-500/10',
-    border: 'border-violet-500/20',
-    gradient: 'from-violet-500/20 to-violet-600/20',
+    title: 'Discover Peers',
+    desc: 'Use AI to find researchers matching your specific interests.',
+    icon: Search
   },
   {
     number: '04',
-    title: 'Collaborate & Grow',
-    description: 'Connect with co-authors, join research workspaces, share datasets, and publish together. Track your impact with real-time analytics.',
-    icon: Handshake,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/20',
-    gradient: 'from-emerald-500/20 to-emerald-600/20',
-  },
+    title: 'Collaborate',
+    desc: 'Start workspaces and collaborate securely in real-time.',
+    icon: Handshake
+  }
 ];
 
-const HowItWorks = () => (
-  <section id="how-it-works" className="py-24 bg-[#030712] relative overflow-hidden">
-    {/* Bg */}
-    <div className="absolute inset-0 bg-dot-grid opacity-20" />
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
+import img4 from '../../../assets/researcher-conference.jpg';
 
-    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="text-center mb-20"
-      >
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-semibold mb-4">
-          Simple Process
+const HowItWorks = () => {
+  return (
+    <section id="how-it-works" className="py-24 bg-white relative">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <h2 className="text-4xl font-bold text-slate-900 mb-4">How it works</h2>
+          <p className="text-lg text-slate-600">Get started in four simple steps</p>
         </div>
-        <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-          Get started in <span className="text-gradient">4 simple steps</span>
-        </h2>
-        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-          From profile creation to global collaboration — it's effortless.
-        </p>
-      </motion.div>
 
-      {/* Desktop: horizontal timeline */}
-      <div className="hidden lg:block">
-        {/* Connecting line */}
-        <div className="relative flex items-start gap-0">
-          {steps.map((step, i) => {
-            const Icon = step.icon;
-            return (
-              <React.Fragment key={step.number}>
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left: Floating Image */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
+            whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ 
+              opacity: { duration: 0.8 },
+              scale: { duration: 0.8, type: 'spring', bounce: 0.4 },
+              rotate: { duration: 0.8, type: 'spring', bounce: 0.4 }
+            }}
+            viewport={{ once: true }}
+            className="hidden lg:block relative h-[600px] rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-8 border-white group"
+          >
+            <img src={img4} alt="Researchers collaborating" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent pointer-events-none" />
+          </motion.div>
+
+          {/* Right: Steps */}
+          <div>
+            <div className="grid gap-6">
+              {steps.map((step, index) => (
                 <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  key={step.number}
+                  initial={{ opacity: 0, x: 40 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  whileHover={{ scale: 1.02, x: -8 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.15, duration: 0.6 }}
-                  className="flex-1 flex flex-col items-center text-center px-4"
+                  transition={{ 
+                    opacity: { duration: 0.5, delay: index * 0.15 },
+                    x: { duration: 0.5, delay: index * 0.15, type: 'spring', bounce: 0.4 },
+                    scale: { type: 'spring', bounce: 0.5 },
+                  }}
+                  className="flex gap-6 p-6 rounded-2xl hover:bg-slate-50 transition-colors group cursor-default shadow-sm hover:shadow-xl border border-transparent hover:border-slate-100 relative overflow-hidden"
                 >
-                  {/* Step number + icon */}
-                  <div className="relative mb-6">
-                    <div className={`w-16 h-16 rounded-2xl ${step.bg} border ${step.border} flex items-center justify-center mb-2 mx-auto group-hover:scale-110 transition-transform shadow-lg`}>
-                      <Icon className={`w-7 h-7 ${step.color}`} />
-                    </div>
-                    <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full ${step.bg} border ${step.border} flex items-center justify-center text-[10px] font-extrabold ${step.color}`}>
+                  <div className="absolute inset-0 bg-gradient-to-l from-transparent via-blue-50/30 to-transparent translate-x-[100%] group-hover:translate-x-[-100%] transition-transform duration-1000" />
+                  
+                  <div className="flex-shrink-0 relative z-10">
+                    <div className="w-14 h-14 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xl group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 relative shadow-inner">
                       {step.number}
+                      <div className="absolute inset-0 rounded-full border-2 border-blue-600 opacity-0 group-hover:animate-ping" />
                     </div>
                   </div>
-                  <h3 className="text-base font-bold text-white mb-2">{step.title}</h3>
-                  <p className="text-slate-400 text-sm leading-relaxed">{step.description}</p>
+                  <div className="relative z-10">
+                    <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+                      {step.title}
+                    </h3>
+                    <p className="text-slate-600 leading-relaxed">
+                      {step.desc}
+                    </p>
+                  </div>
                 </motion.div>
-
-                {/* Arrow connector */}
-                {i < steps.length - 1 && (
-                  <motion.div
-                    initial={{ opacity: 0, scaleX: 0 }}
-                    whileInView={{ opacity: 1, scaleX: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.15 + 0.3, duration: 0.4 }}
-                    className="flex items-start pt-7"
-                  >
-                    <ArrowRight className="w-5 h-5 text-slate-600 flex-shrink-0" />
-                  </motion.div>
-                )}
-              </React.Fragment>
-            );
-          })}
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Mobile: vertical */}
-      <div className="lg:hidden space-y-4">
-        {steps.map((step, i) => {
-          const Icon = step.icon;
-          return (
-            <motion.div
-              key={step.number}
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className={`glass-card rounded-2xl p-5 border ${step.border} flex gap-4`}
-            >
-              <div className={`w-12 h-12 rounded-xl ${step.bg} border ${step.border} flex items-center justify-center flex-shrink-0`}>
-                <Icon className={`w-6 h-6 ${step.color}`} />
-              </div>
-              <div>
-                <div className={`text-xs font-bold ${step.color} mb-1`}>Step {step.number}</div>
-                <h3 className="text-sm font-bold text-white mb-1">{step.title}</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">{step.description}</p>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export default HowItWorks;
