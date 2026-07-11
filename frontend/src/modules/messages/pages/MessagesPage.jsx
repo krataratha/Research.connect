@@ -390,7 +390,7 @@ const MessagesPage = () => {
     <div className="flex h-[calc(100vh-64px)] bg-slate-50/50 overflow-hidden relative select-none">
       
       {/* 1. Folders Sub-sidebar (Left side) */}
-      <div className="w-60 h-full border-r border-slate-200 bg-white flex flex-col shrink-0 text-left select-none p-4 space-y-6 hidden md:flex">
+      <div className="w-60 h-full border-r border-slate-200 bg-white flex-col shrink-0 text-left select-none p-4 space-y-6 hidden md:flex">
         <div className="px-2">
           <h2 className="text-sm font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
             <span>Workspace Folders</span>
