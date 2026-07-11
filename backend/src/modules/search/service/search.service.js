@@ -255,6 +255,30 @@ class SearchService {
     const results = result?.data || [];
     const total = result?.count?.[0]?.total || 0;
 
+    // Enrich authors with User slug/profileSlug/username
+    if (results.length > 0) {
+      const authorIds = results.map(r => r.authorId).filter(id => id && mongoose.Types.ObjectId.isValid(id));
+      const authorNames = results.map(r => r._id);
+      
+      const users = await User.find({
+        $or: [
+          { _id: { $in: authorIds } },
+          { fullName: { $in: authorNames } }
+        ]
+      }).select('firstName lastName fullName username profileSlug slug').lean();
+
+      for (const r of results) {
+        let matchedUser = users.find(u => r.authorId && u._id.toString() === r.authorId.toString());
+        if (!matchedUser) {
+          matchedUser = users.find(u => u.fullName && u.fullName.toLowerCase() === r._id.toLowerCase());
+        }
+        if (matchedUser) {
+          r.profileSlug = matchedUser.slug || matchedUser.profileSlug || matchedUser.username;
+          r.userId = matchedUser._id;
+        }
+      }
+    }
+
     return { results, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
   }
 
@@ -314,7 +338,7 @@ class SearchService {
       User.find(finalUserFilter)
         .skip(skip)
         .limit(limitNum)
-        .select('firstName lastName fullName email profileImage profileSlug researcherType institution')
+        .select('firstName lastName fullName email profileImage profileSlug slug username researcherType institution')
         .lean(),
       User.countDocuments(finalUserFilter)
     ]);
@@ -331,6 +355,7 @@ class SearchService {
         profile: prof || null,
         institution: prof?.institution || user.institution || '',
         researchAreas: prof?.researchAreas || [],
+        profileSlug: user.slug || user.profileSlug || user.username,
         matchPercentage: 0,
         reasons: []
       };

@@ -10,6 +10,8 @@ const ResearcherInfo = ({ participant, conversation, messages = [] }) => {
     lastName,
     profileImage,
     username,
+    profileSlug,
+    slug,
     institution,
     designation,
     bio,
@@ -67,7 +69,7 @@ const ResearcherInfo = ({ participant, conversation, messages = [] }) => {
         </div>
 
         <Link
-          to={`/profile/${username || 'me'}`}
+          to={`/profile/${slug || profileSlug || username || 'me'}`}
           className="px-6 py-2 border border-blue-600 hover:bg-blue-50/50 rounded-xl text-xs font-bold text-blue-600 transition-colors w-full text-center"
         >
           View Profile

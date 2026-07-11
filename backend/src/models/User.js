@@ -128,6 +128,13 @@ const UserSchema = new Schema(
       sparse: true,
       index: true
     },
+    slug: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+      index: true
+    },
     profileUrl: {
       type: String,
       trim: true
@@ -159,24 +166,42 @@ UserSchema.pre('save', async function (next) {
     this.fullName = `${this.firstName} ${this.lastName}`.trim();
   }
 
-  // Generate username and public profile URL details if not present
-  if (!this.username || !this.profileSlug) {
+  // Generate username, public profile URL details and clean slug if not present
+  if (!this.username || !this.profileSlug || !this.slug) {
     try {
       const UserModel = mongoose.model('User');
+      
+      // 1. Generate clean unique slug
+      if (!this.slug) {
+        const cleanFirst = (this.firstName || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '-');
+        const cleanLast = (this.lastName || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '-');
+        let baseSlug = `${cleanFirst}-${cleanLast}`
+          .replace(/-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
 
-      if (this.username && !this.profileSlug) {
-        if (!this.publicProfileId) {
-          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-          let randomId = '';
-          for (let i = 0; i < 6; i++) {
-            randomId += chars.charAt(Math.floor(Math.random() * chars.length));
-          }
-          this.publicProfileId = `rc_${randomId}`;
+        if (!baseSlug) {
+          baseSlug = 'researcher';
         }
-        this.profileSlug = `${this.username}-${this.publicProfileId}`;
-        this.profileUrl = `/profile/${this.profileSlug}`;
-        this.publicProfileUrl = `https://researchconnect.com${this.profileUrl}`;
-      } else if (!this.username) {
+
+        let finalSlug = baseSlug;
+        let counter = 1;
+        
+        while (true) {
+          const exists = await UserModel.findOne({ slug: finalSlug, _id: { $ne: this._id } });
+          if (!exists) {
+            break;
+          }
+          counter++;
+          finalSlug = `${baseSlug}-${counter}`;
+        }
+
+        this.slug = finalSlug;
+      }
+
+      // 2. Generate username and profileSlug (keeping old random suffix for backward compatibility if already set,
+      // but otherwise setting it to the clean slug format for new profiles).
+      if (!this.username) {
         const cleanFirst = (this.firstName || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '-');
         const cleanLast = (this.lastName || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '-');
         let baseUsername = `${cleanFirst}-${cleanLast}`
@@ -188,29 +213,29 @@ UserSchema.pre('save', async function (next) {
           baseUsername = 'researcher';
         }
 
-        // Generate random suffix for uniqueness
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let randomId = '';
-        for (let i = 0; i < 6; i++) {
-          randomId += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        const publicProfileId = `rc_${randomId}`;
-
-        // Check if base username is already taken
+        // For new users, let's keep username same as base slug if possible
         const exists = await UserModel.findOne({ username: baseUsername, isDeleted: { $ne: true } });
-
         if (!exists) {
           this.username = baseUsername;
-          this.profileSlug = `${baseUsername}-${publicProfileId}`;
         } else {
+          // If username is taken, use suffix for username but keep clean slug
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+          let randomId = '';
+          for (let i = 0; i < 6; i++) {
+            randomId += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          const publicProfileId = `rc_${randomId}`;
           this.username = `${baseUsername}-${publicProfileId}`;
-          this.profileSlug = this.username;
+          this.publicProfileId = publicProfileId;
         }
-
-        this.publicProfileId = publicProfileId;
-        this.profileUrl = `/profile/${this.profileSlug}`;
-        this.publicProfileUrl = `https://researchconnect.com${this.profileUrl}`;
       }
+
+      if (!this.profileSlug) {
+        this.profileSlug = this.slug;
+      }
+
+      this.profileUrl = `/profile/${this.profileSlug}`;
+      this.publicProfileUrl = `https://researchconnect.com${this.profileUrl}`;
     } catch (err) {
       console.error('Error generating username and slug in pre-save: ', err);
     }

@@ -642,7 +642,7 @@ class PublicationService {
     }
 
     const query = Publication.find(baseFilter)
-      .populate('userId', 'firstName lastName fullName email profileImage institution department designation')
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug slug username')
       .sort(sortOption)
       .skip(skip)
       .limit(Number(limit))
@@ -1498,7 +1498,7 @@ class PublicationService {
     }
 
     let profiles = await Profile.find(query)
-      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug slug username')
       .limit(Number(limit))
       .lean();
 
@@ -1513,7 +1513,7 @@ class PublicationService {
       };
 
       const fallbackProfiles = await Profile.find(fallbackQuery)
-        .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
+        .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug slug username')
         .limit(remainingLimit)
         .lean();
 
@@ -1562,7 +1562,7 @@ class PublicationService {
 
     // Populate user details for returning comment
     const populated = await PublicationComment.findById(comment._id)
-      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug slug username')
       .lean();
 
     // Send Real-Time Notification to publication owner
@@ -1633,7 +1633,7 @@ class PublicationService {
    */
   async getComments(publicationId) {
     const rawComments = await PublicationComment.find({ publicationId })
-      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug slug username')
       .sort({ createdAt: 1 })
       .lean();
 
@@ -1686,7 +1686,7 @@ class PublicationService {
     await comment.save();
 
     return await PublicationComment.findById(commentId)
-      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug slug username')
       .lean();
   }
 

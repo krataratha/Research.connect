@@ -38,7 +38,7 @@ class NotificationRepository extends BaseRepository {
       .find(filter)
       .sort(sort)
       .limit(Number(limit) + 1)
-      .populate('actorId', 'firstName lastName fullName profileImage username profileSlug')
+      .populate('actorId', 'firstName lastName fullName profileImage username profileSlug slug')
       .lean();
 
     const hasNextPage = docs.length > Number(limit);

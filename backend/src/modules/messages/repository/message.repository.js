@@ -43,7 +43,7 @@ class MessageRepository extends BaseRepository {
     const conversations = await Conversation.find({
       participants: userId
     })
-      .populate('participants', 'firstName lastName profileImage username email createdAt')
+      .populate('participants', 'firstName lastName profileImage username profileSlug slug email createdAt')
       .populate({
         path: 'lastMessage',
         populate: { path: 'attachment' }
@@ -127,7 +127,7 @@ class MessageRepository extends BaseRepository {
     // Retrieve reactions for these messages
     const messageIds = messages.map(m => m._id);
     const reactions = await MessageReaction.find({ messageId: { $in: messageIds } })
-      .populate('userId', 'firstName lastName username')
+      .populate('userId', 'firstName lastName username profileSlug slug')
       .lean();
 
     // Attach reactions to messages
@@ -165,7 +165,7 @@ class MessageRepository extends BaseRepository {
       deleted: false
     })
       .populate('conversationId')
-      .populate('senderId', 'firstName lastName profileImage')
+      .populate('senderId', 'firstName lastName profileImage profileSlug slug username')
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
@@ -184,7 +184,7 @@ class MessageRepository extends BaseRepository {
       deleted: false
     })
       .populate('attachment')
-      .populate('senderId', 'firstName lastName profileImage')
+      .populate('senderId', 'firstName lastName profileImage profileSlug slug username')
       .sort({ createdAt: -1 })
       .lean();
   }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Heart, Bookmark, MessageSquare, Share2, Award, 
@@ -17,6 +18,7 @@ import BookmarkFoldersModal from '../modals/BookmarkFoldersModal';
 
 const PublicationCard = ({ pub }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   
   // Modals state
@@ -272,7 +274,13 @@ const PublicationCard = ({ pub }) => {
       {/* Header: Author & Institution */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-blue-600 overflow-hidden shrink-0 border border-slate-200">
+          <div 
+            onClick={() => {
+              const profileId = pub.userId?.slug || pub.userId?.profileSlug || pub.userId?.username || pub.userId?._id || pub.userId;
+              if (profileId) navigate(`/profile/${profileId}`);
+            }}
+            className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-blue-600 overflow-hidden shrink-0 border border-slate-200 cursor-pointer hover:border-blue-500 transition-all"
+          >
             {pub.userId?.profileImage ? (
               <img src={pub.userId.profileImage} alt="" className="w-full h-full object-cover" loading="lazy" />
             ) : (
@@ -281,7 +289,13 @@ const PublicationCard = ({ pub }) => {
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-sm text-slate-900">
+              <span 
+                onClick={() => {
+                  const profileId = pub.userId?.slug || pub.userId?.profileSlug || pub.userId?.username || pub.userId?._id || pub.userId;
+                  if (profileId) navigate(`/profile/${profileId}`);
+                }}
+                className="font-extrabold text-sm text-slate-900 hover:text-blue-600 cursor-pointer transition-colors"
+              >
                 {pub.authors ? pub.authors.split(',')[0] : 'Unknown Researcher'}
               </span>
               <span className="text-blue-500 bg-blue-50 p-0.5 rounded-full" title="Verified Author">

@@ -598,7 +598,10 @@ const HomeFeed = () => {
               return (
                 <div key={idx} className="group border-b border-[#E2E8F0]/60 pb-3.5 last:border-0 last:pb-0 transition-all duration-200">
                   <div className="flex gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-[#F8FAFC] flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 border border-[#E2E8F0]">
+                    <div 
+                      onClick={() => navigate(`/profile/${res.profileSlug || res.userId}`)}
+                      className="w-10 h-10 rounded-full bg-[#F8FAFC] flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 border border-[#E2E8F0] cursor-pointer hover:border-blue-500 transition-all"
+                    >
                       {res.avatar ? (
                         <img src={res.avatar} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -607,7 +610,10 @@ const HomeFeed = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex justify-between items-start gap-1">
-                        <h4 className="font-bold text-xs text-[#0F172A] truncate leading-tight group-hover:text-[#2563EB] transition-colors">
+                        <h4 
+                          onClick={() => navigate(`/profile/${res.profileSlug || res.userId}`)}
+                          className="font-bold text-xs text-[#0F172A] truncate leading-tight hover:text-[#2563EB] cursor-pointer transition-colors"
+                        >
                           {res.name}
                         </h4>
                         <span className="text-[9px] font-bold text-[#22C55E] bg-[#DCFCE7] px-1.5 py-0.5 rounded-full shrink-0">

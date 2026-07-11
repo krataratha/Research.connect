@@ -286,7 +286,7 @@ class MessageService {
 
     // Fetch reactions count
     const reactions = await MessageReaction.find({ messageId })
-      .populate('userId', 'firstName lastName username')
+      .populate('userId', 'firstName lastName username profileSlug slug')
       .lean();
 
     const updatePayload = {
@@ -344,7 +344,7 @@ class MessageService {
 
     // Populate conversation
     const populated = await Conversation.findById(conv._id)
-      .populate('participants', 'firstName lastName username profileImage')
+      .populate('participants', 'firstName lastName username profileSlug slug profileImage')
       .populate('lastMessage')
       .lean();
 
@@ -399,7 +399,7 @@ class MessageService {
     }
 
     return await Conversation.findById(conversationId)
-      .populate('participants', 'firstName lastName username profileImage')
+      .populate('participants', 'firstName lastName username profileSlug slug profileImage')
       .populate('lastMessage')
       .lean();
   }
@@ -442,8 +442,8 @@ class MessageService {
   async getCallHistory(userId) {
     const castUserId = new mongoose.Types.ObjectId(userId);
     return await Call.find({ participants: castUserId })
-      .populate('initiatorId', 'firstName lastName username profileImage')
-      .populate('participants', 'firstName lastName username profileImage')
+      .populate('initiatorId', 'firstName lastName username profileSlug slug profileImage')
+      .populate('participants', 'firstName lastName username profileSlug slug profileImage')
       .sort({ createdAt: -1 })
       .lean();
   }

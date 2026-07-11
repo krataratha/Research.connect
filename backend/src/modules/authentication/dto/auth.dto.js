@@ -15,6 +15,7 @@ class AuthDTO {
       emailVerified: user.emailVerified || false,
       username: user.username || '',
       profileSlug: user.profileSlug || '',
+      slug: user.slug || user.profileSlug || user.username || '',
       profileUrl: user.profileUrl || '',
       profileImage: user.profileImage || '',
       country: user.country || '',

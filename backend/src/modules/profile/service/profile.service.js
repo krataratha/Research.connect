@@ -212,16 +212,43 @@ class ProfileService {
     }
 
     const query = { isDeleted: { $ne: true } };
+    const orConditions = [
+      { slug: profileSlug },
+      { profileSlug: profileSlug },
+      { username: profileSlug }
+    ];
+
     if (mongoose.Types.ObjectId.isValid(profileSlug)) {
-      query.$or = [{ _id: profileSlug }, { profileSlug }];
-    } else {
-      query.profileSlug = profileSlug;
+      orConditions.push({ _id: profileSlug });
     }
 
-    const user = await User.findOne(query).lean();
+    if (profileSlug && profileSlug.includes('@')) {
+      orConditions.push({ email: profileSlug.toLowerCase().trim() });
+    }
+
+    query.$or = orConditions;
+
+    let user = await User.findOne(query).lean();
+
+    // Fallback to socialLinks in Profile if not found
+    if (!user) {
+      const profile = await Profile.findOne({
+        isDeleted: { $ne: true },
+        $or: [
+          { 'socialLinks.googleScholar': profileSlug },
+          { 'socialLinks.orcid': profileSlug }
+        ]
+      }).select('userId').lean();
+
+      if (profile && profile.userId) {
+        user = await User.findOne({ _id: profile.userId, isDeleted: { $ne: true } }).lean();
+      }
+    }
+
     if (!user) {
       throw new NotFoundError(`Profile not found for slug: ${profileSlug}`);
     }
+
     this.logAnalytics(user._id, 'views').catch(err => 
       console.error('Background logAnalytics error:', err)
     );

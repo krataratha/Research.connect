@@ -97,9 +97,33 @@ const PublicationResultCard = ({ publication, index = 0 }) => {
       </button>
 
       {/* Authors */}
-      {authorsDisplay && (
+      {authorsList.length > 0 ? (
+        <div className="text-sm text-gray-500 mb-2 flex flex-wrap gap-1 items-center">
+          {authorsList.slice(0, 3).map((author, idx) => {
+            const isClickable = author.profileSlug || author.authorId;
+            return (
+              <React.Fragment key={idx}>
+                {idx > 0 && <span className="text-gray-400">, </span>}
+                <span
+                  onClick={(e) => {
+                    if (isClickable) {
+                      e.stopPropagation();
+                      navigate(`/profile/${author.profileSlug || author.authorId}`);
+                    }
+                  }}
+                  className={isClickable ? "hover:text-blue-600 hover:underline cursor-pointer font-medium transition-colors" : ""}
+                >
+                  {author.name}
+                </span>
+              </React.Fragment>
+            );
+          })}
+          {authorsList.length > 3 && <span className="text-gray-400"> +{authorsList.length - 3}</span>}
+          {institution && <span className="text-gray-400"> · {institution}</span>}
+        </div>
+      ) : authors && (
         <p className="text-sm text-gray-500 mb-2 truncate">
-          {authorsDisplay}
+          {authors}
           {institution && <span className="text-gray-400"> · {institution}</span>}
         </p>
       )}

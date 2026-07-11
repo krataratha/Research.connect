@@ -26,7 +26,7 @@ class FeedRepository extends BaseRepository {
         populate: {
           path: 'userId',
           model: 'User',
-          select: 'name email profileImage institution designation'
+          select: 'firstName lastName fullName email profileImage institution designation profileSlug slug username'
         }
       })
       .lean();
@@ -37,7 +37,7 @@ class FeedRepository extends BaseRepository {
     const skip = (page - 1) * limit;
     
     const query = Publication.find({ ...filter, isDeleted: { $ne: true } })
-      .populate('userId', 'firstName lastName fullName email profileImage institution department designation')
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug slug username')
       .sort(sort)
       .skip(skip)
       .limit(Number(limit))
@@ -100,7 +100,7 @@ class FeedRepository extends BaseRepository {
 
   async getPublicationById(id) {
     return await Publication.findById(id)
-      .populate('userId', 'firstName lastName fullName email profileImage institution department designation')
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug slug username')
       .lean();
   }
 
@@ -157,7 +157,7 @@ class FeedRepository extends BaseRepository {
   async getCommentsByPublicationId(publicationId, options = {}) {
     // Get top-level comments (parentId is null)
     const docs = await Comment.find({ publicationId, parentId: null, isDeleted: { $ne: true } })
-      .populate('userId', 'firstName lastName fullName email profileImage')
+      .populate('userId', 'firstName lastName fullName email profileImage profileSlug slug username')
       .sort('-createdAt')
       .lean();
 
@@ -178,7 +178,7 @@ class FeedRepository extends BaseRepository {
 
   async getRepliesRecursively(commentId) {
     const replies = await Comment.find({ parentId: commentId, isDeleted: { $ne: true } })
-      .populate('userId', 'firstName lastName fullName email profileImage')
+      .populate('userId', 'firstName lastName fullName email profileImage profileSlug slug username')
       .sort('createdAt')
       .lean();
 
@@ -222,7 +222,7 @@ class FeedRepository extends BaseRepository {
     }
 
     const query = ResearchQuestion.find(queryFilter)
-      .populate('userId', 'firstName lastName fullName email profileImage institution designation')
+      .populate('userId', 'firstName lastName fullName email profileImage institution designation profileSlug slug username')
       .sort(sort)
       .skip(skip)
       .limit(Number(limit))
@@ -255,8 +255,8 @@ class FeedRepository extends BaseRepository {
     }
 
     const query = Project.find(queryFilter)
-      .populate('userId', 'firstName lastName fullName email profileImage institution designation')
-      .populate('collaborators', 'firstName lastName fullName email profileImage')
+      .populate('userId', 'firstName lastName fullName email profileImage institution designation profileSlug slug username')
+      .populate('collaborators', 'firstName lastName fullName email profileImage profileSlug slug username')
       .sort(sort)
       .skip(skip)
       .limit(Number(limit))
@@ -286,7 +286,7 @@ class FeedRepository extends BaseRepository {
     }
 
     const query = Dataset.find(queryFilter)
-      .populate('userId', 'firstName lastName fullName email profileImage institution designation')
+      .populate('userId', 'firstName lastName fullName email profileImage institution designation profileSlug slug username')
       .sort(sort)
       .skip(skip)
       .limit(Number(limit))

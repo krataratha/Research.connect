@@ -272,7 +272,7 @@ class RecommendationsService {
         continue;
       }
 
-      const user = await User.findById(scoreDoc.targetId).select('firstName lastName fullName profileImage').lean();
+      const user = await User.findById(scoreDoc.targetId).select('firstName lastName fullName profileImage profileSlug slug username').lean();
       const profile = await Profile.findOne({ userId: scoreDoc.targetId }).select('institution department designation skills').lean();
 
       if (user) {
@@ -285,7 +285,8 @@ class RecommendationsService {
           designation: profile?.designation || '',
           matchPercentage: scoreDoc.score,
           reasons: scoreDoc.reasons,
-          skills: profile?.skills || []
+          skills: profile?.skills || [],
+          profileSlug: user.slug || user.profileSlug || user.username
         });
       }
     }
@@ -308,7 +309,7 @@ class RecommendationsService {
       if (dismissedIds.includes(scoreDoc.targetId.toString())) continue;
 
       const pub = await Publication.findById(scoreDoc.targetId)
-        .populate('userId', 'firstName lastName fullName profileImage institution')
+        .populate('userId', 'firstName lastName fullName profileImage institution profileSlug slug username')
         .lean();
 
       if (pub) {
@@ -340,7 +341,7 @@ class RecommendationsService {
       userId: { $ne: userId },
       isDeleted: { $ne: true }
     })
-      .populate('userId', 'firstName lastName fullName profileImage')
+      .populate('userId', 'firstName lastName fullName profileImage profileSlug slug username')
       .limit(10)
       .lean();
 

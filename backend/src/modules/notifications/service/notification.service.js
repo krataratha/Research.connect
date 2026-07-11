@@ -28,7 +28,7 @@ class NotificationService extends BaseService {
 
     const notification = await this.repository.create(payload);
     const populated = await Notification.findById(notification._id)
-      .populate('actorId', 'firstName lastName fullName profileImage username profileSlug')
+      .populate('actorId', 'firstName lastName fullName profileImage username profileSlug slug')
       .lean();
 
     this._emitToRecipient(recipientId, 'notification:new', populated);

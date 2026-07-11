@@ -93,7 +93,7 @@ export default function ChatHeader() {
         {/* Avatar */}
         <div
           className="relative flex-shrink-0 group cursor-pointer"
-          onClick={() => !activeConversation.isGroup && otherParticipant?.id && navigate(`/profile/user/${otherParticipant.id}`)}
+          onClick={() => !activeConversation.isGroup && otherParticipant?.id && navigate(`/profile/${otherParticipant.slug || otherParticipant.profileSlug || otherParticipant.username || otherParticipant.id}`)}
         >
           <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-[#DBEAFE] shadow-sm group-hover:ring-[#2563EB] transition-colors duration-300">
             {avatarUrl && <img src={avatarUrl} alt={title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />}
@@ -142,7 +142,7 @@ export default function ChatHeader() {
           ) : (
             <div
               className="cursor-pointer group"
-              onClick={() => !activeConversation.isGroup && otherParticipant?.id && navigate(`/profile/user/${otherParticipant.id}`)}
+              onClick={() => !activeConversation.isGroup && otherParticipant?.id && navigate(`/profile/${otherParticipant.slug || otherParticipant.profileSlug || otherParticipant.username || otherParticipant.id}`)}
             >
               <h3 className="text-sm font-bold text-[#0F172A] leading-tight group-hover:text-[#2563EB] transition-colors duration-300">{title}</h3>
               <p className={`text-xs font-medium flex items-center gap-1.5 mt-0.5
@@ -198,7 +198,7 @@ export default function ChatHeader() {
               <button 
                 onClick={() => { 
                   setIsMenuOpen(false); 
-                  if (otherParticipant?.id) navigate(`/profile/user/${otherParticipant.id}`);
+                  if (otherParticipant?.id) navigate(`/profile/${otherParticipant.slug || otherParticipant.profileSlug || otherParticipant.username || otherParticipant.id}`);
                 }}
                 className="w-full px-4 py-2.5 text-left text-sm font-medium text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC] flex items-center gap-3 transition-colors"
               >
