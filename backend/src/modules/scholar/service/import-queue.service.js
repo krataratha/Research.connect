@@ -65,9 +65,6 @@ class ImportQueueService {
    * Core worker: picks the next pending job atomically and processes it
    */
   async processNextJob() {
-    if (this.isProcessing) return;
-    this.isProcessing = true;
-
     try {
       // Find next pending job and atomically update it to 'running'
       const job = await importRepository.model.findOneAndUpdate(
@@ -82,7 +79,6 @@ class ImportQueueService {
       );
 
       if (!job) {
-        this.isProcessing = false;
         return;
       }
 
@@ -125,7 +121,6 @@ class ImportQueueService {
     } catch (err) {
       logger.error(`Queue worker execution error: ${err.message}`);
     } finally {
-      this.isProcessing = false;
       // Immediately check if there are more pending jobs
       const nextPending = await importRepository.findNextPendingJob();
       if (nextPending) {
@@ -133,6 +128,7 @@ class ImportQueueService {
       }
     }
   }
+
 
   /**
    * Resume/cleanup interrupted jobs on startup (running/resume -> pending)

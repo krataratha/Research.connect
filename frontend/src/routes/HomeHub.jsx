@@ -1,31 +1,26 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import LandingPage from '../modules/landing';
-import Navbar from '../layouts/Navbar';
-import Footer from '../layouts/Footer/Footer';
-import HomeFeed from '../modules/home/pages/HomeFeed';
-import MessagesView from '../modules/message/components/MessagesView';
 
+// Authenticated users see HomeFeed at /home
+// Guests see LandingPage at /
 const HomeHub = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
 
   if (isAuthenticated) {
-    return (
-      <>
-        <HomeFeed />
-        <MessagesView />
-      </>
-    );
+    return <Navigate to="/home" replace />;
   }
 
+  // Guest: render full landing page (LandingPage includes its own Navbar and Footer)
+  const LandingPage = React.lazy(() => import('../modules/landing/pages/LandingPage'));
   return (
-    <div className="flex flex-col min-h-screen bg-bg-page text-text-primary transition-colors duration-300">
-      <Navbar />
-      <main className="flex-grow">
-        <LandingPage />
-      </main>
-      <Footer />
-    </div>
+    <React.Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LandingPage />
+    </React.Suspense>
   );
 };
 

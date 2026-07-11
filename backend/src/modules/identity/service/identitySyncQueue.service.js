@@ -57,9 +57,6 @@ class IdentitySyncQueueService {
    * Process next pending job
    */
   async processNextJob() {
-    if (this.isProcessing) return;
-    this.isProcessing = true;
-
     try {
       const job = await IdentitySyncJob.findOneAndUpdate(
         { status: 'pending' },
@@ -68,7 +65,6 @@ class IdentitySyncQueueService {
       );
 
       if (!job) {
-        this.isProcessing = false;
         return;
       }
 
@@ -98,14 +94,13 @@ class IdentitySyncQueueService {
     } catch (err) {
       logger.error(`Identity sync worker error: ${err.message}`);
     } finally {
-      this.isProcessing = false;
-      
       const hasNext = await IdentitySyncJob.exists({ status: 'pending' });
       if (hasNext) {
         setTimeout(() => this.processNextJob(), 100);
       }
     }
   }
+
 
   /**
    * Run the actual sync task per provider

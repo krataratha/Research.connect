@@ -1,4 +1,25 @@
 const rateLimit = require('express-rate-limit');
+const redisClient = require('./redis');
+
+// Helper to create a unique RedisStore instance for each rate limiter to prevent sharing error
+const createStore = (prefix) => {
+  try {
+    const { RedisStore } = require('rate-limit-redis');
+    return new RedisStore({
+      sendCommand: async (...args) => {
+        if (!redisClient.isOpen) {
+          // Return dummy value during import/compile phase if Redis is not connected yet
+          return 'dummy';
+        }
+        return await redisClient.sendCommand(args);
+      },
+      prefix: `rl:${prefix}:`
+    });
+  } catch (err) {
+    console.warn(`Failed to initialize Redis store for rate limiting prefix "${prefix}", falling back to memory:`, err.message);
+    return undefined;
+  }
+};
 
 // Helper to construct standard rate limiter JSON error response
 const createMessage = (message, code = 'TOO_MANY_REQUESTS') => ({
@@ -12,6 +33,7 @@ const globalLimiter = rateLimit({
   limit: 300, // Limit each IP to 300 requests per 15 minutes globally
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  store: createStore('global'),
   message: createMessage('Too many requests from this IP. Please try again after 15 minutes.')
 });
 
@@ -20,6 +42,7 @@ const authLimiter = rateLimit({
   limit: 100, // Increased from 15 to 100 for local development/testing
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  store: createStore('auth'),
   message: createMessage('Too many authentication attempts. Please try again after 15 minutes.', 'AUTH_BRUTE_FORCE')
 });
 
@@ -29,6 +52,7 @@ const otpLimiter = rateLimit({
   limit: 30, // Increased from 5 to 30
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  store: createStore('otp'),
   message: createMessage('Too many OTP requests. Please wait 5 minutes before requesting again.', 'OTP_THROTTLED')
 });
 
@@ -38,6 +62,7 @@ const verifyOtpLimiter = rateLimit({
   limit: 100, // Increased from 15 to 100
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  store: createStore('verify_otp'),
   message: createMessage('Too many verification attempts. Please wait a few minutes and try again.', 'OTP_THROTTLED')
 });
 
@@ -46,6 +71,7 @@ const searchLimiter = rateLimit({
   limit: 60, // Limit each IP to 60 searches per minute
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  store: createStore('search'),
   message: createMessage('Too many search requests. Please slow down.', 'SEARCH_THROTTLED')
 });
 
@@ -54,6 +80,7 @@ const scholarSyncLimiter = rateLimit({
   limit: 3, // Limit each IP to 3 Google Scholar sync imports per 10 minutes
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  store: createStore('scholar_sync'),
   message: createMessage('Google Scholar portfolio synchronization is throttled to 3 times per 10 minutes.', 'SYNC_THROTTLED')
 });
 
@@ -62,6 +89,7 @@ const uploadLimiter = rateLimit({
   limit: 50, // Limit each IP to 50 uploads per 15 minutes
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  store: createStore('upload'),
   message: createMessage('Too many file uploads from this IP. Please try again after 15 minutes.', 'UPLOAD_THROTTLED')
 });
 

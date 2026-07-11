@@ -9,6 +9,7 @@ Ensure you have the following installed on your system:
 - **Node.js**: v18.x or higher
 - **NPM**: v9.x or higher
 - **MongoDB**: A running local MongoDB instance or a MongoDB Atlas URI string
+- **Redis**: v6.x or higher running locally or a secure Cloud Redis URL (e.g. Upstash)
 
 ---
 
@@ -36,13 +37,24 @@ SERVER_URL=http://localhost:5000
 # MongoDB Connection String
 MONGO_URI=mongodb://localhost:27017/research_connect
 
+# Redis Configuration (For Sessions, OTP, and rate limiting)
+REDIS_URI=redis://localhost:6379
+
+# Cloudflare R2 Configuration (For PDF, image, and asset storage)
+R2_ACCOUNT_ID=your_cloudflare_account_id
+R2_ACCESS_KEY_ID=your_r2_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+R2_BUCKET_NAME=research-connect
+R2_PUBLIC_URL=https://your-r2-public-domain.com
+
 # JWT Secret Tokens (Access and Refresh rotation)
 JWT_SECRET=supersecretjwtkeyforresearchconnect
 JWT_REFRESH_SECRET=supersecretjwtrefreshkeyforresearchconnect
 
-# Email Dispatch Config (Nodemailer SMTP details for registration OTPs)
+# Email Dispatch Config (Resend API key or SMTP details for registration OTPs)
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_specific_password
+RESEND_API_KEY=your_resend_api_key
 
 # Academic API Key (Required for Google Scholar Author data sync)
 SERP_API_KEY=your_serp_api_token

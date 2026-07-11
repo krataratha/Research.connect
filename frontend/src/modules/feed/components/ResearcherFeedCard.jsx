@@ -34,7 +34,7 @@ const ResearcherFeedCard = ({ event, onInteraction }) => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-bg-card border border-border-default rounded-2xl p-5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 cursor-pointer group"
-      onClick={() => navigate(`/profile/${meta.profileSlug || userId}`)}
+      onClick={() => navigate(`/profile/${meta.profileSlug || actor.profileSlug || userId || actor._id}`)}
     >
       <div className="flex items-start gap-4">
         {/* Avatar */}

@@ -50,7 +50,7 @@ const PublicationsLibraryPage = () => {
   const [filterStatus, setFilterStatus] = useState('all'); // all | published | draft | trash | bookmarks
   const [sortBy, setSortBy] = useState('-createdAt');
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(1000);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Bulk Selection States
@@ -106,7 +106,13 @@ const PublicationsLibraryPage = () => {
   });
 
   const profile = profileRes?.success ? profileRes.data : null;
-  const isOwner = currentUser && profile && (currentUser._id === profile.userId || currentUser.profileSlug === profileSlug || currentUser.username === profileSlug);
+  const currentUserId = currentUser?._id || currentUser?.id;
+  const profileUserId = profile?.userId?._id || profile?.userId?.id || profile?.userId;
+  const isOwner = currentUser && profile && (
+    (currentUserId && profileUserId && currentUserId.toString() === profileUserId.toString()) || 
+    currentUser.profileSlug === profileSlug || 
+    currentUser.username === profileSlug
+  );
 
   // 2. Fetch Publications Portfolio
   const { data: pubsRes, isLoading: isPubsLoading, refetch } = useQuery({
@@ -447,7 +453,7 @@ const PublicationsLibraryPage = () => {
         {/* 1. Header Area */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-6">
           <div className="space-y-1">
-            {profileSlug && (
+            {profileSlug && profileSlug !== 'undefined' && (
               <button
                 onClick={() => navigate(`/profile/${profileSlug}`)}
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors mb-1.5"
@@ -502,8 +508,8 @@ const PublicationsLibraryPage = () => {
 
         {/* 2. Top Statistics Cards */}
         {isOwner && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
-            {displayStats.map((m, idx) => {
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 gap-3">
+            {displayStats.filter(m => Number(m.value || 0) > 0).map((m, idx) => {
               const Icon = m.icon;
               return (
                 <motion.div 

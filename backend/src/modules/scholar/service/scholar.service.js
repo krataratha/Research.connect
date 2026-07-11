@@ -167,9 +167,12 @@ class ScholarService {
       const i10Index = data.cited_by?.table?.[2]?.i10_index?.all || 0;
       importedCitationsCount = totalCitations;
 
-      // Google Scholar profile details
+      // Delete any other scholar profiles connected to this user to avoid conflicts
+      await googleScholarProfileRepository.model.deleteMany({ userId, authorId: { $ne: authorId } });
+
+      // Google Scholar profile details - upsert by authorId (globally unique) instead of userId
       await googleScholarProfileRepository.model.findOneAndUpdate(
-        { userId },
+        { authorId },
         {
           userId,
           authorId,
@@ -184,7 +187,10 @@ class ScholarService {
           i10Index,
           verified: data.author.verified || false,
           lastImportedAt: new Date(),
-          syncStatus: 'completed'
+          syncStatus: 'completed',
+          isDeleted: false,
+          deletedAt: null,
+          deletedBy: null
         },
         { upsert: true, new: true }
       );

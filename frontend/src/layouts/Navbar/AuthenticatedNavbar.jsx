@@ -294,8 +294,8 @@ const AuthenticatedNavbar = () => {
             )}
           </div>
 
-          {/* Utility Buttons - Extremely tight gap */}
-          <div className="flex items-center gap-x-0 sm:gap-x-0.5">
+          {/* Utility Buttons - spaced out */}
+          <div className="flex items-center gap-x-4">
 
             {/* Mobile Search Trigger */}
             <button
@@ -340,8 +340,8 @@ const AuthenticatedNavbar = () => {
               )}
             </div>
 
-            {/* Requests, Messages, Notifications - tightly packed */}
-            <div className="flex items-center -space-x-0.5">
+            {/* Requests, Messages, Notifications - spaced out */}
+            <div className="flex items-center gap-x-2.5">
               {/* Requests */}
               <div className="relative" ref={reqRef}>
                 <button
@@ -402,21 +402,21 @@ const AuthenticatedNavbar = () => {
               </div>
 
               {/* Messages */}
-              <button
-                onClick={() => dispatch(setChatOpen(true))}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-all relative"
+              <Link
+                to="/messages"
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-all relative flex items-center justify-center"
                 title="Messages"
               >
                 <MessageSquare className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-600 rounded-full"></span>
-              </button>
+              </Link>
 
               {/* Notifications */}
               <NotificationBell />
             </div>
 
             {/* Profile Dropdown */}
-            <div className="relative -ml-1" ref={profileRef}>
+            <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center gap-1.5 p-0.5 sm:p-1 pr-1.5 sm:pr-2.5 rounded-full border border-slate-200 hover:border-blue-600 hover:bg-slate-50 focus:outline-none transition-all shadow-sm duration-200 group"

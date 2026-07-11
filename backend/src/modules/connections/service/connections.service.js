@@ -148,6 +148,56 @@ class ConnectionsService {
     // Delete Pending Request from DB
     await ConnectionRequest.deleteOne({ _id: requestId });
 
+    // Automatically start chat (create Conversation)
+    let conversationDoc;
+    try {
+      const Conversation = require('../../messages/model/Conversation');
+      const Message = require('../../messages/model/Message');
+      const SocketGateway = require('../../../socket/gateway/socket.gateway');
+
+      conversationDoc = await Conversation.findOne({
+        isGroup: false,
+        participants: { $all: [request.senderId, request.receiverId] }
+      });
+
+      if (!conversationDoc) {
+        conversationDoc = new Conversation({
+          participants: [request.senderId, request.receiverId],
+          isGroup: false
+        });
+        await conversationDoc.save();
+
+        // Send welcome system/text message
+        const welcomeMessage = new Message({
+          conversationId: conversationDoc._id,
+          senderId: request.receiverId, // Receiver is the one who accepts
+          receiverId: request.senderId,
+          type: 'system',
+          text: 'You are now connected! Start sharing research papers, datasets, and collaborate.',
+          status: 'sent'
+        });
+        await welcomeMessage.save();
+
+        conversationDoc.lastMessage = welcomeMessage._id;
+        conversationDoc.lastMessageAt = welcomeMessage.createdAt;
+        await conversationDoc.save();
+
+        // Populate and emit new conversation event to both participants
+        const populatedConv = await Conversation.findById(conversationDoc._id)
+          .populate('participants', 'firstName lastName profileImage username')
+          .populate('lastMessage')
+          .lean();
+
+        // Emit new conversation to user rooms
+        SocketGateway.emitToUser(request.senderId, 'conversation:new', populatedConv);
+        SocketGateway.emitToUser(request.receiverId, 'conversation:new', populatedConv);
+        SocketGateway.emitToUser(request.senderId, 'conversation:update', { conversationId: conversationDoc._id, lastMessage: welcomeMessage });
+        SocketGateway.emitToUser(request.receiverId, 'conversation:update', { conversationId: conversationDoc._id, lastMessage: welcomeMessage });
+      }
+    } catch (chatErr) {
+      console.error('Failed to auto-create conversation on accept connection:', chatErr);
+    }
+
     // Invalidate profile cache
     await Promise.all([
       ProfileCache.del(request.senderId.toString()),

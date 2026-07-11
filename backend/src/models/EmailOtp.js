@@ -41,7 +41,7 @@ const EmailOtpSchema = new Schema(
   }
 );
 
-EmailOtpSchema.index({ email: 1, purpose: 1 });
+EmailOtpSchema.index({ email: 1, purpose: 1, createdAt: -1 });
 EmailOtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // Auto-expire from DB
 EmailOtpSchema.index({ isDeleted: 1 });
 

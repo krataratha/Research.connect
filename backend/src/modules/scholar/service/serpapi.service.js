@@ -62,7 +62,8 @@ class SerpApiService {
     try {
       const data = await this._requestWithRetry({
         engine: 'google_scholar_author',
-        author_id: authorId
+        author_id: authorId,
+        num: 100
       });
 
       if (!data || !data.author) {
@@ -275,11 +276,167 @@ class SerpApiService {
           value: 20,
           cites_id: 'cites8'
         }
+      },
+      {
+        title: 'Language Models are Few-Shot Learners',
+        link: 'https://arxiv.org/abs/2005.14165',
+        citation_id: `${authorId}:art9`,
+        authors: 'S Jenkins, T Brown, B Mann, N Ryder',
+        publication: 'Advances in Neural Information Processing Systems, 33, 2020',
+        publisher: 'NeurIPS',
+        year: 2020,
+        cited_by: {
+          value: 8500,
+          cites_id: 'cites9'
+        }
+      },
+      {
+        title: 'ImageNet Classification with Deep Convolutional Neural Networks',
+        link: 'https://dl.acm.org/doi/10.1145/3065386',
+        citation_id: `${authorId}:art10`,
+        authors: 'S Jenkins, A Krizhevsky, I Sutskever, GE Hinton',
+        publication: 'Communications of the ACM, 60(6), 2017',
+        publisher: 'ACM',
+        year: 2017,
+        cited_by: {
+          value: 9200,
+          cites_id: 'cites10'
+        }
+      },
+      {
+        title: 'FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness',
+        link: 'https://arxiv.org/abs/2205.14135',
+        citation_id: `${authorId}:art11`,
+        authors: 'S Jenkins, T Dao, DY Fu, SA Stefano',
+        publication: 'Advances in Neural Information Processing Systems, 35, 2022',
+        publisher: 'NeurIPS',
+        year: 2022,
+        cited_by: {
+          value: 670,
+          cites_id: 'cites11'
+        }
+      },
+      {
+        title: 'LoRA: Low-Rank Adaptation of Large Language Models',
+        link: 'https://arxiv.org/abs/2106.09685',
+        citation_id: `${authorId}:art12`,
+        authors: 'S Jenkins, EJ Hu, Y Shen, P Wallis',
+        publication: 'International Conference on Learning Representations, 2022',
+        publisher: 'ICLR',
+        year: 2022,
+        cited_by: {
+          value: 2400,
+          cites_id: 'cites12'
+        }
+      },
+      {
+        title: 'QLoRA: Efficient Finetuning of Quantized LLMs',
+        link: 'https://arxiv.org/abs/2305.14314',
+        citation_id: `${authorId}:art13`,
+        authors: 'S Jenkins, T Dettmers, A Pagnoni, L Zettlemoyer',
+        publication: 'Advances in Neural Information Processing Systems, 36, 2023',
+        publisher: 'NeurIPS',
+        year: 2023,
+        cited_by: {
+          value: 580,
+          cites_id: 'cites13'
+        }
+      },
+      {
+        title: 'Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks',
+        link: 'https://arxiv.org/abs/2005.11401',
+        citation_id: `${authorId}:art14`,
+        authors: 'S Jenkins, PL Lewis, M Perez, A Karafiát',
+        publication: 'Advances in Neural Information Processing Systems, 33, 2020',
+        publisher: 'NeurIPS',
+        year: 2020,
+        cited_by: {
+          value: 1650,
+          cites_id: 'cites14'
+        }
+      },
+      {
+        title: 'Knowledge Distillation in Neural Networks for Mobile Devices',
+        link: 'https://arxiv.org/abs/1503.02531',
+        citation_id: `${authorId}:art15`,
+        authors: 'S Jenkins, G Hinton, O Vinyals, J Dean',
+        publication: 'NIPS Deep Learning Workshop, 2015',
+        publisher: 'NeurIPS',
+        year: 2015,
+        cited_by: {
+          value: 5400,
+          cites_id: 'cites15'
+        }
+      },
+      {
+        title: 'Segment Anything',
+        link: 'https://arxiv.org/abs/2304.02643',
+        citation_id: `${authorId}:art16`,
+        authors: 'S Jenkins, A Kirillov, E Mintun, N Ravi',
+        publication: 'Proceedings of the IEEE/CVF International Conference on Computer Vision, 2023',
+        publisher: 'ICCV',
+        year: 2023,
+        cited_by: {
+          value: 890,
+          cites_id: 'cites16'
+        }
+      },
+      {
+        title: 'Constitutional AI: Harmlessness from AI Feedback',
+        link: 'https://arxiv.org/abs/2212.08073',
+        citation_id: `${authorId}:art17`,
+        authors: 'S Jenkins, Y Bai, S Kadavath, A Kundu',
+        publication: 'arXiv preprint arXiv:2212.08073, 2022',
+        publisher: 'arXiv',
+        year: 2022,
+        cited_by: {
+          value: 460,
+          cites_id: 'cites17'
+        }
+      },
+      {
+        title: 'Chain-of-Thought Prompting Elicits Reasoning in Large Language Models',
+        link: 'https://arxiv.org/abs/2201.11903',
+        citation_id: `${authorId}:art18`,
+        authors: 'S Jenkins, J Wei, X Wang, D Schuurmans',
+        publication: 'Advances in Neural Information Processing Systems, 35, 2022',
+        publisher: 'NeurIPS',
+        year: 2022,
+        cited_by: {
+          value: 3100,
+          cites_id: 'cites18'
+        }
+      },
+      {
+        title: 'Denoising Diffusion Probabilistic Models',
+        link: 'https://arxiv.org/abs/2006.11239',
+        citation_id: `${authorId}:art19`,
+        authors: 'S Jenkins, J Ho, A Jain, P Abbeel',
+        publication: 'Advances in Neural Information Processing Systems, 33, 2020',
+        publisher: 'NeurIPS',
+        year: 2020,
+        cited_by: {
+          value: 4800,
+          cites_id: 'cites19'
+        }
+      },
+      {
+        title: 'Adam: A Method for Stochastic Optimization',
+        link: 'https://arxiv.org/abs/1412.6980',
+        citation_id: `${authorId}:art20`,
+        authors: 'S Jenkins, DP Kingma, J Ba',
+        publication: 'International Conference on Learning Representations, 2015',
+        publisher: 'ICLR',
+        year: 2015,
+        cited_by: {
+          value: 145000,
+          cites_id: 'cites20'
+        }
       }
     ];
 
-    // Simulate paginated response
-    const limit = 5; // Simulating small page limits to demonstrate pagination
+    // Return all mock articles in one batch (limit = 100)
+    const limit = 100;
     const paginatedArticles = allMockArticles.slice(start, start + limit);
 
     return {

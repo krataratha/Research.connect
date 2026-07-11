@@ -18,6 +18,8 @@
   "author": "Research Connect Team",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1084.0",
+    "@aws-sdk/s3-request-presigner": "^3.1084.0",
     "axios": "^1.18.1",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.10.0",
@@ -44,6 +46,8 @@
     "pdf-parse": "^2.4.5",
     "pdf2json": "^4.0.3",
     "pdfreader": "^3.0.8",
+    "rate-limit-redis": "^5.0.0",
+    "redis": "^6.1.0",
     "slugify": "^1.6.9",
     "socket.io": "^4.8.3",
     "stopword": "^3.1.5",

@@ -227,12 +227,28 @@ PORT=5000
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
 SERVER_URL=http://localhost:5000
+
+# MongoDB Connection String
 MONGO_URI=mongodb://localhost:27017/research_connect
+
+# Redis Connection URL
+REDIS_URI=redis://localhost:6379
+
+# Cloudflare R2 Configuration
+R2_ACCOUNT_ID=your_cloudflare_account_id
+R2_ACCESS_KEY_ID=your_r2_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+R2_BUCKET_NAME=research-connect
+R2_PUBLIC_URL=https://your-r2-public-domain.com
+
+# JWT Secret Tokens (Access and Refresh rotation)
 JWT_SECRET=supersecretjwtkeyforresearchconnect
 JWT_REFRESH_SECRET=supersecretjwtrefreshkeyforresearchconnect
+
+# Email Dispatch Config (SMTP Credentials or Resend API key)
 EMAIL_USER=demo@researchconnect.org
 EMAIL_PASS=demopassword
-SERP_API_KEY=your_serp_api_key_here
+RESEND_API_KEY=your_resend_api_key
 ```
 
 ### 2. Install Packages

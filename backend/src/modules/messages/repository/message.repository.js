@@ -5,6 +5,7 @@ const PinnedChat = require('../model/PinnedChat');
 const ArchivedChat = require('../model/ArchivedChat');
 const MessageAttachment = require('../model/MessageAttachment');
 const MessageReaction = require('../model/MessageReaction');
+const Profile = require('../../../models/Profile');
 const { isUserOnline } = require('../../../config/socket');
 
 class MessageRepository extends BaseRepository {
@@ -42,7 +43,7 @@ class MessageRepository extends BaseRepository {
     const conversations = await Conversation.find({
       participants: userId
     })
-      .populate('participants', 'firstName lastName profileImage username')
+      .populate('participants', 'firstName lastName profileImage username email createdAt')
       .populate({
         path: 'lastMessage',
         populate: { path: 'attachment' }
@@ -57,6 +58,24 @@ class MessageRepository extends BaseRepository {
           p => p._id.toString() !== userId.toString()
         );
 
+        let detailedParticipant = null;
+        if (otherParticipant) {
+          const profile = await Profile.findOne({ userId: otherParticipant._id }).lean();
+          detailedParticipant = {
+            ...otherParticipant,
+            isOnline: isUserOnline(otherParticipant._id),
+            bio: profile?.bio || '',
+            institution: profile?.institution || '',
+            department: profile?.department || '',
+            designation: profile?.designation || '',
+            skills: profile?.skills || [],
+            metrics: profile?.metrics || { totalCitations: 0, researchScore: 0 },
+            connectionsCount: profile?.connectionsCount || 0,
+            followersCount: profile?.followersCount || 0,
+            followingCount: profile?.followingCount || 0
+          };
+        }
+
         // Count unread messages sent by the OTHER participant
         const unreadCount = await Message.countDocuments({
           conversationId: conv._id,
@@ -68,10 +87,7 @@ class MessageRepository extends BaseRepository {
 
         return {
           ...conv,
-          otherParticipant: otherParticipant ? {
-            ...otherParticipant,
-            isOnline: isUserOnline(otherParticipant._id)
-          } : null,
+          otherParticipant: detailedParticipant,
           unreadCount,
           isPinned: pinnedIds.includes(convIdStr),
           isArchived: archivedIds.includes(convIdStr)
@@ -152,6 +168,24 @@ class MessageRepository extends BaseRepository {
       .populate('senderId', 'firstName lastName profileImage')
       .sort({ createdAt: -1 })
       .limit(50)
+      .lean();
+  }
+
+  /**
+   * Get all shared files/attachments in user's conversations
+   */
+  async getSharedFiles(userId) {
+    const conversations = await Conversation.find({ participants: userId }).select('_id');
+    const conversationIds = conversations.map(c => c._id);
+
+    return await Message.find({
+      conversationId: { $in: conversationIds },
+      attachment: { $ne: null },
+      deleted: false
+    })
+      .populate('attachment')
+      .populate('senderId', 'firstName lastName profileImage')
+      .sort({ createdAt: -1 })
       .lean();
   }
 }

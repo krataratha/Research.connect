@@ -160,21 +160,64 @@ UserSchema.pre('save', async function (next) {
   }
 
   // Generate username and public profile URL details if not present
-  if (!this.username) {
+  if (!this.username || !this.profileSlug) {
     try {
-      const { generateUniqueUsernameAndSlug } = require('../modules/profile/helper/username.helper');
-      const urls = await generateUniqueUsernameAndSlug(this.firstName, this.lastName);
-      this.username = urls.username;
-      this.publicProfileId = urls.publicProfileId;
-      this.profileSlug = urls.profileSlug;
-      this.profileUrl = urls.profileUrl;
-      this.publicProfileUrl = `https://researchconnect.com${urls.profileUrl}`;
+      const UserModel = mongoose.model('User');
+
+      if (this.username && !this.profileSlug) {
+        if (!this.publicProfileId) {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+          let randomId = '';
+          for (let i = 0; i < 6; i++) {
+            randomId += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          this.publicProfileId = `rc_${randomId}`;
+        }
+        this.profileSlug = `${this.username}-${this.publicProfileId}`;
+        this.profileUrl = `/profile/${this.profileSlug}`;
+        this.publicProfileUrl = `https://researchconnect.com${this.profileUrl}`;
+      } else if (!this.username) {
+        const cleanFirst = (this.firstName || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '-');
+        const cleanLast = (this.lastName || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '-');
+        let baseUsername = `${cleanFirst}-${cleanLast}`
+          .replace(/-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+
+        if (!baseUsername) {
+          baseUsername = 'researcher';
+        }
+
+        // Generate random suffix for uniqueness
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let randomId = '';
+        for (let i = 0; i < 6; i++) {
+          randomId += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const publicProfileId = `rc_${randomId}`;
+
+        // Check if base username is already taken
+        const exists = await UserModel.findOne({ username: baseUsername, isDeleted: { $ne: true } });
+
+        if (!exists) {
+          this.username = baseUsername;
+          this.profileSlug = `${baseUsername}-${publicProfileId}`;
+        } else {
+          this.username = `${baseUsername}-${publicProfileId}`;
+          this.profileSlug = this.username;
+        }
+
+        this.publicProfileId = publicProfileId;
+        this.profileUrl = `/profile/${this.profileSlug}`;
+        this.publicProfileUrl = `https://researchconnect.com${this.profileUrl}`;
+      }
     } catch (err) {
-      console.error('Error generating username and slug: ', err);
+      console.error('Error generating username and slug in pre-save: ', err);
     }
   }
   next();
 });
+
 
 // Indexes
 UserSchema.index({ status: 1 });

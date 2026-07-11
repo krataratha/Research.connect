@@ -8,9 +8,14 @@ class PresenceManager {
    * Set user online (maps new socket session)
    */
   async setUserOnline(userId, socketId, metadata = {}, io) {
-    const userIdStr = userId.toString();
-    
+    if (!userId) {
+      logger.warn(`setUserOnline called with undefined userId for socket: ${socketId}`);
+      return;
+    }
+
     try {
+      const userIdStr = userId.toString();
+
       // 1. Log socket session in database
       await SocketSession.findOneAndUpdate(
         { socketId },
@@ -54,9 +59,14 @@ class PresenceManager {
    * Disconnects a specific socket session and sets user offline if no active sockets remain
    */
   async setUserOffline(userId, socketId, io) {
-    const userIdStr = userId.toString();
+    if (!userId) {
+      logger.warn(`setUserOffline called with undefined userId for socket: ${socketId}`);
+      return;
+    }
 
     try {
+      const userIdStr = userId.toString();
+
       // 1. Remove socket session
       await SocketSession.deleteOne({ socketId });
 
@@ -89,9 +99,14 @@ class PresenceManager {
    * Change user status (e.g. to idle, busy, away) manually
    */
   async setUserStatus(userId, status, io) {
-    const userIdStr = userId.toString();
+    if (!userId) {
+      logger.warn('setUserStatus called with undefined userId');
+      return;
+    }
 
     try {
+      const userIdStr = userId.toString();
+
       await Presence.findOneAndUpdate(
         { userId: userIdStr },
         { status, lastActive: new Date() }

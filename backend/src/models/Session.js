@@ -69,7 +69,7 @@ SessionSchema.pre('save', function (next) {
   next();
 });
 
-SessionSchema.index({ userId: 1, active: 1 });
+SessionSchema.index({ userId: 1, active: 1, isDeleted: 1 });
 SessionSchema.index({ isDeleted: 1 });
 
 const Session = mongoose.model('Session', SessionSchema);

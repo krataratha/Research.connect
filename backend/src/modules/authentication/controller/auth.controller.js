@@ -2,38 +2,8 @@ const authService = require('../service/auth.service');
 const authDTO = require('../dto/auth.dto');
 const asyncHandler = require('../../../common/middlewares/asyncHandler.middleware');
 const env = require('../../../config/environment');
+const { getClientInfo } = require('../../../common/utils/userAgent.helper');
 
-// Helper to extract device and client metadata from request
-const getClientInfo = (req) => {
-  const ua = req.headers['user-agent'] || '';
-  let browser = 'Unknown';
-  let device = 'Desktop';
-  let os = 'Unknown';
-
-  if (/firefox/i.test(ua)) browser = 'Firefox';
-  else if (/chrome|crios/i.test(ua)) browser = 'Chrome';
-  else if (/safari/i.test(ua)) browser = 'Safari';
-  else if (/msie|trident/i.test(ua)) browser = 'Internet Explorer';
-  else if (/edge/i.test(ua)) browser = 'Edge';
-  
-  if (/ipad|playbook|silk/i.test(ua)) device = 'Tablet';
-  else if (/mobile|android|iphone|ipod/i.test(ua)) device = 'Mobile';
-  
-  if (/windows/i.test(ua)) os = 'Windows';
-  else if (/macintosh|mac os x/i.test(ua)) os = 'macOS';
-  else if (/linux/i.test(ua)) os = 'Linux';
-  else if (/android/i.test(ua)) os = 'Android';
-  else if (/iphone|ipad/i.test(ua)) os = 'iOS';
-
-  return {
-    ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '',
-    userAgent: ua,
-    browser,
-    device,
-    os,
-    location: req.headers['x-app-location'] || 'Unknown' // Custom header or fallback
-  };
-};
 
 // Helper to set cookie for refresh token
 const setRefreshTokenCookie = (res, token) => {
@@ -202,11 +172,6 @@ class AuthController {
       result = authDTO.formatAuthResponse(user, profile, accessToken);
     }
     return res.success('OTP verified successfully.', result);
-  });
-
-  // Unified Resend OTP
-  resendOtp = asyncHandler(async (req, res) => {
-    return this.sendOtp(req, res);
   });
 }
 

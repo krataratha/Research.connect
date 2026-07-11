@@ -7,7 +7,7 @@ class ProfileController {
   // Retrieve public profile of a researcher by slug
   getPublicProfile = asyncHandler(async (req, res) => {
     const { profileSlug } = req.params;
-    const profile = await profileService.getProfileBySlug(profileSlug);
+    const profile = await profileService.getProfileBySlug(profileSlug, req.user?._id);
     return res.success('Researcher public profile retrieved successfully.', profile);
   });
 
@@ -165,7 +165,7 @@ class ProfileController {
     const { profileSlug } = req.params;
     const { page = 1, limit = 10, sort = '-createdAt', status, visibility, search } = req.query;
 
-    const profile = await profileService.getProfileBySlug(profileSlug);
+    const profile = await profileService.getProfileBySlug(profileSlug, req.user?._id);
     if (!profile) {
       throw new ValidationError('Profile not found.');
     }

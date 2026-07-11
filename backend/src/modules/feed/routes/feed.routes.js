@@ -37,8 +37,6 @@ router.get('/feed/latest', responseCache(20), feedController.getLatest);
 router.get('/feed/following', responseCache(10), feedController.getFollowingFeed);
 router.get('/home', responseCache(120), feedController.getHome);
 router.get('/notifications', feedController.getNotifications);
-router.get('/messages', feedController.getMessages);
-router.get('/requests', feedController.getRequests);
 router.get('/recommendations', responseCache(30), feedController.getRecommendations);
 
 // Publications CRUD

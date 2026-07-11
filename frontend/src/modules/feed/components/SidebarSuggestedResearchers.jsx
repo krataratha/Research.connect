@@ -37,15 +37,17 @@ const SidebarSuggestedResearchers = ({ researchers = [], onFollow }) => {
 
       <div className="space-y-3">
         {researchers.slice(0, 5).map((r, idx) => {
-          const userId = String(r.userId || r._id);
+          const rawUserId = r.userId || r._id;
+          const userId = rawUserId ? String(rawUserId) : '';
           const followed = followedIds.has(userId);
           const name = r.name || `${r.firstName || ''} ${r.lastName || ''}`.trim() || 'Researcher';
+          const targetSlug = r.profileSlug || userId;
 
           return (
             <div
               key={userId || idx}
               className="flex items-center gap-3 cursor-pointer group"
-              onClick={() => navigate(`/profile/${r.profileSlug || userId}`)}
+              onClick={() => targetSlug && navigate(`/profile/${targetSlug}`)}
             >
               {/* Avatar */}
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shrink-0 overflow-hidden">

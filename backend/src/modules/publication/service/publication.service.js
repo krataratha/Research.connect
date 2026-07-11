@@ -15,7 +15,7 @@ const PublicationHistory = require('../../../models/PublicationHistory');
 const ActivityLog = require('../../../models/ActivityLog');
 const profileService = require('../../profile/service/profile.service');
 const { generateSlug } = require('../helper/slug.helper');
-const cloudinaryService = require('./cloudinary.service');
+const r2Service = require('../../upload/service/r2.service');
 const { NotFoundError, ValidationError, ForbiddenError } = require('../../../common/errors/AppError');
 
 class PublicationService {
@@ -457,15 +457,15 @@ class PublicationService {
       await session.abortTransaction();
       session.endSession();
 
-      // Cloudinary Rollback: delete the uploaded file if MongoDB transaction failed.
-      // This prevents orphan files in Cloudinary storage.
+      // R2 Rollback: delete the uploaded file if MongoDB transaction failed.
+      // This prevents orphan files in R2 storage.
       if (data.fileDetails && data.fileDetails.public_id) {
         const resourceType = data.fileDetails.resource_type || 'raw';
         try {
-          await cloudinaryService.deleteFile(data.fileDetails.public_id, resourceType);
+          await r2Service.deleteFile(data.fileDetails.public_id, resourceType);
         } catch (rollbackErr) {
           // Log but do not rethrow — we want the original DB error to bubble up
-          console.error('[CLOUDINARY ROLLBACK FAILED]:', rollbackErr.message);
+          console.error('[R2 ROLLBACK FAILED]:', rollbackErr.message);
         }
       }
 

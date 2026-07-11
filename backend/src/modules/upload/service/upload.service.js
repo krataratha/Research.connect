@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
-const cloudinaryService = require('./cloudinary.service');
+const r2Service = require('./r2.service');
 const Upload = require('../../../models/Upload');
 const Profile = require('../../../models/Profile');
 const User = require('../../../models/User');
@@ -126,9 +126,9 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
       }
     }
 
-    const cloudinaryStart = Date.now();
-    // 2. Upload new asset to Cloudinary
-    uploadedAsset = await cloudinaryService.uploadFileBuffer(
+    const storageStart = Date.now();
+    // 2. Upload new asset to R2
+    uploadedAsset = await r2Service.uploadFileBuffer(
       file.buffer,
       file.originalname,
       userId,
@@ -136,7 +136,7 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
       activeResourceId,
       file.mimetype
     );
-    const cloudinaryTime = Date.now() - cloudinaryStart;
+    const storageTime = Date.now() - storageStart;
 
     const mongoStart = Date.now();
     // 3. Save Upload metadata document
@@ -224,9 +224,9 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
     }
     const mongoTime = Date.now() - mongoStart;
 
-    // 7. Post-Commit: delete replaced Cloudinary asset if successful
+    // 7. Post-Commit: delete replaced R2 asset if successful
     if (oldAsset && oldAsset.public_id) {
-      await cloudinaryService.deleteFile(oldAsset.public_id, oldAsset.resource_type);
+      await r2Service.deleteFile(oldAsset.public_id, oldAsset.resource_type);
     }
 
     const totalDuration = Date.now() - uploadStart;
@@ -236,7 +236,7 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
       resourceId: activeResourceId,
       assetId: newUploadDoc.asset_id,
       bytes: newUploadDoc.bytes,
-      cloudinaryTimeMs: cloudinaryTime,
+      storageTimeMs: storageTime,
       mongoTimeMs: mongoTime,
       transactionTimeMs: Date.now() - transactionStart,
       totalDurationMs: totalDuration,
@@ -273,12 +273,12 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
       session.endSession();
     }
 
-    // Clean up Cloudinary asset to avoid orphaned files
+    // Clean up R2 asset to avoid orphaned files
     if (uploadedAsset && uploadedAsset.public_id) {
-      log.info(`[UPLOAD SERVICE ROLLBACK] Deleting newly uploaded Cloudinary asset to avoid orphans`, {
+      log.info(`[UPLOAD SERVICE ROLLBACK] Deleting newly uploaded R2 asset to avoid orphans`, {
         publicId: uploadedAsset.public_id
       });
-      await cloudinaryService.deleteFile(uploadedAsset.public_id, uploadedAsset.resource_type);
+      await r2Service.deleteFile(uploadedAsset.public_id, uploadedAsset.resource_type);
     }
 
     throw error;
@@ -367,8 +367,8 @@ const deleteUploadInternal = async (assetId, userId, useTransaction = true) => {
       session.endSession();
     }
 
-    // 3. Delete from Cloudinary
-    await cloudinaryService.deleteFile(upload.public_id, upload.resource_type);
+    // 3. Delete from R2
+    await r2Service.deleteFile(upload.public_id, upload.resource_type);
 
     return { success: true };
   } catch (error) {
@@ -396,7 +396,7 @@ const deleteUploadInternal = async (assetId, userId, useTransaction = true) => {
 };
 
 /**
- * Delete an upload from MongoDB and Cloudinary.
+ * Delete an upload from MongoDB and R2.
  */
 const deleteUpload = async (assetId, userId) => {
   return deleteUploadInternal(assetId, userId, true);

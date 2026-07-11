@@ -97,6 +97,12 @@ const ProfileOverview = () => {
   const [yearSort, setYearSort] = useState('desc');
   const [pubTypeCounts, setPubTypeCounts] = useState({ All: 0 });
 
+  // Reset publications page and list on profile updates (e.g., after sync)
+  useEffect(() => {
+    setPubsPage(1);
+    setPubsList([]);
+  }, [profile]);
+
   useEffect(() => {
     const fetchPubs = async () => {
       if (!username) return;
@@ -104,12 +110,13 @@ const ProfileOverview = () => {
       try {
         const res = await publicationService.getPublicationsByUsername(username, {
           page: pubsPage,
-          limit: 10,
+          limit: 1000,
           sort: '-createdAt'
         });
         if (res.success) {
           const docs = res.data.docs;
           setPubsList((prev) => {
+            if (pubsPage === 1) return docs;
             const existingIds = new Set(prev.map(p => p._id || p.id));
             const uniqueNew = docs.filter(p => !existingIds.has(p._id || p.id));
             return [...prev, ...uniqueNew];
@@ -123,7 +130,7 @@ const ProfileOverview = () => {
       }
     };
     fetchPubs();
-  }, [username, pubsPage]);
+  }, [username, pubsPage, profile]);
 
   // Fetch total counts per category independently of the paginated/"load more" list
   useEffect(() => {
@@ -148,7 +155,7 @@ const ProfileOverview = () => {
       }
     };
     fetchPubTypeCounts();
-  }, [username]);
+  }, [username, profile]);
 
   const tabs = [
     { id: 'about', name: 'About', icon: User },

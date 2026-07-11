@@ -244,10 +244,29 @@ class FeedController {
   });
 
   getMessages = asyncHandler(async (req, res) => {
-    return res.success('Scholar channels retrieved successfully.', [
-      { id: '1', title: 'NLP Research Group', lastMessage: 'sarah: Let\'s test the LaTeX tokenizer.' },
-      { id: '2', title: 'NISQ Quantum Computing', lastMessage: 'david: The compiler is optimized.' }
-    ]);
+    const Conversation = require('../../../models/Conversation');
+    const list = await Conversation.find({ participants: req.user._id, isDeleted: { $ne: true } })
+      .populate('participants', 'firstName lastName fullName email profileImage')
+      .populate({
+        path: 'lastMessage',
+        populate: {
+          path: 'senderId',
+          select: 'firstName lastName fullName'
+        }
+      })
+      .sort('-lastMessageAt')
+      .limit(10);
+
+    const formatted = list.map(c => {
+      const otherParticipant = c.participants.find(p => p._id.toString() !== req.user._id.toString());
+      return {
+        id: c._id,
+        title: c.title || (otherParticipant ? otherParticipant.fullName || `${otherParticipant.firstName} ${otherParticipant.lastName}` : 'Group Chat'),
+        lastMessage: c.lastMessage ? `${c.lastMessage.senderId?.firstName || ''}: ${c.lastMessage.text || 'Attachment'}` : 'No messages yet'
+      };
+    });
+
+    return res.success('Scholar channels retrieved successfully.', formatted);
   });
 
   getRequests = asyncHandler(async (req, res) => {

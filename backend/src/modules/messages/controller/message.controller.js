@@ -1,9 +1,56 @@
 const messageService = require('../service/message.service');
-const { uploadFileBuffer } = require('../../upload/service/cloudinary.service');
+const r2Service = require('../../upload/service/r2.service');
 const MessageAttachment = require('../model/MessageAttachment');
 const { ValidationError } = require('../../../common/errors/AppError');
 
 class MessageController {
+  /**
+   * Get or create a conversation with a given participant
+   * POST /conversations  { participantId }
+   */
+  async createConversation(req, res, next) {
+    try {
+      const { participantId } = req.body;
+      if (!participantId) throw new ValidationError('participantId is required.');
+      const data = await messageService.getOrCreateConversation(req.user.id, participantId);
+      res.status(200).json({
+        success: true,
+        message: 'Conversation retrieved or created successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Send a message using the conversationId from the URL param
+   * POST /conversations/:conversationId/messages  { content, attachments? }
+   */
+  async sendMessageToConversation(req, res, next) {
+    try {
+      const { conversationId } = req.params;
+      const { content, attachments, type, replyTo } = req.body;
+      const data = await messageService.sendMessage(req.user.id, {
+        conversationId,
+        type: type || 'text',
+        text: content,
+        replyTo: replyTo || null,
+        attachmentId: (attachments && attachments[0]) || null
+      });
+      res.status(201).json({
+        success: true,
+        message: 'Message sent successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+
   /**
    * Get all active conversations for the authenticated user
    */
@@ -232,7 +279,7 @@ class MessageController {
         throw new ValidationError('No file uploaded.');
       }
 
-      const uploaded = await uploadFileBuffer(
+      const uploaded = await r2Service.uploadFileBuffer(
         req.file.buffer,
         req.file.originalname,
         req.user.id,
@@ -256,6 +303,112 @@ class MessageController {
         success: true,
         message: 'File uploaded successfully',
         data: attachment,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Start a call log
+   */
+  async startCall(req, res, next) {
+    try {
+      const { type, targetUserId, conversationId } = req.body;
+      const data = await messageService.logCallStart(req.user.id, { type, targetUserId, conversationId });
+      res.status(200).json({
+        success: true,
+        message: 'Call started successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * End a call log
+   */
+  async endCall(req, res, next) {
+    try {
+      const { callId, status } = req.body;
+      const data = await messageService.logCallEnd(req.user.id, callId, status);
+      res.status(200).json({
+        success: true,
+        message: 'Call ended successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Get call history
+   */
+  async getCallHistory(req, res, next) {
+    try {
+      const data = await messageService.getCallHistory(req.user.id);
+      res.status(200).json({
+        success: true,
+        message: 'Call history retrieved successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Create a group conversation
+   */
+  async createGroup(req, res, next) {
+    try {
+      const { name, description, participantIds } = req.body;
+      const data = await messageService.createGroup(req.user.id, name, description, participantIds);
+      res.status(200).json({
+        success: true,
+        message: 'Group created successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Invite member to group
+   */
+  async inviteToGroup(req, res, next) {
+    try {
+      const { conversationId, participantIds } = req.body;
+      const data = await messageService.inviteToGroup(req.user.id, conversationId, participantIds);
+      res.status(200).json({
+        success: true,
+        message: 'Members invited successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Get shared files list
+   */
+  async getSharedFiles(req, res, next) {
+    try {
+      const data = await messageService.getSharedFiles(req.user.id);
+      res.status(200).json({
+        success: true,
+        message: 'Shared files retrieved successfully',
+        data,
         error: null
       });
     } catch (err) {

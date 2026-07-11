@@ -23,14 +23,30 @@ class LandingService {
   }
 
   async getCategories() {
-    return [
-      { id: 'cs', name: 'Computer Science', count: 4250, icon: 'Cpu' },
-      { id: 'math', name: 'Mathematics', count: 1820, icon: 'Binary' },
-      { id: 'physics', name: 'Physics', count: 2980, icon: 'Atom' },
-      { id: 'bio', name: 'Biology & Life Sciences', count: 3410, icon: 'Dna' },
-      { id: 'med', name: 'Medicine & Healthcare', count: 4120, icon: 'HeartPulse' },
-      { id: 'chem', name: 'Chemistry', count: 1890, icon: 'FlaskConical' }
+    const Publication = require('../../../models/Publication');
+
+    const categoryDefs = [
+      { id: 'cs', name: 'Computer Science', icon: 'Cpu', keywords: ['computer science', 'machine learning', 'artificial intelligence', 'software', 'algorithm', 'deep learning'] },
+      { id: 'math', name: 'Mathematics', icon: 'Binary', keywords: ['mathematics', 'algebra', 'calculus', 'topology', 'statistics', 'number theory'] },
+      { id: 'physics', name: 'Physics', icon: 'Atom', keywords: ['physics', 'quantum', 'relativity', 'thermodynamics', 'optics', 'mechanics'] },
+      { id: 'bio', name: 'Biology & Life Sciences', icon: 'Dna', keywords: ['biology', 'genomics', 'ecology', 'evolution', 'cell biology', 'biochemistry'] },
+      { id: 'med', name: 'Medicine & Healthcare', icon: 'HeartPulse', keywords: ['medicine', 'clinical', 'epidemiology', 'pharmacology', 'surgery', 'oncology'] },
+      { id: 'chem', name: 'Chemistry', icon: 'FlaskConical', keywords: ['chemistry', 'organic chemistry', 'inorganic', 'polymer', 'synthesis', 'catalysis'] }
     ];
+
+    const counts = await Promise.all(
+      categoryDefs.map(cat =>
+        Publication.countDocuments({
+          isDeleted: { $ne: true },
+          $or: [
+            { keywords: { $in: cat.keywords.map(k => new RegExp(k, 'i')) } },
+            { researchArea: { $in: cat.keywords.map(k => new RegExp(k, 'i')) } }
+          ]
+        })
+      )
+    );
+
+    return categoryDefs.map((cat, idx) => ({ ...cat, count: counts[idx] }));
   }
 
   async getFeatures() {

@@ -14,17 +14,28 @@ graph TD
     LB[Load Balancer / Reverse Proxy]
     API[Express.js API Layer]
     DB[(MongoDB Cluster)]
-    Queue[In-Memory Queue / Worker]
+    Redis[(Redis Cache & Session Store)]
+    R2[(Cloudflare R2 Object Storage)]
+    Queue[Redis-Backed Queue / Workers]
     AI[Gemini / AI Pipeline]
     SerpAPI[SerpAPI Academic Data Services]
     
     Client -->|HTTPS / WSS| LB
     LB --> API
     API --> DB
+    API --> Redis
+    API --> R2
     API --> Queue
     API --> AI
     Queue -->|HTTPS| SerpAPI
 ```
+
+### Core Architecture Components:
+- **Primary Database (MongoDB)**: Used for normalized persistent storage of relational models, schemas, user data, publications, and profiles.
+- **Cache & Session Store (Redis)**: Implements high-performance session caching, strict session validation checks, brute-force rate limit tracking, and temporary OTP storage with auto-expirations (TTLs).
+- **Object Storage (Cloudflare R2)**: S3-compatible object storage used for storing publication PDFs, profile avatars/banners, and research datasets. Uses pre-signed access URLs for private research files and public URLs for static assets.
+- **Queue Manager & Background Workers**: Redis-backed queue system for running non-blocking background loops (Email sending, Notification generation, PDF/Image optimizations, and Analytics reports).
+
 
 ---
 

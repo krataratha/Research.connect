@@ -1,95 +1,86 @@
 const mongoose = require('mongoose');
 const logger = require('../../common/logger/winston');
+const dns = require('dns');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/research_connect';
+// Fallback to Google and Cloudflare public DNS in case system DNS cannot resolve MongoDB SRV records
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+} catch (err) {
+  logger.warn('Failed to set fallback DNS servers:', err.message);
+}
+
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  throw new Error('MONGO_URI environment variable is required');
+}
 
 const options = {
-  maxPoolSize: parseInt(process.env.MONGO_MAX_POOL_SIZE, 10) || 50,
-  minPoolSize: parseInt(process.env.MONGO_MIN_POOL_SIZE, 10) || 10,
-  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-  connectTimeoutMS: 30000, // Give up initial connection attempt after 30 seconds
-  heartbeatFrequencyMS: 10000, // Send heartbeats every 10 seconds
+  maxPoolSize: parseInt(process.env.MONGO_MAX_POOL_SIZE, 10) || 10,
+  minPoolSize: parseInt(process.env.MONGO_MIN_POOL_SIZE, 10) || 5,
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 10000,
   serverSelectionTimeoutMS: 5000,
+  heartbeatFrequencyMS: 10000,
   retryWrites: true,
-  compressors: 'zlib',
-  readPreference: 'primary',
-  w: 'majority'
+  retryReads: true,
+  writeConcern: { w: 'majority' }
 };
 
-let isConnecting = false;
+let connectionPromise = null;
+let retryCount = 0;
 
 const connectDB = async () => {
-  if (mongoose.connection.readyState === 1) {
-    return mongoose.connection;
-  }
-  
-  if (isConnecting) {
-    logger.info('Database connection is already in progress...');
-    return;
-  }
+  if (mongoose.connection.readyState === 1) return mongoose.connection;
+  if (connectionPromise) return connectionPromise;
 
-  isConnecting = true;
-  logger.info('Initializing MongoDB connection...');
+  connectionPromise = (async () => {
+    try {
+      logger.info('Attempting to connect to MongoDB...');
+      await mongoose.connect(MONGO_URI, options);
+      retryCount = 0;
+      
+      // Asynchronously trigger database seeding check
+      const { seedData } = require('./seeder');
+      seedData().catch(err => logger.error('Seeder execution error:', err));
 
-  try {
-    await mongoose.connect(MONGO_URI, options);
-    isConnecting = false;
-    logger.info('MongoDB connected successfully.');
-  } catch (error) {
-    isConnecting = false;
-    logger.error('MongoDB initial connection error:', error);
-    logger.info('Retrying connection in 5 seconds...');
-    setTimeout(connectDB, 5000);
-  }
+      return mongoose.connection;
+    } catch (error) {
+      retryCount++;
+      const delay = Math.min(Math.pow(2, retryCount) * 1000, 30000);
+      logger.error(`MongoDB connection failed (attempt ${retryCount}): ${error.message}`);
+      logger.info(`Retrying in ${delay}ms...`);
+      
+      connectionPromise = null;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return connectDB();
+    }
+  })();
+
+  return connectionPromise;
 };
 
-// Monitor connection events
-mongoose.connection.on('connected', () => {
-  logger.info('Mongoose default connection open to ' + MONGO_URI);
-});
-
-mongoose.connection.on('error', (err) => {
-  logger.error('Mongoose default connection error: ' + err);
-});
-
+mongoose.connection.on('connected', () => logger.info('MongoDB connected.'));
+mongoose.connection.on('error', (err) => logger.error('MongoDB error:', err));
 mongoose.connection.on('disconnected', () => {
-  logger.warn('Mongoose default connection disconnected. Attempting auto-reconnect...');
-  connectDB();
+  logger.warn('MongoDB disconnected.');
+  connectionPromise = null; // Clear cached connection promise on disconnect
 });
 
-// Health check function
 const checkHealth = () => {
-  const states = {
-    0: 'disconnected',
-    1: 'connected',
-    2: 'connecting',
-    3: 'disconnecting',
-    99: 'uninitialized'
-  };
-  
-  const status = mongoose.connection.readyState;
-  const isHealthy = status === 1;
+  const readyState = mongoose.connection.readyState;
+  const isHealthy = readyState === 1;
   
   return {
     isHealthy,
-    status: states[status] || 'unknown',
-    poolSize: mongoose.connection.getClient()?.topology?.s?.pool?.size || 0,
-    activeConnections: mongoose.connection.getClient()?.topology?.s?.pool?.availableConnections?.length || 0
+    status: ['disconnected', 'connected', 'connecting', 'disconnecting', 'uninitialized'][readyState] || 'unknown',
+    replicaSet: mongoose.connection.getClient()?.topology?.description?.setName || 'n/a'
   };
 };
 
-// Graceful shutdown helper
 const closeDB = async () => {
-  if (mongoose.connection.readyState === 0) {
-    return;
-  }
-  
-  logger.info('Closing Mongoose connection...');
-  try {
+  if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
-    logger.info('Mongoose connection closed successfully.');
-  } catch (error) {
-    logger.error('Error during Mongoose connection closure:', error);
+    logger.info('MongoDB connection closed.');
   }
 };
 

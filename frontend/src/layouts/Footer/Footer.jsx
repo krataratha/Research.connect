@@ -1,116 +1,133 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Share2, Twitter, Linkedin, Mail } from 'lucide-react';
+import { Share2, Twitter, Linkedin, Mail, Github, ArrowRight } from 'lucide-react';
+
+const footerLinks = {
+  Platform: [
+    { label: 'Features', href: '#features' },
+    { label: 'How It Works', href: '#how-it-works' },
+    { label: 'Pricing', href: '#' },
+    { label: 'Changelog', href: '#' },
+    { label: 'API Documentation', href: '#' },
+  ],
+  Research: [
+    { label: 'Search Papers', href: '/search' },
+    { label: 'Researcher Directory', href: '#researchers' },
+    { label: 'Collaborations', href: '#' },
+    { label: 'Publication Analytics', href: '#' },
+    { label: 'Google Scholar Sync', href: '#' },
+  ],
+  Company: [
+    { label: 'About Us', href: '#about' },
+    { label: 'Blog', href: '#' },
+    { label: 'Careers', href: '#' },
+    { label: 'Contact', href: '#contact' },
+    { label: 'Support', href: '#' },
+  ],
+};
 
 const Footer = () => {
   return (
-    <footer id="contact" className="bg-bg-card border-t border-border pt-16 pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-          {/* Logo & Info */}
-          <div className="col-span-1 md:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <span className="p-2 rounded-lg bg-gradient-primary text-white flex items-center justify-center">
-                <Share2 className="w-5 h-5" />
-              </span>
-              <span className="font-bold text-xl tracking-tight text-text-primary">
-                Research<span className="text-primary">Connect</span>
+    <footer className="bg-[#030712] border-t border-white/5 relative overflow-hidden">
+      {/* Top accent */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+
+      {/* Newsletter bar */}
+      <div className="border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+              <h3 className="text-white font-bold text-lg mb-1">Stay ahead in research</h3>
+              <p className="text-slate-400 text-sm">Get weekly research trends and platform updates.</p>
+            </div>
+            <form
+              onSubmit={(e) => e.preventDefault()}
+              className="flex items-center gap-2 w-full md:w-auto"
+            >
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="w-full md:w-64 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:bg-white/8 transition-all"
+              />
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-blue-500 hover:to-indigo-500 transition-all flex-shrink-0"
+              >
+                Subscribe
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Main footer grid */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-10 mb-12">
+          {/* Brand */}
+          <div className="md:col-span-2">
+            <Link to="/" className="flex items-center gap-2.5 mb-5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <Share2 className="w-[18px] h-[18px] text-white" />
+              </div>
+              <span className="font-bold text-lg tracking-tight text-white">
+                Research<span className="text-indigo-400">Connect</span>
               </span>
             </Link>
-            <p className="text-sm text-text-secondary mb-6 leading-relaxed">
-              Enterprise-grade AI-powered Research Discovery & Collaboration Platform.
+            <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-xs">
+              Enterprise-grade AI-powered Research Discovery & Collaboration Platform. Built for the world's leading researchers.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-text-secondary hover:text-primary transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-text-secondary hover:text-primary transition-colors">
-                <Linkedin className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-text-secondary hover:text-primary transition-colors">
-                <Mail className="w-5 h-5" />
-              </a>
+            <div className="flex items-center gap-4">
+              {[
+                { icon: Twitter, href: '#', label: 'Twitter' },
+                { icon: Linkedin, href: '#', label: 'LinkedIn' },
+                { icon: Github, href: '#', label: 'GitHub' },
+                { icon: Mail, href: '#', label: 'Email' },
+              ].map(({ icon: Icon, href, label }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  className="w-9 h-9 rounded-lg glass-card border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-white/20 transition-all group"
+                >
+                  <Icon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h3 className="font-bold text-sm text-text-primary uppercase tracking-wider mb-4">
-              Platform
-            </h3>
-            <ul className="space-y-3">
-              <li>
-                <a href="/" className="text-sm text-text-secondary hover:text-primary transition-colors">
-                  Home
-                </a>
-              </li>
-              <li>
-                <a href="#features" className="text-sm text-text-secondary hover:text-primary transition-colors">
-                  Features
-                </a>
-              </li>
-              <li>
-                <a href="#researchers" className="text-sm text-text-secondary hover:text-primary transition-colors">
-                  Researchers
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Resources */}
-          <div>
-            <h3 className="font-bold text-sm text-text-primary uppercase tracking-wider mb-4">
-              Resources
-            </h3>
-            <ul className="space-y-3">
-              <li>
-                <a href="#" className="text-sm text-text-secondary hover:text-primary transition-colors">
-                  Documentation
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-text-secondary hover:text-primary transition-colors">
-                  FAQ
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-text-secondary hover:text-primary transition-colors">
-                  Support Helpdesk
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Contact details */}
-          <div>
-            <h3 className="font-bold text-sm text-text-primary uppercase tracking-wider mb-4">
-              Legal & Contact
-            </h3>
-            <ul className="space-y-3 text-sm text-text-secondary">
-              <li>
-                <Link to="/privacy" className="hover:text-primary transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms" className="hover:text-primary transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <span>Support: support@researchconnect.org</span>
-              </li>
-            </ul>
-          </div>
+          {/* Link columns */}
+          {Object.entries(footerLinks).map(([section, links]) => (
+            <div key={section}>
+              <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-5">{section}</h4>
+              <ul className="space-y-3">
+                {links.map(({ label, href }) => (
+                  <li key={label}>
+                    <a
+                      href={href}
+                      className="text-slate-400 text-sm hover:text-white transition-colors hover:translate-x-0.5 inline-block"
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
-        <div className="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between">
-          <p className="text-xs text-text-secondary">
-            &copy; {new Date().getFullYear()} Research Connect. All rights reserved.
+        {/* Bottom bar */}
+        <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-slate-500 text-xs">
+            © {new Date().getFullYear()} Research Connect. All rights reserved.
           </p>
-          <p className="text-xs text-text-secondary mt-2 md:mt-0">
-            Phase 0 Foundation System
-          </p>
+          <div className="flex items-center gap-6">
+            {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((item) => (
+              <a key={item} href="#" className="text-slate-500 text-xs hover:text-slate-300 transition-colors">
+                {item}
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     </footer>

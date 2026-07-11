@@ -25,6 +25,7 @@ const uploadModule = require("./modules/upload");
 const projectModule = require("./modules/project");
 const datasetModule = require("./modules/dataset");
 const notificationsModule = require("./modules/notifications");
+const networkModule = require("./modules/network");
 
 const collaborationRoutes = require("./modules/collaborations/routes/collaboration.routes");
 
@@ -65,6 +66,38 @@ app.use(loggerMiddleware);
 // Response formatter helper
 app.use(responseFormatterMiddleware);
 
+app.get('/test-coauthors', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const CoAuthor = mongoose.model('CoAuthor');
+    const coauthors = await CoAuthor.find({});
+    res.json(coauthors);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/test-scholar-coauthors', async (req, res) => {
+  try {
+    const scholarService = require('./modules/scholar/service/scholar.service');
+    const scholarDTO = require('./modules/scholar/dto/scholar.dto');
+    const coauthors = await scholarService.getCoAuthors('6a5157caa2264d9f1e47e519');
+    res.json(scholarDTO.formatCoAuthors(coauthors));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/test-scholar-profile', async (req, res) => {
+  try {
+    const scholarService = require('./modules/scholar/service/scholar.service');
+    const profile = await scholarService.getProfile('6a5157caa2264d9f1e47e519');
+    res.json(profile);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Mount API Modules
 app.use("/api", landingModule.routes);
 app.use("/api/v1/auth", authModule.routes);
@@ -84,6 +117,7 @@ app.use("/api/v1/collaborations", collaborationRoutes);
 
 app.use("/api/v1/identity", identityRoutes);
 app.use("/api/v1/recommendations", recommendationsModule.routes);
+app.use("/api/v1/network", networkModule.routes);
 
 // Default root redirect to /api
 app.get("/", (req, res) => {

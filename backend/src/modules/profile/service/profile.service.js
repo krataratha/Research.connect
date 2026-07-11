@@ -95,6 +95,9 @@ class ProfileService {
       metrics = calculatedMetrics && typeof calculatedMetrics.toObject === 'function' ? calculatedMetrics.toObject() : calculatedMetrics;
     }
 
+    const academicRank = this.calculateAcademicRank(metrics);
+    const researchRank = this.calculateResearchRank(metrics);
+
     const result = {
       profileId: profile._id,
       userId: user._id,
@@ -147,6 +150,8 @@ class ProfileService {
       socialLinks,
       metrics,
       profileCompletion,
+      academicRank,
+      researchRank,
       followersCount: profile.followersCount || 0,
       followingCount: profile.followingCount || 0,
       connectionsCount: profile.connectionsCount || 0,
@@ -160,12 +165,60 @@ class ProfileService {
     return result;
   }
 
+  calculateAcademicRank(metrics) {
+    const pubCount = metrics?.publicationsCount || 0;
+    const expYears = metrics?.experienceYears || 0;
+    const hIndex = metrics?.hIndex || 0;
+
+    if (pubCount > 50 || hIndex >= 25) {
+      return 'Distinguished Researcher';
+    } else if (pubCount > 30 || hIndex >= 15) {
+      return 'Professor';
+    } else if (pubCount > 15 || hIndex >= 8) {
+      return 'Principal Investigator';
+    } else if (pubCount > 5 || hIndex >= 3) {
+      return 'Senior Researcher';
+    } else if (pubCount > 2 || expYears >= 4) {
+      return 'Research Associate';
+    } else if (pubCount > 0 || expYears >= 2) {
+      return 'Junior Researcher';
+    } else {
+      return 'Student';
+    }
+  }
+
+  calculateResearchRank(metrics) {
+    const score = metrics?.researchScore || 0;
+    if (score >= 85) return 'Distinguished Fellow';
+    if (score >= 60) return 'Senior Fellow';
+    if (score >= 30) return 'Fellow';
+    if (score >= 10) return 'Associate';
+    return 'Junior';
+  }
+
   async getProfile(userId) {
     return await this.getFullProfile(userId, false);
   }
 
-  async getProfileBySlug(profileSlug) {
-    const user = await User.findOne({ profileSlug, isDeleted: { $ne: true } }).lean();
+  async getProfileBySlug(profileSlug, loggedInUserId = null) {
+    if (!profileSlug || profileSlug === 'undefined' || profileSlug === 'me') {
+      if (loggedInUserId) {
+        const user = await User.findById(loggedInUserId).lean();
+        if (user) {
+          return await this.getFullProfile(user._id, false);
+        }
+      }
+      throw new ValidationError('Invalid profile slug provided.');
+    }
+
+    const query = { isDeleted: { $ne: true } };
+    if (mongoose.Types.ObjectId.isValid(profileSlug)) {
+      query.$or = [{ _id: profileSlug }, { profileSlug }];
+    } else {
+      query.profileSlug = profileSlug;
+    }
+
+    const user = await User.findOne(query).lean();
     if (!user) {
       throw new NotFoundError(`Profile not found for slug: ${profileSlug}`);
     }
@@ -430,8 +483,33 @@ class ProfileService {
     await this.calculateAndSaveResearchMetrics(userId);
 
     // Invalidate Cache
-    const { ProfileCache: ProfileCacheInvalidate } = require('../../../cache/cache.service');
+    const { ProfileCache: ProfileCacheInvalidate, LookupCache } = require('../../../cache/cache.service');
     await ProfileCacheInvalidate.del(userId.toString());
+
+    // ── Upsert lookup tables (Country, Institution) from updated profile ──────
+    try {
+      const Country = require('../../../models/Country');
+      const Institution = require('../../../models/Institution');
+
+      if (updateData.country) {
+        await Country.findOneAndUpdate(
+          { name: updateData.country },
+          { name: updateData.country },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+      if (updateData.institution) {
+        await Institution.findOneAndUpdate(
+          { name: updateData.institution },
+          { name: updateData.institution, country: updateData.country || profile.country || '' },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+      await LookupCache.invalidate();
+    } catch (lookupErr) {
+      // Non-critical — log but never block the update
+      console.error('[ProfileService] Lookup upsert error:', lookupErr.message);
+    }
 
     await ActivityLog.create({
       userId, action: 'PROFILE_UPDATED', description: 'Manually updated profile details and synced timelines'

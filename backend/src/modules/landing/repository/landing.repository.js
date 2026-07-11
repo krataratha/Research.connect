@@ -2,6 +2,9 @@ const BaseRepository = require('../../../common/repository/base.repository');
 const User = require('../../../models/User');
 const Profile = require('../../../models/Profile');
 const Session = require('../../../models/Session');
+const Publication = require('../../../models/Publication');
+const Country = require('../../../models/Country');
+const { PlatformStatsCache } = require('../../../cache/cache.service');
 
 class LandingRepository extends BaseRepository {
   constructor() {
@@ -9,18 +12,26 @@ class LandingRepository extends BaseRepository {
   }
 
   async getPlatformStats() {
-    const [userCount, profileCount, activeSessionCount] = await Promise.all([
-      User.countDocuments({ isDeleted: { $ne: true } }),
-      Profile.countDocuments({}),
-      Session.countDocuments({ status: 'active' })
+    // Try cache first (1h TTL set by PlatformStatsCache)
+    const cached = await PlatformStatsCache.get();
+    if (cached) return cached;
+
+    const [userCount, publicationCount, countryCount, profileCount] = await Promise.all([
+      User.countDocuments({ isDeleted: { $ne: true }, status: { $ne: 'pending' } }),
+      Publication.countDocuments({ isDeleted: { $ne: true } }),
+      Country.countDocuments({ isActive: true }),
+      Profile.countDocuments({ isDeleted: { $ne: true } })
     ]);
 
-    return {
-      researchers: userCount + 1420, // Add offsets to match premium statistics preview
-      universities: profileCount + 115,
-      publications: 18450,
-      countries: 54
+    const stats = {
+      researchers: userCount,
+      publications: publicationCount,
+      countries: countryCount || 1, // At least 1 while DB warms up
+      universities: profileCount
     };
+
+    await PlatformStatsCache.set(stats);
+    return stats;
   }
 }
 

@@ -1,5 +1,4 @@
 const publicationService = require('../service/publication.service');
-const cloudinaryService = require('../service/cloudinary.service');
 const publicationDTO = require('../dto/publication.dto');
 const asyncHandler = require('../../../common/middlewares/asyncHandler.middleware');
 const { ValidationError } = require('../../../common/errors/AppError');

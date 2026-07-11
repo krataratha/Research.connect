@@ -27,8 +27,16 @@ module.exports = (io, socket) => {
   /**
    * Listen for user typing
    */
-  socket.on('chat:typing', ({ conversationId }) => {
+  socket.on('chat:typing', async ({ conversationId }) => {
     if (!conversationId) return;
+    try {
+      const redisClient = require('../../../config/redis');
+      if (redisClient && redisClient.isOpen) {
+        await redisClient.set(`typing:${conversationId}:${userId}`, 'true', { EX: 5 });
+      }
+    } catch (err) {
+      logger.error(`Redis typing start error: ${err.message}`);
+    }
     socket.to(`conversation:${conversationId}`).emit('typing:start', {
       conversationId,
       userId
@@ -38,8 +46,16 @@ module.exports = (io, socket) => {
   /**
    * Listen for user stop typing
    */
-  socket.on('chat:stopTyping', ({ conversationId }) => {
+  socket.on('chat:stopTyping', async ({ conversationId }) => {
     if (!conversationId) return;
+    try {
+      const redisClient = require('../../../config/redis');
+      if (redisClient && redisClient.isOpen) {
+        await redisClient.del(`typing:${conversationId}:${userId}`);
+      }
+    } catch (err) {
+      logger.error(`Redis typing stop error: ${err.message}`);
+    }
     socket.to(`conversation:${conversationId}`).emit('typing:stop', {
       conversationId,
       userId

@@ -4,7 +4,7 @@ const User = require('../../models/User');
 const Session = require('../../models/Session');
 const asyncHandler = require('./asyncHandler.middleware');
 
-const authMiddleware = asyncHandler(async (req, res, next) => {
+const authMiddlewareHandler = async (req, res, next, options = {}) => {
   let token = null;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
@@ -32,16 +32,27 @@ const authMiddleware = asyncHandler(async (req, res, next) => {
       throw new ForbiddenError('Your account has been suspended.');
     }
 
-    // Verify active session if sessionId is in decoded token
-    if (decoded.sessionId) {
-      const session = await Session.findOne({ 
-        _id: decoded.sessionId, 
-        userId: user._id, 
-        active: true,
-        isDeleted: { $ne: true }
-      });
+    // Verify active session if sessionId is in decoded token and strict session checking is requested
+    if (decoded.sessionId && options.strictSession) {
+      const { cacheService } = require('../../cache/cache.service');
+      const cacheKey = `session:${decoded.sessionId}`;
+      
+      let session = await cacheService.get(cacheKey);
       
       if (!session) {
+        session = await Session.findOne({ 
+          _id: decoded.sessionId, 
+          userId: user._id, 
+          active: true,
+          isDeleted: { $ne: true }
+        });
+        
+        if (session) {
+          await cacheService.set(cacheKey, session, 600); // Cache for 10 minutes
+        }
+      }
+      
+      if (!session || !session.active) {
         throw new UnauthorizedError('Session has expired or been terminated.');
       }
       
@@ -59,7 +70,21 @@ const authMiddleware = asyncHandler(async (req, res, next) => {
     }
     throw error;
   }
-});
+};
+
+const authMiddleware = (optionsOrReq, res, next) => {
+  if (typeof next === 'function') {
+    return asyncHandler(async (req, res, next) => {
+      await authMiddlewareHandler(req, res, next, { strictSession: false });
+    })(optionsOrReq, res, next);
+  }
+  
+  const options = optionsOrReq || {};
+  return asyncHandler(async (req, res, next) => {
+    await authMiddlewareHandler(req, res, next, options);
+  });
+};
+
 
 // Middleware to restrict access by role
 const hasRole = (...roles) => {

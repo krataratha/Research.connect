@@ -7,6 +7,7 @@ const PinnedChat = require('../model/PinnedChat');
 const ArchivedChat = require('../model/ArchivedChat');
 const MessageAttachment = require('../model/MessageAttachment');
 const MessageReaction = require('../model/MessageReaction');
+const Call = require('../../../models/Call');
 const { emitToUser, emitToRoom } = require('../../../config/socket');
 
 class MessageService {
@@ -306,6 +307,152 @@ class MessageService {
       throw new ValidationError('Search query must be supplied.');
     }
     return await messageRepository.searchMessages(userId, query.trim());
+  }
+
+  /**
+   * Create a new group chat
+   */
+  async createGroup(userId, name, description, participantIds = []) {
+    if (!name || name.trim() === '') {
+      throw new ValidationError('Group name is required.');
+    }
+
+    const uniqueParticipants = Array.from(new Set([userId.toString(), ...participantIds.map(p => p.toString())]));
+
+    const conv = new Conversation({
+      participants: uniqueParticipants,
+      isGroup: true,
+      name: name.trim(),
+      description: description ? description.trim() : '',
+      admins: [userId]
+    });
+
+    await conv.save();
+
+    // Create system join message
+    const msg = new Message({
+      conversationId: conv._id,
+      senderId: userId,
+      type: 'system',
+      text: `${name} group created.`
+    });
+    await msg.save();
+
+    conv.lastMessage = msg._id;
+    conv.lastMessageAt = msg.createdAt;
+    await conv.save();
+
+    // Populate conversation
+    const populated = await Conversation.findById(conv._id)
+      .populate('participants', 'firstName lastName username profileImage')
+      .populate('lastMessage')
+      .lean();
+
+    // Emit socket updates to all participants
+    uniqueParticipants.forEach(pid => {
+      emitToUser(pid, 'conversation:update', { conversationId: conv._id, lastMessage: msg });
+    });
+
+    return populated;
+  }
+
+  /**
+   * Invite members to a group chat
+   */
+  async inviteToGroup(userId, conversationId, participantIds = []) {
+    const conv = await Conversation.findById(conversationId);
+    if (!conv) {
+      throw new ValidationError('Conversation not found.');
+    }
+    if (!conv.isGroup) {
+      throw new ValidationError('Conversation is not a group.');
+    }
+    if (!conv.participants.map(p => p.toString()).includes(userId.toString())) {
+      throw new UnauthorizedError('Not a member of this group.');
+    }
+
+    const currentParticipants = conv.participants.map(p => p.toString());
+    const newParticipants = participantIds.map(p => p.toString()).filter(id => !currentParticipants.includes(id));
+
+    if (newParticipants.length > 0) {
+      conv.participants.push(...newParticipants);
+      await conv.save();
+
+      // Create system join message
+      const msg = new Message({
+        conversationId: conv._id,
+        senderId: userId,
+        type: 'system',
+        text: `New members added by creator.`
+      });
+      await msg.save();
+
+      conv.lastMessage = msg._id;
+      conv.lastMessageAt = msg.createdAt;
+      await conv.save();
+
+      // Emit updates to everyone
+      const allParticipants = conv.participants.map(p => p.toString());
+      allParticipants.forEach(pid => {
+        emitToUser(pid, 'conversation:update', { conversationId: conv._id, lastMessage: msg });
+      });
+    }
+
+    return await Conversation.findById(conversationId)
+      .populate('participants', 'firstName lastName username profileImage')
+      .populate('lastMessage')
+      .lean();
+  }
+
+  /**
+   * Log WebRTC Call Start
+   */
+  async logCallStart(userId, { type, targetUserId, conversationId }) {
+    const call = new Call({
+      initiatorId: userId,
+      participants: [userId, targetUserId],
+      type: type || 'voice',
+      status: 'initiated',
+      conversationId: conversationId || null,
+      startTime: new Date()
+    });
+    await call.save();
+    return call;
+  }
+
+  /**
+   * Log WebRTC Call End
+   */
+  async logCallEnd(userId, callId, status) {
+    const call = await Call.findById(callId);
+    if (!call) {
+      throw new ValidationError('Call record not found.');
+    }
+
+    call.status = status || 'completed';
+    call.endTime = new Date();
+    call.duration = Math.round((call.endTime - call.startTime) / 1000);
+    await call.save();
+    return call;
+  }
+
+  /**
+   * Get call history logs for the user
+   */
+  async getCallHistory(userId) {
+    const castUserId = new mongoose.Types.ObjectId(userId);
+    return await Call.find({ participants: castUserId })
+      .populate('initiatorId', 'firstName lastName username profileImage')
+      .populate('participants', 'firstName lastName username profileImage')
+      .sort({ createdAt: -1 })
+      .lean();
+  }
+
+  /**
+   * Get shared files in user's conversations
+   */
+  async getSharedFiles(userId) {
+    return await messageRepository.getSharedFiles(userId);
   }
 }
 

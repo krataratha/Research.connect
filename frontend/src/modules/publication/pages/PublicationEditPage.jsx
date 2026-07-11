@@ -74,8 +74,10 @@ const PublicationEditPage = () => {
   // Check user permission & hydrate form fields
   useEffect(() => {
     if (pubRes) {
-      // Authorization Check
-      if (currentUser && pubRes.userId !== currentUser._id && currentUser.role !== 'admin') {
+      const pubUserId = pubRes.userId?._id || pubRes.userId?.id || pubRes.userId;
+      const currentUserId = currentUser?._id || currentUser?.id;
+
+      if (currentUser && pubUserId && pubUserId.toString() !== currentUserId?.toString() && currentUser.role !== 'admin') {
         toast.error('You are not authorized to edit this publication.');
         navigate(`/publication/${slug}`);
         return;

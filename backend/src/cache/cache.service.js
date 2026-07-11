@@ -1,11 +1,13 @@
+const redisClient = require('../config/redis');
+
 class CacheService {
   constructor() {
     this.cache = new Map();
-    this.redisClient = null; // Ready for Redis connection scaling
+    this.redisClient = redisClient;
   }
 
   async get(key) {
-    if (this.redisClient) {
+    if (this.redisClient && this.redisClient.isOpen) {
       try {
         const val = await this.redisClient.get(key);
         return val ? JSON.parse(val) : null;
@@ -23,7 +25,7 @@ class CacheService {
   }
 
   async set(key, value, ttlSeconds = 300) {
-    if (this.redisClient) {
+    if (this.redisClient && this.redisClient.isOpen) {
       try {
         await this.redisClient.set(key, JSON.stringify(value), { EX: ttlSeconds });
         return true;
@@ -37,7 +39,7 @@ class CacheService {
   }
 
   async del(key) {
-    if (this.redisClient) {
+    if (this.redisClient && this.redisClient.isOpen) {
       try {
         await this.redisClient.del(key);
         return true;
@@ -49,7 +51,7 @@ class CacheService {
   }
 
   async flush() {
-    if (this.redisClient) {
+    if (this.redisClient && this.redisClient.isOpen) {
       try {
         await this.redisClient.flushAll();
         return true;
@@ -96,11 +98,32 @@ const AIPromptCache = {
   del: async (key) => cacheInstance.del(`ai:prompt:${key}`)
 };
 
+// Cache for lookup collections (Country, Institution, Department)
+const LookupCache = {
+  getCountries: async () => cacheInstance.get('lookup:countries'),
+  setCountries: async (data) => cacheInstance.set('lookup:countries', data, 86400), // 24h
+  getInstitutions: async (country) => cacheInstance.get(`lookup:institutions:${country || 'all'}`),
+  setInstitutions: async (data, country) => cacheInstance.set(`lookup:institutions:${country || 'all'}`, data, 86400),
+  invalidate: async () => {
+    await cacheInstance.del('lookup:countries');
+    await cacheInstance.del('lookup:institutions:all');
+  }
+};
+
+// Cache for platform-wide statistics (landing page)
+const PlatformStatsCache = {
+  get: async () => cacheInstance.get('platform:stats'),
+  set: async (data) => cacheInstance.set('platform:stats', data, 3600), // 1h
+  del: async () => cacheInstance.del('platform:stats')
+};
+
 module.exports = {
   cacheService: cacheInstance,
   ScholarCache,
   ProfileCache,
   FeedCache,
   PublicationCache,
-  AIPromptCache
+  AIPromptCache,
+  LookupCache,
+  PlatformStatsCache
 };

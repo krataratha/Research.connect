@@ -199,7 +199,7 @@ const PublicationReader = () => {
         "datePublished": pub.publicationDate,
         "publisher": { "@type": "Organization", "name": "Research Connect" },
         ...(pub.doi ? { "identifier": { "@type": "PropertyValue", "propertyID": "DOI", "value": pub.doi } } : {}),
-      })}} />
+      }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e')}} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 

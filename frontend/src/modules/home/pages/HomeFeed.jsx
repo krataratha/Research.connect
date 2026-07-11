@@ -55,13 +55,33 @@ const HomeFeed = () => {
   });
 
   // React Query for upcoming conferences widget (Cached for 15 minutes)
-  const { data: eventsData } = useQuery({
-    queryKey: ['events'],
+  const { data: conferencesData } = useQuery({
+    queryKey: ['conferences'],
     queryFn: async () => {
-      const res = await feedService.getEvents(1, 3);
+      const res = await recommendationService.getConferences(3);
       return res.success ? res.data?.docs || [] : [];
     },
     staleTime: 15 * 60 * 1000
+  });
+
+  // React Query for funding opportunities widget (Cached for 15 minutes)
+  const { data: fundingData } = useQuery({
+    queryKey: ['funding'],
+    queryFn: async () => {
+      const res = await recommendationService.getFunding(3);
+      return res.success ? res.data?.docs || [] : [];
+    },
+    staleTime: 15 * 60 * 1000
+  });
+
+  // React Query for feed sidebar data (contains trending keywords, AI insights, suggested researchers)
+  const { data: sidebarData } = useQuery({
+    queryKey: ['feedSidebar'],
+    queryFn: async () => {
+      const res = await feedService.getFeedSidebar();
+      return res.success ? res.data : null;
+    },
+    staleTime: 5 * 60 * 1000
   });
 
   // React Query for Google Scholar citations widget & co-authors (Cached for 30 minutes)
@@ -89,28 +109,22 @@ const HomeFeed = () => {
       return null;
     },
     retry: false,
-    staleTime: 30 * 60 * 1000
+    staleTime: 5000
   });
 
   const suggestedResearchers = suggestionsData || [];
-  const events = eventsData || [];
+  const conferences = conferencesData || [];
+  const funding = fundingData || [];
   const scholarProfile = scholarData?.profile || null;
   const citations = scholarData?.citations || null;
   const dbCoAuthors = scholarData?.coauthors || [];
 
-  const fallbackCoAuthors = [
-    { name: 'Dr. Sarah Connor', affiliation: 'Stanford University', photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', profileURL: '#' },
-    { name: 'Prof. Richard Feynman', affiliation: 'Caltech', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', profileURL: '#' },
-    { name: 'Dr. Alan Turing', affiliation: 'Cambridge University', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', profileURL: '#' },
-    { name: 'Ada Lovelace', affiliation: 'Oxford University', photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', profileURL: '#' },
-    { name: 'Dr. Albert Einstein', affiliation: 'Princeton Institute', photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', profileURL: '#' }
-  ];
-
-  const coAuthors = dbCoAuthors.length > 0 ? dbCoAuthors : fallbackCoAuthors;
+  // Co-authors come exclusively from synced Google Scholar data — no hardcoded fallbacks
+  const coAuthors = dbCoAuthors;
 
   const citationsVal = scholarProfile ? (scholarProfile.totalCitations ?? scholarProfile.citations ?? 0) : 0;
-  const hIndexVal = scholarProfile ? (scholarProfile.hIndex ?? 0) : 67;
-  const i10IndexVal = scholarProfile ? (scholarProfile.i10Index ?? 0) : 596;
+  const hIndexVal = scholarProfile ? (scholarProfile.hIndex ?? 0) : 0;
+  const i10IndexVal = scholarProfile ? (scholarProfile.i10Index ?? 0) : 0;
 
   // Reset feed on tab change
   useEffect(() => {
@@ -255,7 +269,10 @@ const HomeFeed = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await queryClient.refetchQueries({ queryKey: ['feed', activeTab] });
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ['feed', activeTab] }),
+      queryClient.invalidateQueries({ queryKey: ['scholarProfile'] })
+    ]);
     setRefreshing(false);
     toast.success('Feed refreshed!');
   };
@@ -266,6 +283,7 @@ const HomeFeed = () => {
       const res = await scholarService.reimport();
       if (res.success) {
         toast.success('Scholar Sync started in background!');
+        queryClient.invalidateQueries({ queryKey: ['scholarProfile'] });
         navigate('/research-identity');
       }
     } catch (err) {
@@ -321,6 +339,15 @@ const HomeFeed = () => {
     if (previous === 0) return '+12.4%';
     const growth = ((latest - previous) / previous) * 100;
     return `${growth >= 0 ? '+' : ''}${Math.min(100, Math.round(growth))}%`;
+  };
+
+  const getNewCitations = () => {
+    if (!citations || citations.length < 2) return 0;
+    const sorted = [...citations].sort((a, b) => b.year - a.year);
+    const latest = sorted[0].citations;
+    const previous = sorted[1].citations;
+    const diff = latest - previous;
+    return diff > 0 ? diff : 0;
   };
 
   const renderCitationChart = () => {
@@ -442,8 +469,8 @@ const HomeFeed = () => {
   };
 
   const renderAcademicStanding = () => {
-    const rawScore = profile?.metrics?.researchScore || 8056.7;
-    const scorePercent = Math.min(100, Math.round((rawScore / 10000) * 100));
+    const rawScore = profile?.metrics?.researchScore || 0;
+    const scorePercent = Math.min(100, Math.round((rawScore / 100) * 100));
 
     return (
       <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4 text-left">
@@ -452,9 +479,15 @@ const HomeFeed = () => {
             <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
               <Award className="w-4 h-4 text-[#2563EB]" /> Academic Standing
             </h3>
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#2563EB] bg-[#DBEAFE] px-2.5 py-0.5 rounded-full mt-1 border border-[#DBEAFE] shadow-sm animate-pulse">
-              Verified Scholar
-            </span>
+            {scholarProfile ? (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#22C55E] bg-[#DCFCE7] px-2.5 py-0.5 rounded-full mt-1 border border-[#DCFCE7] shadow-sm">
+                Verified Scholar
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full mt-1 border border-slate-100 shadow-sm">
+                Standard Profile
+              </span>
+            )}
           </div>
           <Star className="w-5 h-5 text-[#F59E0B] fill-[#F59E0B]" />
         </div>
@@ -469,19 +502,21 @@ const HomeFeed = () => {
           </div>
           <div className="min-w-0">
             <h4 className="font-extrabold text-sm text-[#0F172A] leading-tight">Research Score: {rawScore}</h4>
-            <p className="text-xs text-[#475569] font-semibold mt-1">Academic Rank: Senior Researcher</p>
-            <p className="text-[10px] text-[#475569]/80 font-medium leading-normal mt-0.5">Top 5% of collaborators worldwide.</p>
+            <p className="text-xs text-[#475569] font-semibold mt-1">Academic Rank: {profile?.academicRank || 'Student'}</p>
+            <p className="text-[10px] text-[#475569]/80 font-medium leading-normal mt-0.5">
+              Top {Math.max(1, 100 - Math.min(99, Math.floor(profile?.metrics?.researchScore || 0)))}% of collaborators worldwide.
+            </p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-[#E2E8F0] text-center text-xs">
           <div className="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl flex flex-col items-center">
             <span className="text-[9px] text-[#475569] block font-bold uppercase tracking-wider">Completion</span>
-            <span className="font-extrabold text-[#22C55E] mt-0.5">85%</span>
+            <span className="font-extrabold text-[#22C55E] mt-0.5">{profile?.profileCompletion || 0}%</span>
           </div>
           <div className="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl flex flex-col items-center">
             <span className="text-[9px] text-[#475569] block font-bold uppercase tracking-wider">Research Rank</span>
-            <span className="font-extrabold text-[#4F46E5] mt-0.5">Associate</span>
+            <span className="font-extrabold text-[#4F46E5] mt-0.5">{profile?.researchRank || 'Junior'}</span>
           </div>
         </div>
       </div>
@@ -489,14 +524,7 @@ const HomeFeed = () => {
   };
 
   const renderTrendingKeywords = () => {
-    const keywordsList = [
-      { tag: 'Multi-Modal', count: 145 },
-      { tag: 'Transformers', count: 98 },
-      { tag: 'NLP', count: 72 },
-      { tag: 'Vector Search', count: 64 },
-      { tag: 'AI Safety', count: 53 },
-      { tag: 'Bio-Informatics', count: 47 }
-    ];
+    const keywordsList = sidebarData?.trendingKeywords || [];
 
     const filteredKeywords = keywordsList.filter(k => 
       k.tag.toLowerCase().includes(keywordSearchQuery.toLowerCase())
@@ -634,27 +662,35 @@ const HomeFeed = () => {
         </div>
         
         <div className="space-y-3">
-          {coAuthors.slice(0, 5).map((author, idx) => (
-            <div key={idx} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-[#F8FAFC] transition-colors">
-              <div className="w-9 h-9 rounded-full bg-[#EDE9FE] flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 border border-[#E2E8F0]">
-                {author.photo && author.photo !== '#' ? (
-                  <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-[#4F46E5]">{author.name[0]}</span>
-                )}
-              </div>
-              <div className="min-w-0 flex-1 text-left">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-bold text-xs text-[#0F172A] truncate leading-tight">{author.name}</h4>
-                  <span className="text-[9px] font-bold text-[#4F46E5] bg-[#EDE9FE] px-1.5 py-0.5 rounded-full shrink-0">
-                    {author.collaborationCount ?? (15 - idx * 2)} colabs
-                  </span>
-                </div>
-                <p className="text-[10px] text-[#475569] truncate mt-0.5">{author.affiliation || 'Independent Scholar'}</p>
-                <p className="text-[9px] text-[#475569]/70 truncate font-medium">Interest: {author.researchInterest || 'Deep Learning'}</p>
-              </div>
+          {coAuthors.length === 0 ? (
+            <div className="text-center py-4">
+              <Users className="w-8 h-8 text-[#CBD5E1] mx-auto mb-2" />
+              <p className="text-xs text-[#94A3B8] font-medium">No co-authors yet.</p>
+              <p className="text-[10px] text-[#CBD5E1] mt-0.5">Sync your Google Scholar profile to discover co-authors.</p>
             </div>
-          ))}
+          ) : (
+            coAuthors.slice(0, 5).map((author, idx) => (
+              <div key={idx} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-[#F8FAFC] transition-colors">
+                <div className="w-9 h-9 rounded-full bg-[#EDE9FE] flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 border border-[#E2E8F0]">
+                  {author.photo && author.photo !== '#' ? (
+                    <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-[#4F46E5]">{author.name?.[0] || '?'}</span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-bold text-xs text-[#0F172A] truncate leading-tight">{author.name}</h4>
+                    <span className="text-[9px] font-bold text-[#4F46E5] bg-[#EDE9FE] px-1.5 py-0.5 rounded-full shrink-0">
+                      {author.collaborationCount ?? idx + 1} colabs
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[#475569] truncate mt-0.5">{author.affiliation || 'Independent Scholar'}</p>
+                  <p className="text-[9px] text-[#475569]/70 truncate font-medium">Interest: {author.researchInterest || 'Research'}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {coAuthors.length > 0 && (
@@ -673,7 +709,7 @@ const HomeFeed = () => {
 
   const renderGoogleScholarAnalytics = () => {
     // Dynamic values from MongoDB (loaded via scholarData query)
-    const publicationsCount = scholarData?.publications?.total ?? 34; 
+    const publicationsCount = scholarData?.publications?.total ?? 0;
     const citationGrowth = getCitationGrowth(); 
 
     // Radial Progress calculations
@@ -790,27 +826,31 @@ const HomeFeed = () => {
                   <div className="text-left">
                     <span className="text-[10px] text-[#475569]/70 uppercase font-bold tracking-wider block">New Citations</span>
                     <span className="text-lg font-black text-[#2563EB] flex items-center gap-1">
-                      +5 <TrendingUp className="w-4 h-4 text-[#22C55E]" />
+                      {getNewCitations() > 0 ? `+${getNewCitations()}` : '0'} <TrendingUp className="w-4 h-4 text-[#22C55E]" />
                     </span>
                   </div>
                   <div className="h-8 w-px bg-[#E2E8F0] self-center"></div>
                   <div className="text-left">
                     <span className="text-[10px] text-[#475569]/70 uppercase font-bold tracking-wider block">Suggested Collaborations</span>
-                    <span className="text-lg font-black text-[#4F46E5]">3 matches</span>
+                    <span className="text-lg font-black text-[#4F46E5]">
+                      {suggestedResearchers.length} {suggestedResearchers.length === 1 ? 'match' : 'matches'}
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Research Insights Banner */}
-              <div className="bg-[#EDE9FE]/40 border border-[#EDE9FE] rounded-2xl p-4 flex gap-3 items-start">
-                <BrainCircuit className="w-5 h-5 text-[#4F46E5] shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-[#0F172A]">Today's Research Insights</h4>
-                  <p className="text-xs text-[#475569] mt-0.5 font-semibold leading-relaxed">
-                    Based on your interest in <span className="font-bold text-[#4F46E5]">NLP</span> and publications from <span className="font-bold text-[#4F46E5]">Stanford University</span>, we found 5 new trending papers in your domain.
-                  </p>
+              {sidebarData?.aiInsight && (
+                <div className="bg-[#EDE9FE]/40 border border-[#EDE9FE] rounded-2xl p-4 flex gap-3 items-start">
+                  <BrainCircuit className="w-5 h-5 text-[#4F46E5] shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-[#0F172A]">Today's Research Insights</h4>
+                    <p className="text-xs text-[#475569] mt-0.5 font-semibold leading-relaxed">
+                      {sidebarData.aiInsight.insight}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Quick Actions Buttons */}
               <div className="flex flex-wrap gap-3 pt-2">
@@ -1050,27 +1090,6 @@ const HomeFeed = () => {
           {/* 6. Google Scholar Analytics */}
           {renderGoogleScholarAnalytics()}
 
-          {/* 7. AI Research Insight */}
-          <div className="bg-[#EDE9FE]/50 border border-[#EDE9FE] p-6 rounded-[18px] shadow-sm space-y-4">
-            <h3 className="font-bold text-xs text-[#4F46E5] uppercase tracking-wider flex items-center gap-1.5">
-              <BrainCircuit className="w-4 h-4 text-[#4F46E5] animate-pulse" /> AI Research Insight
-            </h3>
-            <div className="space-y-3 text-xs text-[#475569] font-normal">
-              <p className="leading-relaxed">
-                "We noticed an overlap between your interest in <span className="font-bold text-[#4F46E5]">NLP</span> and Sarah's recent work on <span className="font-bold text-[#4F46E5]">Attention multi-modal Search</span>."
-              </p>
-              <div className="pt-2 border-t border-[#EDE9FE] space-y-2 text-[11px]">
-                <div className="flex justify-between">
-                  <span className="font-bold text-[#475569]/80">Research Gap:</span>
-                  <span className="font-semibold text-[#0F172A]">Low-resource models</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-bold text-[#475569]/80">Suggested Paper:</span>
-                  <span className="underline cursor-pointer hover:text-[#2563EB] truncate max-w-[150px] font-semibold text-[#0F172A]">Attention is All You Need</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* 8. Upcoming Conferences */}
           <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4">
@@ -1078,17 +1097,26 @@ const HomeFeed = () => {
               <Calendar className="w-4 h-4 text-[#22C55E]" /> Upcoming Conferences
             </h3>
             <div className="space-y-3.5">
-              {events.slice(0, 3).map((e, idx) => (
-                <div key={idx} className="flex gap-3 text-xs text-left">
-                  <div className="w-10 h-10 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex flex-col items-center justify-center font-bold border border-[#DCFCE7]/60 shrink-0">
-                    <span className="text-[10px] uppercase font-black">{e.type}</span>
+              {conferences.length === 0 ? (
+                <p className="text-xs text-[#475569]/60 text-center py-2">No upcoming conferences.</p>
+              ) : (
+                conferences.slice(0, 3).map((e, idx) => (
+                  <div key={idx} className="flex gap-3 text-xs text-left">
+                    <div className="w-10 h-10 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex flex-col items-center justify-center font-bold border border-[#DCFCE7]/60 shrink-0">
+                      <span className="text-[10px] uppercase font-black">{e.type}</span>
+                    </div>
+                    <div>
+                      <h4 
+                        onClick={() => e.link && window.open(e.link, '_blank')}
+                        className="font-bold text-[#0F172A] hover:underline cursor-pointer leading-tight"
+                      >
+                        {e.title}
+                      </h4>
+                      <p className="text-[10px] text-[#475569] mt-1">Date: {new Date(e.date).toLocaleDateString()} • {e.organization}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-[#0F172A] hover:underline cursor-pointer leading-tight">{e.title}</h4>
-                    <p className="text-[10px] text-[#475569] mt-1">Deadline: {new Date(e.date).toLocaleDateString()} • {e.organization}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -1097,20 +1125,30 @@ const HomeFeed = () => {
             <h3 className="font-bold text-xs text-[#F59E0B] uppercase tracking-wider flex items-center gap-2">
               <Award className="w-4 h-4 text-[#F59E0B]" /> Funding Opportunities
             </h3>
-            <div className="space-y-3">
-              <div className="text-xs">
-                <h4 className="font-bold text-[#0F172A] leading-tight">NSF AI Research Grant 2026</h4>
-                <p className="text-[10px] text-[#475569] mt-1">Up to $500,000 for foundational research in multi-modal LLMs.</p>
-                <div className="flex justify-between items-center mt-3.5 pt-2 border-t border-[#E2E8F0]">
-                  <span className="text-[10px] font-bold text-[#475569]/85">Deadline: Oct 15, 2026</span>
-                  <button 
-                    onClick={() => toast.success('Redirecting to grant portal...')}
-                    className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all duration-200 transform hover:scale-[1.03] active:scale-95 shadow-sm"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
+            <div className="space-y-4">
+              {funding.length === 0 ? (
+                <p className="text-xs text-[#475569]/60 text-center py-2">No funding opportunities found.</p>
+              ) : (
+                funding.slice(0, 3).map((f, idx) => (
+                  <div key={idx} className="text-xs border-b border-[#E2E8F0] last:border-0 pb-3 last:pb-0">
+                    <h4 className="font-bold text-[#0F172A] leading-tight">{f.title || f.metadata?.title}</h4>
+                    <p className="text-[10px] text-[#475569] mt-1">{f.description || f.metadata?.description}</p>
+                    <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#E2E8F0]/40">
+                      <span className="text-[10px] font-bold text-[#475569]/85">
+                        Amount: {f.metadata?.grantAmount || 'Varies'} • Deadline: {f.metadata?.deadline ? new Date(f.metadata.deadline).toLocaleDateString() : 'N/A'}
+                      </span>
+                      {f.metadata?.applyUrl && (
+                        <button 
+                          onClick={() => window.open(f.metadata.applyUrl, '_blank')}
+                          className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all duration-200 transform hover:scale-[1.03] active:scale-95 shadow-sm"
+                        >
+                          Apply
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -1123,27 +1161,32 @@ const HomeFeed = () => {
               <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                   <path className="text-slate-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <path className="text-[#22C55E]" strokeDasharray="80, 100" strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path className="text-[#22C55E]" strokeDasharray={`${profile?.profileCompletion || 0}, 100`} strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                 </svg>
-                <span className="absolute text-xs font-black text-[#0F172A]">80%</span>
+                <span className="absolute text-xs font-black text-[#0F172A]">{profile?.profileCompletion || 0}%</span>
               </div>
               <div className="space-y-0.5">
-                <h4 className="font-bold text-xs text-[#0F172A] leading-tight">Almost complete!</h4>
+                <h4 className="font-bold text-xs text-[#0F172A] leading-tight">
+                  {profile?.profileCompletion >= 80 ? 'Almost complete!' : 'Keep going!'}
+                </h4>
                 <p className="text-[10px] text-[#475569]/80 leading-tight font-normal">Add remaining details to reach maximum visibility.</p>
               </div>
             </div>
             <div className="pt-2 border-t border-[#E2E8F0] space-y-2 text-[11px] font-semibold text-[#475569]">
-              <div className="flex items-center gap-2 text-[#22C55E]">
-                <Check className="w-3.5 h-3.5 shrink-0" /> Verified Email Address
+              <div className={`flex items-center gap-2 ${user?.emailVerified ? 'text-[#22C55E]' : 'text-slate-450'}`}>
+                {user?.emailVerified ? <Check className="w-3.5 h-3.5 shrink-0" /> : <PlusCircle className="w-3.5 h-3.5 shrink-0 opacity-60" />}
+                Verified Email Address
               </div>
-              <div className="flex items-center gap-2 text-[#22C55E]">
-                <Check className="w-3.5 h-3.5 shrink-0" /> Academic Identifier Connected
+              <div className={`flex items-center gap-2 ${!!(profile?.socialLinks?.orcid || profile?.socialLinks?.googleScholar) ? 'text-[#22C55E]' : 'text-slate-450'}`}>
+                {!!(profile?.socialLinks?.orcid || profile?.socialLinks?.googleScholar) ? <Check className="w-3.5 h-3.5 shrink-0" /> : <PlusCircle className="w-3.5 h-3.5 shrink-0 opacity-60" />}
+                Academic Identifier Connected
               </div>
               <div 
-                className="flex items-center gap-2 text-[#475569] hover:text-[#2563EB] cursor-pointer transition-colors" 
+                className={`flex items-center gap-2 cursor-pointer transition-colors ${coAuthors.length > 0 ? 'text-[#22C55E]' : 'text-[#475569] hover:text-[#2563EB]'}`} 
                 onClick={() => navigate(user?.profileSlug ? `/profile/${user.profileSlug}` : '/profile')}
               >
-                <PlusCircle className="w-3.5 h-3.5 text-[#475569]/60 shrink-0" /> Add Co-Authors & Affiliations
+                {coAuthors.length > 0 ? <Check className="w-3.5 h-3.5 shrink-0" /> : <PlusCircle className="w-3.5 h-3.5 text-[#475569]/60 shrink-0" />}
+                Add Co-Authors & Affiliations
               </div>
             </div>
           </div>

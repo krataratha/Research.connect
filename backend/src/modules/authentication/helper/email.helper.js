@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
 const env = require('../../../config/environment');
 const logger = require('../../../common/logger/winston');
+const queue = require('../../../common/queue/queue');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -272,19 +273,18 @@ const securityTipsBlock = () => `
 
 const sendEmail = async (to, subject, html) => {
   try {
-    const mailOptions = {
-      from: `"${BRAND.name}" <${env.email.user}>`,
+    const jobData = {
       to,
       subject,
       html,
       text: htmlToPlainText(html)
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    logger.info(`Email sent successfully to ${to}. Message ID: ${info.messageId}`);
+    await queue.enqueue('email', jobData);
+    logger.info(`[EMAIL CLIENT] Enqueued email job to ${to} for subject: ${subject}`);
     return true;
   } catch (error) {
-    logger.error(`Failed to send email to ${to}: ${error.message}`, error);
+    logger.error(`[EMAIL CLIENT ERROR] Failed to enqueue email to ${to}: ${error.message}`, error);
     return false;
   }
 };
