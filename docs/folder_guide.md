@@ -47,7 +47,8 @@ backend/src/
 │   ├── authentication/ # Authentication, OTP verification, and RTR token session module
 │   ├── profile/        # Researcher profile updates & user synchronization
 │   ├── scholar/        # Google Scholar SerpAPI import background job workers
-│   └── feed/           # Feed feeds, publication CRUD, comments, follows, bookmarks
+│   ├── feed/           # Feed feeds, publication CRUD, comments, follows, bookmarks
+│   └── help/           # Help Center (Support, Grievance, and Feedback submissions)
 │       ├── controller/ # Controllers mapping route triggers
 │       ├── service/    # Business services and validation hooks
 │       ├── repository/ # Database access queries extending BaseRepository
@@ -113,7 +114,8 @@ frontend/src/
 │   └── index.js                 # Redux store combinator
 ├── services/           # Async API client calls
 │   ├── auth.service.js   # Client actions for login, register, OTP
-│   └── profile.service.js# Client actions for profile and scholar sync
+│   ├── profile.service.js# Client actions for profile and scholar sync
+│   └── help.service.js   # Client actions for Help Center tickets & info
 ├── constants/          # Static lists, select options, and error messages
 ├── routes/             # React Router DOM configuration
 │   ├── AppRoutes.jsx     # Main routes configuration mapping elements

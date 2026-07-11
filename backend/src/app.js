@@ -26,6 +26,7 @@ const projectModule = require("./modules/project");
 const datasetModule = require("./modules/dataset");
 const notificationsModule = require("./modules/notifications");
 const networkModule = require("./modules/network");
+const helpModule = require("./modules/help");
 
 const collaborationRoutes = require("./modules/collaborations/routes/collaboration.routes");
 
@@ -118,6 +119,7 @@ app.use("/api/v1/collaborations", collaborationRoutes);
 app.use("/api/v1/identity", identityRoutes);
 app.use("/api/v1/recommendations", recommendationsModule.routes);
 app.use("/api/v1/network", networkModule.routes);
+app.use("/api/v1/help", helpModule.routes);
 
 // Default root redirect to /api
 app.get("/", (req, res) => {

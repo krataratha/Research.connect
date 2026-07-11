@@ -29,6 +29,7 @@ const PublicationReader = React.lazy(() => import('../modules/publication/pages/
 const PublicationAnalyticsPage = React.lazy(() => import('../modules/publication/pages/PublicationAnalyticsPage'));
 const SearchPage = React.lazy(() => import('../modules/search/pages/SearchPage'));
 const MessagesPage = React.lazy(() => import('../modules/messages/pages/MessagesPage'));
+const HelpCenterPage = React.lazy(() => import('../pages/HelpCenter/HelpCenterPage'));
 
 // Social Collaboration Modules
 const NetworkPage = React.lazy(() => import('../modules/connections/pages/NetworkPage'));
@@ -132,6 +133,7 @@ const AppRoutes = () => {
           <Route path="messages/:conversationId" element={<MessagesPage />} />
           <Route path="messages/new" element={<MessagesPage />} />
           <Route path="search" element={<SearchPage />} />
+          <Route path="help" element={<HelpCenterPage />} />
           
           {/* Social Collaboration Module Routes */}
           <Route path="network" element={<NetworkPage />} />

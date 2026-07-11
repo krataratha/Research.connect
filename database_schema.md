@@ -321,3 +321,56 @@ OTP verification tokens cache with built-in auto-expiration.
 | `verified` | Boolean | Yes | `false` | — | Verification success toggle. |
 
 * **Indexes**: `{ expiresAt: 1 }` (TTL), `{ email: 1, purpose: 1 }`.
+
+---
+
+### 11. `contact_requests` (Model: `ContactRequest`)
+Tracks support tickets submitted by researchers.
+
+| Field Name | Type | Required | Defaults | Constraints | Description |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `userId` | ObjectId | Yes | — | Ref: `User` | User submitting the request. |
+| `name` | String | Yes | — | Trimmed | Full name of the submitter. |
+| `email` | String | Yes | — | Lowercase, trimmed | Email address for support communication. |
+| `category` | String | Yes | — | Enum: `['General Inquiry', 'Technical Support', 'Account Issue', 'Upload Issue', 'Download Issue', 'Other']` | Type of support request. |
+| `subject` | String | Yes | — | Trimmed, Max: 200 | Subject of the request. |
+| `message` | String | Yes | — | Trimmed, Max: 5000 | Detailed message content. |
+| `attachment` | String | No | `null` | — | URL link to optional file attachment. |
+| `status` | String | Yes | `'Pending'` | Enum: `['Pending', 'Resolved']` | Condition of support ticket. |
+
+* **Indexes**: `{ userId: 1, createdAt: -1 }`.
+
+---
+
+### 12. `grievances` (Model: `Grievance`)
+Tracks compliance, plagiarism, copyright infringement (DMCA), or abuse reports.
+
+| Field Name | Type | Required | Defaults | Constraints | Description |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `userId` | ObjectId | Yes | — | Ref: `User` | User submitting the grievance. |
+| `name` | String | Yes | — | Trimmed | Full name of the complainant. |
+| `email` | String | Yes | — | Lowercase, trimmed | Contact email address. |
+| `category` | String | Yes | — | Enum: `['Broken Download', 'Upload Failed', 'Duplicate Paper', 'Incorrect Metadata', 'Plagiarism', 'Copyright / DMCA', 'Technical Bug', 'Spam Content', 'Other']` | Grievance type. |
+| `paperUrl` | String | No | `null` | Trimmed | Optional URL of the publication being reported. |
+| `description` | String | Yes | — | Trimmed, Max: 5000 | Detailed grievance description. |
+| `attachment` | String | No | `null` | — | URL link to support documentation or evidence. |
+| `status` | String | Yes | `'Pending'` | Enum: `['Pending', 'In Review', 'Resolved']` | Investigation condition. |
+
+* **Indexes**: `{ userId: 1, createdAt: -1 }`.
+
+---
+
+### 13. `feedbacks` (Model: `Feedback`)
+Stores user feedback and interface ratings.
+
+| Field Name | Type | Required | Defaults | Constraints | Description |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `userId` | ObjectId | Yes | — | Ref: `User` | Submitting user. |
+| `name` | String | No | `""` | Trimmed | Optional submitter name. |
+| `email` | String | No | `""` | Lowercase, trimmed | Optional submitter email. |
+| `rating` | Number | Yes | — | Min: 1, Max: 5 | Star rating score (1-5). |
+| `category` | String | Yes | — | Enum: `['UI / UX', 'Search', 'Upload', 'Download', 'Performance', 'Feature Request', 'General']` | Feedback topic area. |
+| `comment` | String | Yes | — | Trimmed, Max: 2000 | Text comments. |
+
+* **Indexes**: `{ userId: 1, createdAt: -1 }`.
+

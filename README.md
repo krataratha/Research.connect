@@ -94,7 +94,8 @@ frontend/                 # React.js (Vite) Client
 │   │   └── index.js           # Combined store entry point
 │   ├── services/             # Async API client calling files
 │   │   ├── auth.service.js   # Login, registration, OTP client logic
-│   │   └── profile.service.js# Bio and user updates API client
+│   │   ├── profile.service.js# Bio and user updates API client
+│   │   └── help.service.js   # Client actions for Help Center tickets & info
 │   ├── styles/
 │   │   └── index.css          # Tailwind directives and CSS variables
 │   ├── modules/               # Feature-First Modules
@@ -143,7 +144,8 @@ backend/                  # Node.js + Express.js Server
 │   │   ├── authentication/# Register, verify, login, 2FA OTP, token refresh
 │   │   ├── profile/      # Bio updates & user synchronization
 │   │   ├── scholar/      # SerpAPI Google Scholar import background job workers
-│   │   └── feed/         # Feeds, publication CRUD, comments, follows, bookmarks
+│   │   ├── feed/         # Feeds, publication CRUD, comments, follows, bookmarks
+│   │   └── help/         # Help Center (Support, Grievance, and Feedback submissions)
 │   ├── app.js            # Express app setup and middleware routing
 │   ├── server.js         # Server port listener and graceful shutdowns
 │   └── index.js          # Startup script
