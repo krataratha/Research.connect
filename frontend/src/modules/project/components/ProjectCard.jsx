@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ToggleLeft,
   ToggleRight,
@@ -6,9 +6,12 @@ import {
   MoreHorizontal,
   CheckCircle2,
   Handshake,
+  Trash2,
+  Link2,
 } from "lucide-react";
 import { TAG_STYLES } from "../data";
 import Avatar from "./Avatar";
+import { toast } from "react-hot-toast";
 
 export default function ProjectCard({
   project,
@@ -18,7 +21,34 @@ export default function ProjectCard({
   pendingCount,
   onViewApplications,
   onClick,
+  onDelete,
 }) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  const handleCopyLink = (e) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/projects/${project.id}`;
+    navigator.clipboard.writeText(url)
+      .then(() => toast.success("Project link copied to clipboard!"))
+      .catch(() => toast.error("Failed to copy link."));
+    setIsDropdownOpen(false);
+  };
+
   // Some projects don't define an icon — fall back to a sensible default
   // instead of letting React blow up on <undefined />.
   const Icon = project.icon || Users;
@@ -125,22 +155,72 @@ export default function ProjectCard({
           <span className={`h-1.5 w-1.5 rounded-full ${statusColor}`} />
           {project.status || "Unknown"}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative" ref={dropdownRef}>
           <button
             onClick={(e) => {
               stop(e);
               onClick?.(project);
             }}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
           >
             View Project
           </button>
           <button
-            onClick={stop}
-            className="rounded-lg border border-slate-200 p-1.5 text-slate-400 hover:bg-slate-50"
+            onClick={(e) => {
+              stop(e);
+              setIsDropdownOpen(!isDropdownOpen);
+            }}
+            className="rounded-lg border border-slate-200 p-1.5 text-slate-400 hover:bg-slate-50 cursor-pointer"
           >
             <MoreHorizontal size={16} />
           </button>
+
+          {isDropdownOpen && (
+            <div className="absolute right-0 top-full mt-1.5 z-20 w-44 rounded-xl border border-slate-150 bg-white p-1.5 shadow-xl text-left">
+              <button
+                onClick={handleCopyLink}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                <Link2 size={13} />
+                Copy Project Link
+              </button>
+              {project.isOwner && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      stop(e);
+                      onToggleOpen(project.id);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    {project.openToCollaboration ? (
+                      <>
+                        <ToggleRight className="text-emerald-500" size={14} />
+                        Close Collaboration
+                      </>
+                    ) : (
+                      <>
+                        <ToggleLeft className="text-slate-400" size={14} />
+                        Open Collaboration
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      stop(e);
+                      onDelete?.(project.id);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={13} />
+                    Delete Project
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
         {project.openToCollaboration &&
           (hasApplied ? (

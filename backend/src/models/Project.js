@@ -22,7 +22,7 @@ const ProjectSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ['Ongoing', 'Completed', 'Proposed'],
+      enum: ['Ongoing', 'Completed', 'Proposed', 'Archived'],
       default: 'Ongoing'
     },
     collaborators: [
@@ -37,6 +37,24 @@ const ProjectSchema = new Schema(
         trim: true
       }
     ],
+    imageUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    deadline: { type: Date, default: null },
+    progress: { type: Number, min: 0, max: 100, default: 0 },
+    visibility: { type: String, enum: ['Public', 'Private'], default: 'Public' },
+    openToCollaboration: { type: Boolean, default: false },
+    deletedAt: {
+      type: Date,
+      default: null
+    },
+    deletedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
     isDeleted: {
       type: Boolean,
       default: false
@@ -46,6 +64,10 @@ const ProjectSchema = new Schema(
     timestamps: true
   }
 );
+
+ProjectSchema.index({ userId: 1, isDeleted: 1, createdAt: -1 });
+ProjectSchema.index({ collaborators: 1, isDeleted: 1 });
+ProjectSchema.index({ status: 1, isDeleted: 1 });
 
 const Project = mongoose.model('Project', ProjectSchema);
 

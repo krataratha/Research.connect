@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Plus,
@@ -7,7 +8,9 @@ import {
   X,
 } from "lucide-react";
 
-import { STATS, TABS, PROJECTS, ACTIVITY, TOP_COLLABORATORS, OVERVIEW, SEED_APPLICATIONS, AVATAR_COLORS, TAG_STYLES, avatarInitials } from "../data";
+import { STATS, TABS, ACTIVITY, TOP_COLLABORATORS, OVERVIEW, AVATAR_COLORS, TAG_STYLES, avatarInitials } from "../data";
+import projectService from '../../../services/project.service';
+import { toast } from 'react-hot-toast';
 
 import DonutChart from "../components/chart";
 import ProjectCard from "../components/ProjectCard";
@@ -30,17 +33,50 @@ const TAB_TO_CATEGORY = {
 const ITEMS_PER_PAGE = 4;
 
 export default function ProjectsPage() {
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("All Projects");
   const [search, setSearch] = useState("");
-  const [projects, setProjects] = useState(PROJECTS);
+  const [projects, setProjects] = useState([]);
   const [applyingProject, setApplyingProject] = useState(null);
   const [appliedIds, setAppliedIds] = useState(() => new Set());
-  const [applications, setApplications] = useState(SEED_APPLICATIONS);
+  const [applications, setApplications] = useState([]);
   const [viewingApplicationsProject, setViewingApplicationsProject] = useState(null);
   const [sortBy, setSortBy] = useState("newest");
   const [filter, setFilter] = useState("all");
   const [selectedProject, setSelectedProject] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const toDisplayProject = (project) => {
+    const createdAt = new Date(project.createdAt);
+    const owner = project.owner || {};
+    const ownerName = owner.fullName || `${owner.firstName || ''} ${owner.lastName || ''}`.trim() || 'Researcher';
+    const collaborators = project.collaborators?.length || 0;
+    const uiStatus = project.status === 'Ongoing' ? 'Active' : project.status;
+    return {
+      ...project,
+      pi: ownerName,
+      members: collaborators + 1,
+      collaborators,
+      extraAvatars: Math.max(0, collaborators - 3),
+      tags: project.researchAreas || [],
+      category: project.isOwner ? 'owned' : 'collaborating',
+      status: uiStatus,
+      statusColor: uiStatus === 'Active' ? 'bg-emerald-500' : uiStatus === 'Completed' ? 'bg-slate-400' : 'bg-slate-300',
+      created: Number.isNaN(createdAt.valueOf()) ? 'Unknown' : createdAt.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }),
+      updated: 'Recently updated'
+    };
+  };
+
+  const fetchProjects = () => {
+    projectService.getProjects({ limit: 100 })
+      .then((response) => setProjects((response.data?.docs || []).map(toDisplayProject)))
+      .catch(() => setProjects([]));
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
   const filteredProjects = [...projects]
     .filter((project) => {
@@ -108,6 +144,14 @@ export default function ProjectsPage() {
       }
     });
 
+  const displayStats = STATS.map((stat) => {
+    if (stat.key === 'total') return { ...stat, value: projects.length };
+    if (stat.key === 'collaborators') return { ...stat, value: projects.reduce((total, project) => total + (project.collaborators || 0), 0) };
+    if (stat.key === 'active') return { ...stat, value: projects.filter((project) => project.status === 'Active').length };
+    if (stat.key === 'completed') return { ...stat, value: projects.filter((project) => project.status === 'Completed').length };
+    return stat;
+  });
+
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / ITEMS_PER_PAGE));
 
   const currentProjects = filteredProjects.slice(
@@ -121,42 +165,40 @@ export default function ProjectsPage() {
     setCurrentPage(1);
   }, [search, filter, sortBy, activeTab]);
 
-  function toggleOpenToCollaboration(id) {
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, openToCollaboration: !p.openToCollaboration } : p
-      )
-    );
+  async function toggleOpenToCollaboration(id) {
+    const project = projects.find((item) => item.id === id);
+    if (!project?.isOwner) return;
+    const response = await projectService.updateProject(id, { openToCollaboration: !project.openToCollaboration });
+    const updated = toDisplayProject(response.data);
+    setProjects((prev) => prev.map((item) => item.id === id ? updated : item));
   }
 
-  function handleApplySubmit(name, message) {
-    setApplications((prev) => [
-      ...prev,
-      {
-        id: `app-${Date.now()}`,
-        projectId: applyingProject.id,
-        applicantName: name,
-        message,
-        appliedAt: "Just now",
-        status: "pending",
-      },
-    ]);
+  async function handleDeleteProject(id) {
+    if (window.confirm("Are you sure you want to delete this project?")) {
+      try {
+        await projectService.deleteProject(id);
+        toast.success("Project deleted successfully.");
+        fetchProjects();
+      } catch (err) {
+        toast.error("Failed to delete project.");
+      }
+    }
+  }
+
+  async function handleApplySubmit(_name, message) {
+    await projectService.applyToProject(applyingProject.id, message);
     setAppliedIds((prev) => new Set(prev).add(applyingProject.id));
     setApplyingProject(null);
-    // In a real app: POST { projectId, name, message } to your collaboration-requests endpoint here.
   }
 
-  function handleAcceptApplication(appId) {
-    setApplications((prev) =>
-      prev.map((a) => (a.id === appId ? { ...a, status: "accepted" } : a))
-    );
-    // In a real app: notify the applicant and add them to the project's collaborator list here.
+  async function handleAcceptApplication(appId) {
+    const response = await projectService.reviewApplication(viewingApplicationsProject.id, appId, 'accept');
+    setApplications((prev) => prev.map((app) => app.id === appId ? response.data : app));
   }
 
-  function handleDeclineApplication(appId) {
-    setApplications((prev) =>
-      prev.map((a) => (a.id === appId ? { ...a, status: "declined" } : a))
-    );
+  async function handleDeclineApplication(appId) {
+    const response = await projectService.reviewApplication(viewingApplicationsProject.id, appId, 'decline');
+    setApplications((prev) => prev.map((app) => app.id === appId ? response.data : app));
   }
 
   function pendingCountFor(projectId) {
@@ -165,6 +207,12 @@ export default function ProjectsPage() {
 
   function applicationsCountFor(projectId) {
     return applications.filter((a) => a.projectId === projectId).length;
+  }
+
+  async function openApplications(project) {
+    const response = await projectService.getApplications(project.id);
+    setApplications(response.data || []);
+    setViewingApplicationsProject(project);
   }
 
   return (
@@ -219,7 +267,7 @@ export default function ProjectsPage() {
 
               {/* Stat cards */}
               <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                {STATS.map((s) => {
+                {displayStats.map((s) => {
                   const Icon = s.icon;
                   return (
                     <div
@@ -266,7 +314,7 @@ export default function ProjectsPage() {
                       onApply={setApplyingProject}
                       hasApplied={appliedIds.has(p.id)}
                       pendingCount={pendingCountFor(p.id)}
-                      onViewApplications={setViewingApplicationsProject}
+                      onViewApplications={openApplications}
                       onClick={setSelectedProject}
                     />
                   ))
@@ -315,7 +363,10 @@ export default function ProjectsPage() {
 
             {/* Right sidebar */}
             <aside className="w-full flex-shrink-0 space-y-5 xl:w-80">
-              <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+              <button
+                onClick={() => navigate("/projects/create")}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 cursor-pointer"
+              >
                 <Plus size={16} /> Create New Project
               </button>
 

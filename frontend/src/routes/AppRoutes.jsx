@@ -4,6 +4,7 @@ import AuthLayout from '../layouts/AuthLayout';
 import AppLayout from '../layouts/AppLayout';
 import ComingSoon from '../components/common/ComingSoon';
 import ProjectsPage from "../modules/project/pages/ProjectsPage";
+import CreateProjectPage from "../modules/project/pages/CreateProjectPage";
 import HomeFeed from '../modules/home/pages/HomeFeed';
 import MessagesView from '../modules/message/components/MessagesView';
 const HomeHub = React.lazy(() => import('./HomeHub'));
@@ -118,7 +119,7 @@ const AppRoutes = () => {
           <Route path="publications/published" element={<PublicationsLibraryPage />} />
           <Route path="publications/trash" element={<PublicationsLibraryPage />} />
           <Route path="publications/bookmarks" element={<PublicationsLibraryPage />} />
-          <Route path="projects/create" element={<ComingSoon title="Create Project Coming Soon" />} />
+          <Route path="projects/create" element={<CreateProjectPage />} />
           <Route path="datasets/create" element={<ComingSoon title="Share Dataset Coming Soon" />} />
           <Route path="questions/create" element={<ComingSoon title="Ask Question Coming Soon" />} />
           <Route path="collaborations/create" element={<CreateWorkspace />} />
