@@ -37,7 +37,7 @@ const PublicationResultCard = ({ publication, index = 0 }) => {
     publicationType, journal, publication: pubVenue, conference,
     publisher, year, abstract, keywords = [], doi,
     views = 0, downloads = 0, citations = 0, recommendations = 0,
-    openAccess, googleScholarVerified, hasPDF, cloudinaryFileUrl,
+    openAccess, googleScholarVerified, hasPDF, pdfUrl,
     institution, language, readingTime, createdAt,
   } = publication;
 
@@ -68,7 +68,7 @@ const PublicationResultCard = ({ publication, index = 0 }) => {
               <Globe className="w-3 h-3" /> Open Access
             </span>
           )}
-          {hasPDF || cloudinaryFileUrl ? (
+          {hasPDF || pdfUrl ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
               <FileText className="w-3 h-3" /> PDF
             </span>

@@ -101,10 +101,10 @@ const PublicationCreatePage = () => {
     handleFieldChange('publicationFormat', slug);
   };
 
-  const handleUploadSuccess = ({ cloudinaryData, extractedMetadata, cacheId, originalName }) => {
+  const handleUploadSuccess = ({ r2Data, extractedMetadata, cacheId, originalName }) => {
     // 1. Save file details
     handleFieldChange('fileDetails', {
-      ...cloudinaryData,
+      ...r2Data,
       originalName
     });
 
@@ -115,7 +115,7 @@ const PublicationCreatePage = () => {
           ...prev,
           metadataCacheId: cacheId || '',
           fileDetails: {
-            ...cloudinaryData,
+            ...r2Data,
             originalName
           },
           extractionConfidences: {

@@ -62,7 +62,7 @@ const Step3Upload = ({ fileDetails, onUploadSuccess, onRemove, onSkip }) => {
       if (uploadResponse.success) {
         toast.success('File uploaded and metadata extracted successfully!');
         onUploadSuccess({
-          cloudinaryData: uploadResponse.data,
+          r2Data: uploadResponse.data,
           extractedMetadata: extractResponse.success && extractResponse.data ? extractResponse.data.extractedMetadata : null,
           cacheId: extractResponse.success && extractResponse.data ? extractResponse.data.cacheId : null,
           originalName: file.name

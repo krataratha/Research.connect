@@ -105,7 +105,7 @@ class PublicationService {
 
       if (existingPub && !isManualUpload) {
         // If it's a real duplicate manually uploaded that has a PDF attached, throw validation error
-        if (existingPub.status === 'published' && existingPub.cloudinaryFileUrl && !isDraft) {
+        if (existingPub.status === 'published' && existingPub.pdfUrl && !isDraft) {
           throw new ValidationError('A publication with this title, DOI, or Scholar ID already exists in your library.');
         }
 
@@ -137,7 +137,7 @@ class PublicationService {
         }
 
         if (data.fileDetails && data.fileDetails.secure_url) {
-          existingPub.cloudinaryFileUrl = data.fileDetails.secure_url;
+          existingPub.pdfUrl = data.fileDetails.secure_url;
           existingPub.pdfURL = data.fileDetails.secure_url;
           existingPub.fileDetails = {
             secure_url: data.fileDetails.secure_url || '',
@@ -294,7 +294,7 @@ class PublicationService {
         language: data.language || '',
         visibility: isDraft ? 'Draft' : (data.visibility || 'Public'),
         status: isDraft ? 'draft' : 'published',
-        cloudinaryFileUrl: data.fileDetails?.secure_url || '',
+        pdfUrl: data.fileDetails?.secure_url || '',
         pdfURL: data.fileDetails?.secure_url || '', // for compatibility
         thumbnail: data.thumbnail || '',
         readingTime,
@@ -720,7 +720,7 @@ class PublicationService {
       }
 
       if (updateData.fileDetails && updateData.fileDetails.secure_url) {
-        publication.cloudinaryFileUrl = updateData.fileDetails.secure_url;
+        publication.pdfUrl = updateData.fileDetails.secure_url;
         publication.pdfURL = updateData.fileDetails.secure_url;
         publication.fileDetails = {
           secure_url: updateData.fileDetails.secure_url || '',
@@ -1883,7 +1883,7 @@ class PublicationService {
     };
 
     // Keep legacy URL fields for backward compatibility
-    publication.cloudinaryFileUrl = r2Result.secure_url;
+    publication.pdfUrl = r2Result.secure_url;
     publication.pdfURL = r2Result.secure_url;
     publication.lastUpdatedBy = userId;
 
@@ -1962,7 +1962,7 @@ class PublicationService {
 
     // Clear document metadata fields
     publication.document = undefined;
-    publication.cloudinaryFileUrl = '';
+    publication.pdfUrl = '';
     publication.pdfURL = '';
     publication.lastUpdatedBy = userId;
 

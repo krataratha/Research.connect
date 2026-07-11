@@ -44,7 +44,7 @@ class UploadController {
   });
 
   /**
-   * Delete uploaded asset from MongoDB & Cloudinary
+   * Delete uploaded asset from MongoDB & Cloudflare R2
    */
   deleteUpload = asyncHandler(async (req, res) => {
     const { assetId } = req.params;

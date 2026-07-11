@@ -225,6 +225,14 @@ const seedData = async () => {
       logger.info('[Seeder] Default feed sidebars seeded.');
     }
 
+    // Trigger legacy to R2 metadata migration
+    try {
+      const migrateLegacyToR2 = require('./migrate_legacy_to_r2');
+      await migrateLegacyToR2();
+    } catch (migErr) {
+      logger.error('[Seeder] Metadata migration failed:', migErr);
+    }
+
   } catch (err) {
     logger.error('[Seeder] Database seeding error:', err);
   }

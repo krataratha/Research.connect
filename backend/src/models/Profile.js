@@ -6,7 +6,10 @@ const ImageMetadataSchema = new Schema({
   objectKey: { type: String, default: '' },
   mimeType: { type: String, default: '' },
   fileSize: { type: Number, default: 0 },
-  uploadedAt: { type: Date }
+  uploadedAt: { type: Date },
+  storageProvider: { type: String, default: 'cloudflare-r2' },
+  bucket: { type: String, default: 'research-connect' },
+  fileName: { type: String, default: '' }
 }, { _id: false });
 
 const setImageMetadata = (val) => {

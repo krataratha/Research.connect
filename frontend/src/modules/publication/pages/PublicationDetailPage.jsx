@@ -97,8 +97,8 @@ const PublicationDetailPage = () => {
       // 2. Refresh query to get updated downloads count
       refetch();
       
-      // 3. Open Cloudinary URL in new window
-      window.open(data.cloudinaryFileUrl, '_blank');
+      // 3. Open PDF URL in new window
+      window.open(data.pdfUrl, '_blank');
       toast.success('Download registered successfully.');
     } catch (err) {
       console.error(err);
@@ -147,16 +147,16 @@ const PublicationDetailPage = () => {
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
         </button>
-
+ 
         {/* 2-Column Reader Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           
           {/* Left Column: PDF Reader */}
-          {data.cloudinaryFileUrl ? (
+          {data.pdfUrl ? (
             <div className="lg:col-span-2">
               <PDFReader
                 title={data.title}
-                pdfUrl={data.cloudinaryFileUrl}
+                pdfUrl={data.pdfUrl}
                 authors={data.authors}
                 journal={data.publication || data.journal}
                 year={data.year}

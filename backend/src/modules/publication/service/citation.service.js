@@ -312,7 +312,7 @@ class CitationService {
    */
   async getAllCitations(publicationId) {
     const pub = await Publication.findById(publicationId)
-      .select('title authors journal publication conference publisher year publicationDate doi volume issue pages abstract paperURL cloudinaryFileUrl authorsList publicationType keywords researchAreas institution openAccess')
+      .select('title authors journal publication conference publisher year publicationDate doi volume issue pages abstract paperURL pdfUrl authorsList publicationType keywords researchAreas institution openAccess')
       .populate('authorsList')
       .lean();
 

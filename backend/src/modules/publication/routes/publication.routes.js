@@ -44,7 +44,7 @@ router.get('/types', publicationController.getTypes);
 // Get all publication formats
 router.get('/formats', publicationController.getFormats);
 
-// 3. Upload file (Cloudinary)
+// 3. Upload file (Cloudflare R2)
 router.post(
   '/upload',
   authMiddleware,

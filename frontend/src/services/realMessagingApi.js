@@ -37,7 +37,7 @@ export const realMessagingApi = {
     return response.data;
   },
 
-  /** POST /upload - Upload file to backend (which sends to Cloudinary) */
+  /** POST /upload - Upload file to backend (which sends to Cloudflare R2) */
   async uploadFile(file, onProgress) {
     const formData = new FormData();
     formData.append('file', file);
@@ -52,7 +52,7 @@ export const realMessagingApi = {
       }
     });
     
-    // Returns attachment metadata with Cloudinary URL
+    // Returns attachment metadata with Cloudflare R2 URL
     return response.data; 
   },
 

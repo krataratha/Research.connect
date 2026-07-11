@@ -36,8 +36,8 @@ class PublicationController {
     );
   });
 
-  // Upload File to Cloudinary
-  // publicationId is generated HERE (before upload) so Cloudinary path is unique.
+  // Upload File to Cloudflare R2
+  // publicationId is generated HERE (before upload) so Cloudflare R2 path is unique.
   // This publicationId is returned to the client who passes it when creating the publication record.
   uploadFile = asyncHandler(async (req, res) => {
     if (!req.file) {
@@ -59,7 +59,7 @@ class PublicationController {
       purpose: 'publication-pdf'
     });
 
-    return res.success('File uploaded to Cloudinary successfully.', {
+    return res.success('File uploaded to Cloudflare R2 successfully.', {
       publicationId: result.resourceId,
       secure_url: result.secure_url,
       public_id: result.public_id,

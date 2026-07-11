@@ -129,7 +129,7 @@ const PublicationReader = () => {
     if (!pub) return;
     try {
       await publicationService.trackDownload(pub._id || pub.id);
-      window.open(pub.cloudinaryFileUrl, '_blank');
+      window.open(pub.pdfUrl, '_blank');
       toast.success('Download started.');
       refetch();
     } catch {
@@ -248,7 +248,7 @@ const PublicationReader = () => {
             )}
 
             {/* Download (if file) */}
-            {pub.cloudinaryFileUrl && (
+            {pub.pdfUrl && (
               <button
                 onClick={handleDownload}
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 px-3.5 py-2 rounded-xl transition-all shadow-xs"
@@ -322,9 +322,9 @@ const PublicationReader = () => {
 
             {/* PDF Viewer */}
             <PDFViewer
-              pdfUrl={pub.cloudinaryFileUrl}
+              pdfUrl={pub.pdfUrl}
               title={pub.title}
-              onDownload={pub.cloudinaryFileUrl ? handleDownload : null}
+              onDownload={pub.pdfUrl ? handleDownload : null}
             />
 
             {/* Citation Export */}
