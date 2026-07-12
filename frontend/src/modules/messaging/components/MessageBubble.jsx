@@ -7,7 +7,7 @@ import messagesService from '../services/messages.service';
 
 const EMOJIS = ['👍', '❤️', '👏', '💡', '😮', '❓'];
 
-const MessageBubble = ({ message, onReply, onEditInit }) => {
+const MessageBubble = ({ message, onReply, onEditInit, otherParticipant }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -45,6 +45,8 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
   if (text && (type === 'publication' || type === 'project' || type === 'dataset')) {
     try { parsedMeta = JSON.parse(text); } catch (e) { /* fallback to plain text */ }
   }
+
+  const avatarUrl = otherParticipant?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150";
 
   return (
     <div className={`flex flex-col max-w-[85%] sm:max-w-[70%] gap-1 relative group ${isMe ? 'self-end items-end' : 'self-start items-start'}`}>
@@ -158,6 +160,62 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
             </button>
             <button onClick={() => setSheetOpen(false)} className="w-full text-center px-3 py-3 mt-1 text-sm font-bold text-slate-400 hover:text-slate-600 cursor-pointer sm:hidden">Cancel</button>
           </div>
+<<<<<<< HEAD
+=======
+
+          <button 
+            onClick={handleCopy}
+            className="p-1 hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-lg transition-colors cursor-pointer"
+            title="Copy Text"
+          >
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+
+          <button 
+            onClick={onReply}
+            className="p-1 hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-lg transition-colors cursor-pointer"
+            title="Reply"
+          >
+            <Reply className="w-3.5 h-3.5" />
+          </button>
+
+          {isMe && (
+            <>
+              <button 
+                onClick={onEditInit}
+                className="p-1 hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-lg transition-colors cursor-pointer"
+                title="Edit"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={() => {
+                  if (window.confirm('Delete message for everyone?')) {
+                    deleteMutation.mutate('everyone');
+                  }
+                }}
+                className="p-1 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer"
+                title="Delete for Everyone"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+
+          {!isMe && (
+            <button 
+              onClick={() => {
+                if (window.confirm('Delete message for yourself?')) {
+                  deleteMutation.mutate('me');
+                }
+              }}
+              className="p-1 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer"
+              title="Delete for Me"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+>>>>>>> origin/main
         </div>
       )}
     </div>

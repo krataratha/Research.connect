@@ -114,8 +114,8 @@ const ChatWindow = ({
       <div className="px-4 sm:px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between shadow-sm shrink-0 z-10">
         <div className="flex items-center gap-3 min-w-0">
           {onBack && (
-            <button 
-              onClick={onBack} 
+            <button
+              onClick={onBack}
               className="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-2xl transition-all active:scale-95"
             >
               <ArrowLeft className="w-6 h-6" />
@@ -123,10 +123,10 @@ const ChatWindow = ({
           )}
 
           <div className="relative flex-shrink-0">
-            <img 
-              src={otherImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"} 
-              alt={otherName} 
-              className="w-11 h-11 rounded-2xl object-cover ring-2 ring-white shadow" 
+            <img
+              src={otherImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
+              alt={otherName}
+              className="w-11 h-11 rounded-2xl object-cover ring-2 ring-white shadow"
             />
             {otherParticipant?.isOnline && (
               <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />
@@ -147,15 +147,15 @@ const ChatWindow = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1">
-          <button 
-            onClick={() => onStartCall('voice')} 
+          <button
+            onClick={() => onStartCall('voice')}
             className="p-3 hover:bg-slate-100 active:bg-slate-200 rounded-2xl transition-all text-slate-600 hover:text-slate-800"
             title="Voice Call"
           >
             <Phone className="w-5 h-5" />
           </button>
-          <button 
-            onClick={() => onStartCall('video')} 
+          <button
+            onClick={() => onStartCall('video')}
             className="p-3 hover:bg-slate-100 active:bg-slate-200 rounded-2xl transition-all text-slate-600 hover:text-slate-800"
             title="Video Call"
           >
@@ -172,8 +172,8 @@ const ChatWindow = ({
       </div>
 
       {/* Messages Area - Optimized Scroll */}
-      <div 
-        ref={viewportRef} 
+      <div
+        ref={viewportRef}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 bg-slate-50 flex flex-col gap-5 scroll-smooth"
       >
@@ -194,11 +194,12 @@ const ChatWindow = ({
             );
           }
           return (
-            <MessageBubble 
-              key={msg._id} 
-              message={msg} 
-              onReply={() => setReplyContext(msg)} 
-              onEditInit={() => setEditContext(msg)} 
+            <MessageBubble
+              key={msg._id}
+              message={msg}
+              onReply={() => setReplyContext(msg)}
+              onEditInit={() => setEditContext(msg)}
+              otherParticipant={otherParticipant}
             />
           );
         })}

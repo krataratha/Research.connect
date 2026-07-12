@@ -166,4 +166,4 @@ const ResearcherInfo = ({ participant, conversation, messages = [], onClose }) =
   );
 };
 
-export default ResearcherInfo;
+export default React.memo(ResearcherInfo);
