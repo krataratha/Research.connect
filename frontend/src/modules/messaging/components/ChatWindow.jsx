@@ -273,4 +273,4 @@ const ChatWindow = ({
   );
 };
 
-export default ChatWindow;
+export default React.memo(ChatWindow);

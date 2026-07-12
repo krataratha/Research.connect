@@ -327,4 +327,4 @@ const ConversationList = ({
   );
 };
 
-export default ConversationList;
+export default React.memo(ConversationList);

@@ -5,12 +5,7 @@ class PresenceController {
     try {
       const { userId } = req.params;
       const data = await presenceService.getPresence(userId);
-      res.status(200).json({
-        success: true,
-        message: 'Presence status retrieved successfully',
-        data,
-        error: null
-      });
+      return res.success('Presence status retrieved successfully', data, 200);
     } catch (err) {
       next(err);
     }
@@ -20,12 +15,7 @@ class PresenceController {
     try {
       const { device } = req.body;
       const data = await presenceService.setOnline(req.user.id, device);
-      res.status(200).json({
-        success: true,
-        message: 'User status set to online',
-        data,
-        error: null
-      });
+      return res.success('User status set to online', data, 200);
     } catch (err) {
       next(err);
     }
@@ -34,12 +24,7 @@ class PresenceController {
   async setOffline(req, res, next) {
     try {
       const data = await presenceService.setOffline(req.user.id);
-      res.status(200).json({
-        success: true,
-        message: 'User status set to offline',
-        data,
-        error: null
-      });
+      return res.success('User status set to offline', data, 200);
     } catch (err) {
       next(err);
     }
