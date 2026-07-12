@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import './AboutUs.css';
 
 /* ----------------------------------------------------------------------
@@ -167,7 +168,7 @@ export default function AboutUs() {
               findings — without the noise of a general social feed.
             </p>
             <div className="rc-hero__actions">
-              <a href="/signup" className="rc-btn rc-btn--primary">Create your profile</a>
+              <Link to="/register" className="rc-btn rc-btn--primary">Create your profile</Link>
               <a href="#what-we-offer" className="rc-btn rc-btn--ghost">Explore the platform</a>
             </div>
             <div className="rc-hero__stats">
@@ -431,10 +432,10 @@ export default function AboutUs() {
           <h2>Your next collaborator is already here.</h2>
           <p>Join a network built specifically for researchers, students, and academics — free to get started.</p>
           <div className="rc-cta__actions">
-            <a href="/signup" className="rc-btn rc-btn--onblue">Join ResearchConnect — it's free</a>
-            <a href="/explore" className="rc-btn rc-btn--ghost" style={{ borderColor: 'rgba(255,255,255,0.4)', color: '#fff' }}>
+            <Link to="/register" className="rc-btn rc-btn--onblue">Join ResearchConnect — it's free</Link>
+            <Link to="/explore" className="rc-btn rc-btn--ghost" style={{ borderColor: 'rgba(255,255,255,0.4)', color: '#fff' }}>
               Browse the platform
-            </a>
+            </Link>
           </div>
         </div>
       </Reveal>

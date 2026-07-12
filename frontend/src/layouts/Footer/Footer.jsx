@@ -23,7 +23,7 @@ const footerLinks = {
     { label: 'Google Scholar Sync', href: '#' },
   ],
   Company: [
-    { label: 'About Us', href: '#about' },
+    { label: 'About Us', href: '/about', isRoute: true },
     { label: 'Blog', href: '#' },
     { label: 'Careers', href: '#' },
     { label: 'Contact', href: '#contact' },
@@ -106,14 +106,23 @@ const Footer = () => {
             <div key={section}>
               <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-5">{section}</h4>
               <ul className="space-y-3">
-                {links.map(({ label, href }) => (
+                {links.map(({ label, href, isRoute }) => (
                   <li key={label}>
-                    <a
-                      href={href}
-                      className="text-slate-400 text-sm hover:text-white transition-colors hover:translate-x-0.5 inline-block"
-                    >
-                      {label}
-                    </a>
+                    {isRoute ? (
+                      <Link
+                        to={href}
+                        className="text-slate-400 text-sm hover:text-white transition-colors hover:translate-x-0.5 inline-block"
+                      >
+                        {label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={href}
+                        className="text-slate-400 text-sm hover:text-white transition-colors hover:translate-x-0.5 inline-block"
+                      >
+                        {label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

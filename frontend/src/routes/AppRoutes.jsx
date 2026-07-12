@@ -4,8 +4,6 @@ import AuthLayout from '../layouts/AuthLayout';
 import AppLayout from '../layouts/AppLayout';
 import ComingSoon from '../components/common/ComingSoon';
 import ProjectsPage from "../modules/project/pages/ProjectsPage";
-import CreateProject from "../modules/project/pages/CreateProject";
-import ProjectDetails from "../modules/project/pages/ProjectDetails";
 import HomeFeed from '../modules/home/pages/HomeFeed';
 import AboutUs from '../pages/AboutUs/AboutUs';
 import MessagesView from '../modules/message/components/MessagesView';
@@ -104,6 +102,7 @@ const AppRoutes = () => {
         <Route path="/" element={<HomeHub />} />
         <Route path="/terms" element={<TermsOfServicePage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/about" element={<AboutUs />} />
 
         {/* Dashboard & Modules Layout (No Sidebar) */}
         <Route element={
@@ -127,8 +126,7 @@ const AppRoutes = () => {
           <Route path="publications/published" element={<PublicationsLibraryPage />} />
           <Route path="publications/trash" element={<PublicationsLibraryPage />} />
           <Route path="publications/bookmarks" element={<PublicationsLibraryPage />} />
-          <Route path="projects/create" element={<CreateProject />} />
-          <Route path="projects/:id" element={<ProjectDetails />} />
+          <Route path="projects/create" element={<ComingSoon title="Create Project Coming Soon" />} />
           <Route path="datasets/create" element={<ComingSoon title="Share Dataset Coming Soon" />} />
           <Route path="questions/create" element={<ComingSoon title="Ask Question Coming Soon" />} />
           <Route path="collaborations/create" element={<CreateWorkspace />} />
@@ -142,9 +140,7 @@ const AppRoutes = () => {
           <Route path="messages/:conversationId" element={<MessagesPage />} />
           <Route path="messages/new" element={<MessagesPage />} />
           <Route path="search" element={<SearchPage />} />
-          <Route path="/about" element={<AboutUs />} />
-          
-          
+
           {/* Social Collaboration Module Routes */}
           <Route path="network" element={<NetworkPage />} />
           <Route path="network/connections" element={<ConnectionsPage />} />
