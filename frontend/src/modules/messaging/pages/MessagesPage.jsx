@@ -10,9 +10,10 @@ import ResearcherInfo from '../components/ResearcherInfo';
 import CallOverlay from '../components/CallOverlay';
 import NewChatModal from '../components/NewChatModal';
 import { 
-  ArrowLeft, MessageSquare, Mail, Star, Archive, Users, 
+  MessageSquare, Mail, Star, Archive, Users, 
   Lightbulb, UserPlus, PhoneCall, FolderOpen, FileText, Ban, 
-  Settings, Loader2, Shield, X, Check, Phone, Video, Search, Download, ExternalLink
+  Settings, Loader2, Shield, X, Check, Phone, Video, Search, Download, ExternalLink,
+  SlidersHorizontal, ChevronDown
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -30,6 +31,7 @@ const MessagesPage = () => {
   const [mobileView, setMobileView] = useState('list'); // 'list' or 'chat'
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [showFolderDrawer, setShowFolderDrawer] = useState(false);
   
   // Navigation tabs state
   const [activeTab, setActiveTab] = useState('inbox'); // inbox, unread, starred, archived, groups, collaboration, requests, calls, files, settings
@@ -279,40 +281,6 @@ const MessagesPage = () => {
       queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
     };
 
-    const handlePresenceUpdate = ({ userId, status, lastSeen }) => {
-      const isOnline = status === 'online';
-      
-      // Update conversations cache
-      queryClient.setQueryData(['conversations'], (oldData) => {
-        if (!oldData) return oldData;
-        return oldData.map(c => {
-          if (c.otherParticipant?._id === userId) {
-            return {
-              ...c,
-              otherParticipant: {
-                ...c.otherParticipant,
-                isOnline,
-                lastSeen: lastSeen || c.otherParticipant.lastSeen
-              }
-            };
-          }
-          return c;
-        });
-      });
-
-      // Update messagingContacts cache
-      queryClient.setQueryData(['messagingContacts'], (oldData) => {
-        if (!oldData) return oldData;
-        const updateList = (list) => 
-          (list || []).map(p => p._id === userId ? { ...p, isOnline, lastSeen: lastSeen || p.lastSeen } : p);
-        return {
-          connections: updateList(oldData.connections),
-          followers: updateList(oldData.followers),
-          following: updateList(oldData.following)
-        };
-      });
-    };
-
     socket.on('call:incoming', handleIncomingCall);
     socket.on('call:accepted', handleCallAccepted);
     socket.on('call:rejected', handleCallRejected);
@@ -329,7 +297,6 @@ const MessagesPage = () => {
     socket.on('reactionRemoved', handleMessageUpdate);
     socket.on('conversation:update', handleConversationUpdate);
     socket.on('conversationUpdated', handleConversationUpdate);
-    socket.on('presence:update', handlePresenceUpdate);
 
     return () => {
       socket.off('call:incoming', handleIncomingCall);
@@ -348,7 +315,6 @@ const MessagesPage = () => {
       socket.off('reactionRemoved', handleMessageUpdate);
       socket.off('conversation:update', handleConversationUpdate);
       socket.off('conversationUpdated', handleConversationUpdate);
-      socket.off('presence:update', handlePresenceUpdate);
     };
   }, [socket, activeId]);
 
@@ -524,55 +490,104 @@ const MessagesPage = () => {
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
-  return (
-    <div className="flex h-[calc(100vh-64px)] bg-slate-50/50 overflow-hidden relative select-none">
-      
-      {/* 1. Folders Sub-sidebar (Left side) */}
-      <div className="w-60 h-full border-r border-slate-200 bg-white flex-col shrink-0 text-left select-none p-4 space-y-6 hidden md:flex">
-        <div className="px-2">
-          <h2 className="text-sm font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
-            <span>Workspace Folders</span>
-          </h2>
-        </div>
+  const activeFolder = sidebarFolders.find(f => f.id === activeTab);
+  const ActiveFolderIcon = activeFolder?.icon;
 
-        <nav className="flex-1 space-y-1 overflow-y-auto">
-          {sidebarFolders.map((folder) => {
-            const IconComponent = folder.icon;
-            const isActive = activeTab === folder.id;
-            return (
+  const selectFolder = (folderId) => {
+    setActiveTab(folderId);
+    if (folderId === 'unread') setActiveSubTab('unread');
+    else if (folderId === 'groups') setActiveSubTab('groups');
+    else setActiveSubTab('all');
+    setShowFolderDrawer(false);
+  };
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-64px)] -m-6 md:-m-8 bg-slate-50/50 overflow-hidden relative select-none">
+
+      {/* Filter trigger button — shows Workspace Folders panel only when clicked. Mobile: hidden once inside a chat. Desktop: always visible. */}
+      {[
+        { wrapperClass: 'md:hidden', show: mobileView !== 'chat' },
+        { wrapperClass: 'hidden md:flex', show: true }
+      ].map(({ wrapperClass, show }, i) => show && (
+        <div key={i} className={`${wrapperClass} items-center gap-2 px-4 py-2.5 bg-white border-b border-slate-100 shrink-0`}>
+          <button
+            onClick={() => setShowFolderDrawer(true)}
+            className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border active:scale-95 ${
+              showFolderDrawer
+                ? 'bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/20'
+                : 'bg-slate-100 border-transparent hover:bg-slate-200 text-slate-700'
+            }`}
+            title="Filter by workspace folder"
+          >
+            <SlidersHorizontal className={`w-3.5 h-3.5 ${showFolderDrawer ? 'text-white' : 'text-blue-600'}`} />
+            <span>Filter</span>
+            <span className={`w-px h-3.5 ${showFolderDrawer ? 'bg-white/30' : 'bg-slate-300'}`} />
+            {ActiveFolderIcon && <ActiveFolderIcon className={`w-3.5 h-3.5 ${showFolderDrawer ? 'text-white' : 'text-blue-600'}`} />}
+            <span>{activeFolder?.label || 'Inbox'}</span>
+            {activeFolder?.badge ? (
+              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${showFolderDrawer ? 'bg-white/25 text-white' : 'bg-blue-600 text-white'}`}>{activeFolder.badge}</span>
+            ) : null}
+            <ChevronDown className={`w-3 h-3 transition-transform ${showFolderDrawer ? 'rotate-180 text-white' : 'text-slate-400'}`} />
+          </button>
+        </div>
+      ))}
+
+      {/* Workspace Folders — filter panel, only shown when the user clicks "Filter" above. Positioned within this page's own container (absolute, not fixed) so it never overlaps the app's main sidenav. */}
+      {showFolderDrawer && (
+        <div
+          className="absolute inset-0 z-50 flex items-end md:items-stretch md:justify-start"
+          onClick={() => setShowFolderDrawer(false)}
+        >
+          <div className="absolute inset-0 bg-black/30 animate-in fade-in duration-150" />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full md:w-72 max-h-[75vh] md:max-h-full md:h-full bg-white rounded-t-3xl md:rounded-none md:rounded-r-3xl shadow-2xl flex flex-col animate-in slide-in-from-bottom md:slide-in-from-left duration-200"
+          >
+            <div className="md:hidden w-10 h-1 bg-slate-200 rounded-full mx-auto my-2.5 shrink-0" />
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 shrink-0">
+              <h2 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-blue-600" />
+                <span>Workspace Folders</span>
+              </h2>
               <button
-                key={folder.id}
-                onClick={() => {
-                  setActiveTab(folder.id);
-                  if (folder.id === 'unread') setActiveSubTab('unread');
-                  else if (folder.id === 'groups') setActiveSubTab('groups');
-                  else setActiveSubTab('all');
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  isActive 
-                    ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600 pl-2' 
-                    : 'text-slate-550 hover:bg-slate-50 hover:text-slate-850'
-                }`}
+                onClick={() => setShowFolderDrawer(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                title="Close"
               >
-                <div className="flex items-center gap-2.5">
-                  <IconComponent className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-450'}`} />
-                  <span>{folder.label}</span>
-                </div>
-                {folder.badge && (
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                    isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {folder.badge}
-                  </span>
-                )}
+                <X className="w-4 h-4 text-slate-500" />
               </button>
-            );
-          })}
-        </nav>
-      </div>
+            </div>
+            <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+              {sidebarFolders.map((folder) => {
+                const IconComponent = folder.icon;
+                const isActive = activeTab === folder.id;
+                return (
+                  <button
+                    key={folder.id}
+                    onClick={() => selectFolder(folder.id)}
+                    className={`w-full flex items-center justify-between px-3.5 py-3 md:py-2.5 rounded-2xl md:rounded-xl text-sm md:text-xs font-bold transition-all cursor-pointer ${
+                      isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <IconComponent className={`w-4.5 h-4.5 md:w-4 md:h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                      <span>{folder.label}</span>
+                    </div>
+                    {folder.badge && (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        {folder.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      )}
 
       {/* 2. Middle Content Section (Changes based on selected Folder tab) */}
-      <div className="flex-1 h-full flex overflow-hidden bg-white">
+      <div className="flex-1 min-h-0 flex overflow-hidden bg-white">
         {activeTab === 'followers' ? (
           /* Followers Panel */
           <div className="flex-1 h-full overflow-y-auto p-6 bg-slate-50/20 text-left">
@@ -756,8 +771,46 @@ const MessagesPage = () => {
                 <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
               </div>
             ) : callHistoryData && callHistoryData.length > 0 ? (
-              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                <table className="w-full text-left border-collapse">
+              <>
+                {/* Mobile card list */}
+                <div className="sm:hidden space-y-2.5">
+                  {callHistoryData.map((call) => {
+                    const other = call.participants.find(p => p._id !== socket?.userId);
+                    const contactName = other ? `${other.firstName} ${other.lastName}` : 'Researcher';
+                    const isVideo = call.type === 'video';
+                    return (
+                      <div key={call._id} className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
+                        <img
+                          src={other?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100"}
+                          alt={contactName}
+                          className="w-10 h-10 rounded-full object-cover border shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-[13px] font-black text-slate-800 truncate">{contactName}</p>
+                            <span className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                              call.status === 'completed'
+                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                : call.status === 'missed'
+                                  ? 'bg-rose-50 text-rose-600 border border-rose-100'
+                                  : 'bg-slate-50 text-slate-655 border border-slate-150'
+                            }`}>
+                              {call.status}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-450 font-semibold mt-0.5">
+                            {isVideo ? '📹 Video' : '📞 Voice'} • {call.duration ? `${Math.floor(call.duration / 60)}m ${call.duration % 60}s` : '--'}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{new Date(call.createdAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Tablet / desktop table */}
+                <div className="hidden sm:block bg-white border border-slate-200 rounded-3xl overflow-x-auto shadow-sm">
+                <table className="w-full text-left border-collapse min-w-[560px]">
                   <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] font-black uppercase text-slate-450 tracking-wider">
                       <th className="p-4">Contact</th>
@@ -808,7 +861,8 @@ const MessagesPage = () => {
                     })}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             ) : (
               <div className="py-24 text-center text-slate-400 space-y-3">
                 <PhoneCall className="w-12 h-12 mx-auto opacity-30" />
@@ -967,19 +1021,6 @@ const MessagesPage = () => {
                 mobileView === 'list' && activeId ? 'hidden md:flex' : 'flex'
               }`}
             >
-              {/* Mobile Header navigation */}
-              {mobileView === 'chat' && activeId && (
-                <div className="md:hidden flex items-center gap-2 p-3 bg-white border-b border-slate-150 z-20 select-none text-left">
-                  <button 
-                    onClick={() => setMobileView('list')}
-                    className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 cursor-pointer"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </button>
-                  <span className="text-[10px] font-black uppercase text-[#475569]">Back to list</span>
-                </div>
-              )}
-
               <ChatWindow
                 conversation={activeConversation}
                 messages={messagesList}
@@ -989,33 +1030,54 @@ const MessagesPage = () => {
                 socket={socket}
                 showInfoPanel={showInfoPanel}
                 setShowInfoPanel={setShowInfoPanel}
+                onBack={() => setMobileView('list')}
               />
             </div>
 
-            {/* Right details sidebar */}
+            {/* Right details sidebar (desktop) / bottom sheet overlay (mobile & tablet) */}
             {activeConversation && showInfoPanel && (
-              <div className="hidden lg:block h-full shrink-0">
-                <ResearcherInfo
-                  participant={activeConversation.otherParticipant}
-                  conversation={activeConversation}
-                  messages={messagesList}
-                />
-              </div>
+              <>
+                <div className="hidden lg:block h-full shrink-0 animate-in slide-in-from-right duration-200">
+                  <ResearcherInfo
+                    participant={activeConversation.otherParticipant}
+                    conversation={activeConversation}
+                    messages={messagesList}
+                    onClose={() => setShowInfoPanel(false)}
+                  />
+                </div>
+
+                <div
+                  className="lg:hidden fixed inset-0 z-40 flex items-end sm:items-center sm:justify-center"
+                  onClick={() => setShowInfoPanel(false)}
+                >
+                  <div className="absolute inset-0 bg-black/30" />
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="relative w-full sm:w-96 max-h-[85vh] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+                  >
+                    <div className="sm:hidden w-10 h-1 bg-slate-200 rounded-full mx-auto my-2.5 shrink-0" />
+                    <ResearcherInfo
+                      participant={activeConversation.otherParticipant}
+                      conversation={activeConversation}
+                      messages={messagesList}
+                      onClose={() => setShowInfoPanel(false)}
+                    />
+                  </div>
+                </div>
+              </>
             )}
           </>
         )}
       </div>
 
       {/* Call Overlay Panel */}
-      {callState.status !== 'idle' && (
-        <CallOverlay
-          callState={callState}
-          onAccept={handleAcceptCall}
-          onDecline={handleDeclineCall}
-          onHangup={handleHangupCall}
-          socket={socket}
-        />
-      )}
+      <CallOverlay
+        callState={callState}
+        onAccept={handleAcceptCall}
+        onDecline={handleDeclineCall}
+        onHangup={handleHangupCall}
+        socket={socket}
+      />
 
       {/* Compose / New Chat Modal */}
       <NewChatModal

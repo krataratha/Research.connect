@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, BookOpen, Users, Building2, Mic2, FolderKanban, SlidersHorizontal, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, BookOpen, Users, Building2, Mic2, FolderKanban, SlidersHorizontal, X, ChevronLeft, ChevronRight, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import searchService from '../../../services/search.service';
@@ -9,15 +9,21 @@ import SearchBar from '../components/SearchBar';
 import SearchFilters from '../components/SearchFilters';
 import PublicationResultCard from '../components/PublicationResultCard';
 import AuthorResultCard from '../components/AuthorResultCard';
+import ResearcherResultCard from '../components/ResearcherResultCard';
+import KeywordChip from '../components/KeywordChip';
+import InstitutionResultCard from '../components/InstitutionResultCard';
 import TrendingSection from '../components/TrendingSection';
 
 const TABS = [
   { key: 'all',          label: 'All',          icon: Search },
+  { key: 'researchers',  label: 'Researchers',  icon: Users },
   { key: 'publications', label: 'Publications',  icon: BookOpen },
   { key: 'authors',      label: 'Authors',       icon: Users },
   { key: 'journals',     label: 'Journals',      icon: Building2 },
   { key: 'conferences',  label: 'Conferences',   icon: Mic2 },
   { key: 'projects',     label: 'Projects',      icon: FolderKanban },
+  { key: 'keywords',     label: 'Keywords',      icon: Tag },
+  { key: 'institutions', label: 'Institutions',  icon: Building2 },
 ];
 
 const DEFAULT_FILTERS = {
@@ -150,7 +156,7 @@ const SearchPage = () => {
   const pubQuery = useQuery({
     queryKey: ['search-publications', query, filters, sort, page],
     queryFn: () => searchService.searchPublications(searchParams_),
-    enabled: (activeTab === 'all' || activeTab === 'publications') && !!query,
+    enabled: activeTab === 'publications' && !!query,
     staleTime: 30 * 1000,
     keepPreviousData: true,
   });
@@ -159,7 +165,31 @@ const SearchPage = () => {
   const authQuery = useQuery({
     queryKey: ['search-authors', query, page],
     queryFn: () => searchService.searchAuthors({ q: query, page, limit: 15 }),
-    enabled: (activeTab === 'all' || activeTab === 'authors') && !!query,
+    enabled: activeTab === 'authors' && !!query,
+    staleTime: 30 * 1000,
+  });
+
+  // Researchers query
+  const researchersQuery = useQuery({
+    queryKey: ['search-researchers', query, page],
+    queryFn: () => searchService.searchResearchers({ q: query, page, limit: 15 }),
+    enabled: activeTab === 'researchers' && !!query,
+    staleTime: 30 * 1000,
+  });
+
+  // Keywords query
+  const keywordsQuery = useQuery({
+    queryKey: ['search-keywords', query, page],
+    queryFn: () => searchService.searchKeywords({ q: query, page, limit: 20 }),
+    enabled: activeTab === 'keywords' && !!query,
+    staleTime: 30 * 1000,
+  });
+
+  // Institutions query
+  const institutionsQuery = useQuery({
+    queryKey: ['search-institutions', query, page],
+    queryFn: () => searchService.searchInstitutions({ q: query, page, limit: 15 }),
+    enabled: activeTab === 'institutions' && !!query,
     staleTime: 30 * 1000,
   });
 
@@ -186,15 +216,27 @@ const SearchPage = () => {
     staleTime: 30 * 1000,
   });
 
+  // Unified / All query
+  const allQuery = useQuery({
+    queryKey: ['search-all', query],
+    queryFn: () => searchService.search({ q: query }),
+    enabled: activeTab === 'all' && !!query,
+    staleTime: 30 * 1000,
+  });
+
   const activeFilterCount = countActiveFilters(filters);
 
-  const pubResults = pubQuery.data?.data || {};
-  const authResults = authQuery.data?.data || {};
-  const journalResults = journalsQuery.data?.data || {};
-  const confResults = confsQuery.data?.data || {};
-  const projectResults = projectsQuery.data?.data || {};
+  const allResults = allQuery.data?.data || allQuery.data || {};
+  const pubResults = pubQuery.data?.data || pubQuery.data || {};
+  const authResults = authQuery.data?.data || authQuery.data || {};
+  const researcherResults = researchersQuery.data?.data || researchersQuery.data || {};
+  const keywordResults = keywordsQuery.data?.data || keywordsQuery.data || {};
+  const institutionResults = institutionsQuery.data?.data || institutionsQuery.data || {};
+  const journalResults = journalsQuery.data?.data || journalsQuery.data || {};
+  const confResults = confsQuery.data?.data || confsQuery.data || {};
+  const projectResults = projectsQuery.data?.data || projectsQuery.data || {};
 
-  const isLoading = pubQuery.isFetching || authQuery.isFetching || journalsQuery.isFetching || confsQuery.isFetching || projectsQuery.isFetching;
+  const isLoading = allQuery.isFetching || pubQuery.isFetching || authQuery.isFetching || researchersQuery.isFetching || keywordsQuery.isFetching || institutionsQuery.isFetching || journalsQuery.isFetching || confsQuery.isFetching || projectsQuery.isFetching;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -206,6 +248,7 @@ const SearchPage = () => {
               <SearchBar
                 placeholder="Search publications, authors, journals, conferences…"
                 onSearch={handleSearch}
+                initialValue={query}
               />
             </div>
             {/* Mobile filter toggle */}
@@ -287,13 +330,25 @@ const SearchPage = () => {
               {!isLoading && query && (
                 <div className="mb-4 flex items-center justify-between">
                   <p className="text-sm text-gray-500">
-                    {(activeTab === 'all' || activeTab === 'publications') && pubResults.total !== undefined && (
+                    {activeTab === 'all' && (
+                      <span>Global search results</span>
+                    )}
+                    {activeTab === 'publications' && pubResults.total !== undefined && (
                       <span><strong className="text-gray-900">{pubResults.total?.toLocaleString()}</strong> publications</span>
                     )}
-                    {(activeTab === 'authors') && authResults.total !== undefined && (
+                    {activeTab === 'authors' && authResults.total !== undefined && (
                       <span><strong className="text-gray-900">{authResults.total?.toLocaleString()}</strong> authors</span>
                     )}
-                    {(activeTab === 'projects') && projectResults.total !== undefined && (
+                    {activeTab === 'researchers' && researcherResults.total !== undefined && (
+                      <span><strong className="text-gray-900">{researcherResults.total?.toLocaleString()}</strong> researchers</span>
+                    )}
+                    {activeTab === 'keywords' && keywordResults.total !== undefined && (
+                      <span><strong className="text-gray-900">{keywordResults.total?.toLocaleString()}</strong> keywords</span>
+                    )}
+                    {activeTab === 'institutions' && institutionResults.total !== undefined && (
+                      <span><strong className="text-gray-900">{institutionResults.total?.toLocaleString()}</strong> institutions</span>
+                    )}
+                    {activeTab === 'projects' && projectResults.total !== undefined && (
                       <span><strong className="text-gray-900">{projectResults.total?.toLocaleString()}</strong> projects</span>
                     )}
                     {' '}for <strong className="text-gray-900">"{query}"</strong>
@@ -302,8 +357,146 @@ const SearchPage = () => {
                 </div>
               )}
 
-              {/* Publication Results */}
-              {(activeTab === 'all' || activeTab === 'publications') && (
+              {/* All / Combined overview tab */}
+              {activeTab === 'all' && (
+                <div className="space-y-10">
+                  {allQuery.isLoading ? (
+                    Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+                  ) : (
+                    <>
+                      {/* Researchers Summary */}
+                      {allResults.researchers?.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between border-b border-gray-150 pb-2">
+                            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                              <Users className="w-5 h-5 text-blue-600" /> Researchers
+                            </h2>
+                            <button onClick={() => handleTabChange('researchers')} className="text-xs font-bold text-blue-600 hover:underline cursor-pointer">
+                              View all ({allResults.researchers.length}+)
+                            </button>
+                          </div>
+                          <div className="space-y-4">
+                            {allResults.researchers.slice(0, 3).map((res, i) => (
+                              <ResearcherResultCard key={res._id || i} researcher={res} index={i} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Publications Summary */}
+                      {allResults.publications?.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between border-b border-gray-150 pb-2">
+                            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                              <BookOpen className="w-5 h-5 text-emerald-600" /> Publications
+                            </h2>
+                            <button onClick={() => handleTabChange('publications')} className="text-xs font-bold text-blue-600 hover:underline cursor-pointer">
+                              View all ({allResults.publications.length}+)
+                            </button>
+                          </div>
+                          <div className="space-y-4">
+                            {allResults.publications.slice(0, 3).map((pub, i) => (
+                              <PublicationResultCard key={pub._id || i} publication={pub} index={i} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Authors Summary */}
+                      {allResults.authors?.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between border-b border-gray-150 pb-2">
+                            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                              <Users className="w-5 h-5 text-purple-600" /> Authors
+                            </h2>
+                            <button onClick={() => handleTabChange('authors')} className="text-xs font-bold text-blue-600 hover:underline cursor-pointer">
+                              View all ({allResults.authors.length}+)
+                            </button>
+                          </div>
+                          <div className="space-y-4">
+                            {allResults.authors.slice(0, 3).map((auth, i) => (
+                              <AuthorResultCard key={i} author={auth} index={i} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Keywords Summary */}
+                      {allResults.keywords?.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between border-b border-gray-150 pb-2">
+                            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                              <Tag className="w-5 h-5 text-orange-600" /> Keywords
+                            </h2>
+                            <button onClick={() => handleTabChange('keywords')} className="text-xs font-bold text-blue-600 hover:underline cursor-pointer">
+                              View all ({allResults.keywords.length}+)
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {allResults.keywords.slice(0, 4).map((item, i) => (
+                              <KeywordChip key={i} item={item} onClick={handleSearch} index={i} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Institutions Summary */}
+                      {allResults.institutions?.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between border-b border-gray-150 pb-2">
+                            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                              <Building2 className="w-5 h-5 text-indigo-600" /> Institutions
+                            </h2>
+                            <button onClick={() => handleTabChange('institutions')} className="text-xs font-bold text-blue-600 hover:underline cursor-pointer">
+                              View all ({allResults.institutions.length}+)
+                            </button>
+                          </div>
+                          <div className="space-y-4">
+                            {allResults.institutions.slice(0, 3).map((inst, i) => (
+                              <InstitutionResultCard key={inst._id || i} institution={inst} onBrowse={handleSearch} index={i} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Default Empty State across all categories */}
+                      {!allQuery.isLoading &&
+                        (!allResults.researchers?.length &&
+                         !allResults.publications?.length &&
+                         !allResults.authors?.length &&
+                         !allResults.keywords?.length &&
+                         !allResults.institutions?.length) && (
+                          <EmptyState query={query} />
+                        )
+                      }
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Researchers Results tab */}
+              {activeTab === 'researchers' && (
+                <div className="space-y-4">
+                  {researchersQuery.isLoading
+                    ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+                    : researcherResults.results?.length > 0
+                      ? <>
+                          {researcherResults.results.map((res, i) => (
+                            <ResearcherResultCard key={res._id || i} researcher={res} index={i} />
+                          ))}
+                          <Pagination
+                            page={researcherResults.page || page}
+                            totalPages={researcherResults.totalPages || 1}
+                            onPageChange={setPage}
+                          />
+                        </>
+                      : <EmptyState query={query} />
+                  }
+                </div>
+              )}
+
+              {/* Publication Results tab */}
+              {activeTab === 'publications' && (
                 <div className="space-y-4">
                   {pubQuery.isLoading
                     ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
@@ -318,45 +511,96 @@ const SearchPage = () => {
                             onPageChange={setPage}
                           />
                         </>
-                      : query && !pubQuery.isLoading && <EmptyState query={query} />
+                      : <EmptyState query={query} />
                   }
                 </div>
               )}
 
-              {(activeTab === 'all' || activeTab === 'projects') && projectResults.results?.length > 0 && (
-                <div className="space-y-4 mt-8">
-                  {activeTab === 'all' && <h2 className="text-base font-bold text-gray-900 flex items-center gap-2"><FolderKanban className="w-5 h-5 text-blue-600" /> Projects</h2>}
-                  {projectResults.results.map((project) => (
-                    <button key={project._id} onClick={() => navigate(`/projects/${project.slug || project._id}`)} className="block w-full rounded-2xl border border-gray-200 bg-white p-5 text-left transition hover:border-blue-300 hover:shadow-md">
-                      <div className="flex items-start justify-between gap-4"><div><p className="text-base font-bold text-gray-900">{project.title}</p><p className="mt-1 line-clamp-2 text-sm text-gray-500">{project.description}</p><div className="mt-3 flex flex-wrap gap-2"><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-600">{project.researchDomain || 'Research'}</span>{project.tags?.slice(0, 3).map((tag) => <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{tag}</span>)}</div></div><span className="whitespace-nowrap rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">{project.status}</span></div>
-                    </button>
-                  ))}
-                  {activeTab === 'projects' && <Pagination page={projectResults.page || page} totalPages={projectResults.totalPages || 1} onPageChange={setPage} />}
+              {/* Projects Results tab */}
+              {activeTab === 'projects' && (
+                <div className="space-y-4">
+                  {projectsQuery.isLoading
+                    ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+                    : projectResults.results?.length > 0
+                      ? <>
+                          {projectResults.results.map((project) => (
+                            <button key={project._id} onClick={() => navigate(`/projects/${project.slug || project._id}`)} className="block w-full rounded-2xl border border-gray-200 bg-white p-5 text-left transition hover:border-blue-300 hover:shadow-md cursor-pointer">
+                              <div className="flex items-start justify-between gap-4"><div><p className="text-base font-bold text-gray-900">{project.title}</p><p className="mt-1 line-clamp-2 text-sm text-gray-500">{project.description}</p><div className="mt-3 flex flex-wrap gap-2"><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-600">{project.researchDomain || 'Research'}</span>{project.tags?.slice(0, 3).map((tag) => <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{tag}</span>)}</div></div><span className="whitespace-nowrap rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">{project.status}</span></div>
+                            </button>
+                          ))}
+                          <Pagination page={projectResults.page || page} totalPages={projectResults.totalPages || 1} onPageChange={setPage} />
+                        </>
+                      : <EmptyState query={query} />
+                  }
                 </div>
               )}
 
-              {/* Author Results */}
-              {(activeTab === 'all' || activeTab === 'authors') && authResults.results?.length > 0 && (
-                <div className="space-y-4 mt-8">
-                  {activeTab === 'all' && (
-                    <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                      <Users className="w-5 h-5 text-purple-600" /> Authors
-                    </h2>
-                  )}
-                  {authResults.results.map((author, i) => (
-                    <AuthorResultCard key={i} author={author} index={i} />
-                  ))}
-                  {activeTab === 'authors' && (
-                    <Pagination
-                      page={authResults.page || page}
-                      totalPages={authResults.totalPages || 1}
-                      onPageChange={setPage}
-                    />
-                  )}
+              {/* Author Results tab */}
+              {activeTab === 'authors' && (
+                <div className="space-y-4">
+                  {authQuery.isLoading
+                    ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+                    : authResults.results?.length > 0
+                      ? <>
+                          {authResults.results.map((author, i) => (
+                            <AuthorResultCard key={i} author={author} index={i} />
+                          ))}
+                          <Pagination
+                            page={authResults.page || page}
+                            totalPages={authResults.totalPages || 1}
+                            onPageChange={setPage}
+                          />
+                        </>
+                      : <EmptyState query={query} />
+                  }
                 </div>
               )}
 
-              {/* Journals Results */}
+              {/* Keywords Results tab */}
+              {activeTab === 'keywords' && (
+                <div className="space-y-4">
+                  {keywordsQuery.isLoading
+                    ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-16 bg-white rounded-2xl border border-gray-200 animate-pulse" />)
+                    : keywordResults.results?.length > 0
+                      ? <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {keywordResults.results.map((item, i) => (
+                              <KeywordChip key={i} item={item} onClick={handleSearch} index={i} />
+                            ))}
+                          </div>
+                          <Pagination
+                            page={keywordResults.page || page}
+                            totalPages={keywordResults.totalPages || 1}
+                            onPageChange={setPage}
+                          />
+                        </>
+                      : <EmptyState query={query} />
+                  }
+                </div>
+              )}
+
+              {/* Institutions Results tab */}
+              {activeTab === 'institutions' && (
+                <div className="space-y-4">
+                  {institutionsQuery.isLoading
+                    ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+                    : institutionResults.results?.length > 0
+                      ? <>
+                          {institutionResults.results.map((inst, i) => (
+                            <InstitutionResultCard key={inst._id || i} institution={inst} onBrowse={handleSearch} index={i} />
+                          ))}
+                          <Pagination
+                            page={institutionResults.page || page}
+                            totalPages={institutionResults.totalPages || 1}
+                            onPageChange={setPage}
+                          />
+                        </>
+                      : <EmptyState query={query} />
+                  }
+                </div>
+              )}
+
+              {/* Journals Results tab */}
               {activeTab === 'journals' && (
                 <div className="space-y-3">
                   {journalsQuery.isLoading
@@ -382,7 +626,7 @@ const SearchPage = () => {
                               </div>
                               <button
                                 onClick={() => handleSearch(j.name)}
-                                className="px-4 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold rounded-xl transition-colors"
+                                className="px-4 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
                               >
                                 Browse
                               </button>
@@ -395,7 +639,7 @@ const SearchPage = () => {
                 </div>
               )}
 
-              {/* Conferences Results */}
+              {/* Conferences Results tab */}
               {activeTab === 'conferences' && (
                 <div className="space-y-3">
                   {confsQuery.isLoading
@@ -421,7 +665,7 @@ const SearchPage = () => {
                               </div>
                               <button
                                 onClick={() => handleSearch(c.name)}
-                                className="px-4 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold rounded-xl transition-colors"
+                                className="px-4 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
                               >
                                 Browse
                               </button>

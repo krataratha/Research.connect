@@ -138,13 +138,6 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
         screenTrackRef.current.stop();
         screenTrackRef.current = null;
       }
-      // Reset srcObject to completely release hardware
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = null;
-      }
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = null;
-      }
       if (socket) {
         socket.off('call:signal');
       }
@@ -237,12 +230,13 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
       >
         {/* Top Header */}
         <div className="w-full flex items-center justify-between max-w-6xl">
-          <div className="flex items-center gap-2 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/5 text-xs font-bold uppercase tracking-wider">
-            <Volume2 className="w-4 h-4 text-emerald-400" />
-            <span>Secure WebRTC {type} call</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-2.5 sm:px-3.5 py-1.5 rounded-full border border-white/5 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+            <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+            <span className="hidden xs:inline sm:inline">Secure WebRTC {type} call</span>
+            <span className="xs:hidden sm:hidden">{type} call</span>
           </div>
           {status === 'active' && (
-            <div className="text-sm font-black text-slate-300 tabular-nums bg-white/5 px-4 py-1.5 rounded-full border border-white/5">
+            <div className="text-xs sm:text-sm font-black text-slate-300 tabular-nums bg-white/5 px-3 sm:px-4 py-1.5 rounded-full border border-white/5">
               {formatTime(callDuration)}
             </div>
           )}
@@ -311,22 +305,22 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
         </div>
 
         {/* Bottom Call Action Controls Bar */}
-        <div className="w-full max-w-md flex items-center justify-center gap-6 py-4 bg-white/5 border border-white/5 rounded-3xl backdrop-blur-md px-8 shadow-xl mb-4">
+        <div className="w-full max-w-md flex items-center justify-center flex-wrap gap-3 sm:gap-6 py-4 bg-white/5 border border-white/5 rounded-3xl backdrop-blur-md px-4 sm:px-8 shadow-xl mb-4">
           {status === 'incoming' ? (
             <>
               {/* Accept button */}
               <button 
                 onClick={onAccept}
-                className="w-14 h-14 bg-emerald-500 hover:bg-emerald-600 rounded-full flex items-center justify-center transition-all transform hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-emerald-500/20"
+                className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-500 hover:bg-emerald-600 rounded-full flex items-center justify-center transition-all transform hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-emerald-500/20"
               >
-                <Phone className="w-6 h-6 fill-white" />
+                <Phone className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
               </button>
               {/* Decline button */}
               <button 
                 onClick={onDecline}
-                className="w-14 h-14 bg-rose-500 hover:bg-rose-600 rounded-full flex items-center justify-center transition-all transform hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-rose-500/20"
+                className="w-12 h-12 sm:w-14 sm:h-14 bg-rose-500 hover:bg-rose-600 rounded-full flex items-center justify-center transition-all transform hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-rose-500/20"
               >
-                <PhoneOff className="w-6 h-6 fill-white" />
+                <PhoneOff className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
               </button>
             </>
           ) : (
@@ -334,10 +328,10 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
               {/* Audio mute toggle */}
               <button 
                 onClick={toggleMic}
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${micActive ? 'bg-white/10 border-white/10 hover:bg-white/20' : 'bg-rose-500 border-rose-500 hover:bg-rose-600'}`}
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${micActive ? 'bg-white/10 border-white/10 hover:bg-white/20' : 'bg-rose-500 border-rose-500 hover:bg-rose-600'}`}
                 title={micActive ? 'Mute Microphone' : 'Unmute Microphone'}
               >
-                {micActive ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                {micActive ? <Mic className="w-4.5 h-4.5 sm:w-5 sm:h-5" /> : <MicOff className="w-4.5 h-4.5 sm:w-5 sm:h-5" />}
               </button>
 
               {type === 'video' && (
@@ -345,19 +339,19 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
                   {/* Camera toggle */}
                   <button 
                     onClick={toggleVideo}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${videoActive ? 'bg-white/10 border-white/10 hover:bg-white/20' : 'bg-slate-700 border-slate-700 hover:bg-slate-600'}`}
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${videoActive ? 'bg-white/10 border-white/10 hover:bg-white/20' : 'bg-slate-700 border-slate-700 hover:bg-slate-600'}`}
                     title={videoActive ? 'Turn Video Off' : 'Turn Video On'}
                   >
-                    {videoActive ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                    {videoActive ? <Video className="w-4.5 h-4.5 sm:w-5 sm:h-5" /> : <VideoOff className="w-4.5 h-4.5 sm:w-5 sm:h-5" />}
                   </button>
 
                   {/* Screen share toggle */}
                   <button 
                     onClick={toggleScreenShare}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${screenSharing ? 'bg-emerald-500 border-emerald-500 hover:bg-emerald-600' : 'bg-white/10 border-white/10 hover:bg-white/20'}`}
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${screenSharing ? 'bg-emerald-500 border-emerald-500 hover:bg-emerald-600' : 'bg-white/10 border-white/10 hover:bg-white/20'}`}
                     title={screenSharing ? 'Stop Screen Share' : 'Start Screen Share'}
                   >
-                    <ScreenShare className="w-5 h-5" />
+                    <ScreenShare className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                   </button>
                 </>
               )}
@@ -365,19 +359,19 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
               {/* Hand raise */}
               <button 
                 onClick={() => setHandRaised(!handRaised)}
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${handRaised ? 'bg-amber-500 border-amber-500' : 'bg-white/10 border-white/10 hover:bg-white/20'}`}
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${handRaised ? 'bg-amber-500 border-amber-500' : 'bg-white/10 border-white/10 hover:bg-white/20'}`}
                 title="Raise Hand"
               >
-                <Hand className="w-5 h-5" />
+                <Hand className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
               </button>
 
               {/* Hangup button */}
               <button 
                 onClick={onHangup}
-                className="w-12 h-12 bg-rose-500 hover:bg-rose-600 rounded-full flex items-center justify-center transition-all transform hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-rose-500/20"
+                className="w-11 h-11 sm:w-12 sm:h-12 bg-rose-500 hover:bg-rose-600 rounded-full flex items-center justify-center transition-all transform hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-rose-500/20"
                 title="End Call"
               >
-                <PhoneOff className="w-5 h-5 fill-white" />
+                <PhoneOff className="w-4.5 h-4.5 sm:w-5 sm:h-5 fill-white" />
               </button>
             </>
           )}

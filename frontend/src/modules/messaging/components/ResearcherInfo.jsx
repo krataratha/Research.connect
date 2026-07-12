@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Users, FileText, Share2, Shield, Landmark, BookOpen, GraduationCap } from 'lucide-react';
+import { Calendar, Users, FileText, Share2, Shield, Landmark, BookOpen, GraduationCap, X } from 'lucide-react';
 
-const ResearcherInfo = ({ participant, conversation, messages = [] }) => {
+const ResearcherInfo = ({ participant, conversation, messages = [], onClose }) => {
   if (!participant) return null;
 
   const {
@@ -38,7 +38,22 @@ const ResearcherInfo = ({ participant, conversation, messages = [] }) => {
     : '12 May 2024';
 
   return (
-    <div className="h-full bg-white border-l border-slate-200 w-80 p-6 flex flex-col gap-6 text-left overflow-y-auto shrink-0 select-none shadow-sm">
+    <div className="h-full bg-white lg:border-l border-slate-200 w-full lg:w-80 flex flex-col text-left overflow-y-auto shrink-0 select-none lg:shadow-sm">
+      {/* Panel header — lets the user close the Overview after opening it */}
+      <div className="flex items-center justify-between px-6 pt-5 pb-1 shrink-0 sticky top-0 bg-white z-10">
+        <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Overview</h3>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1.5 -mr-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+            title="Close overview"
+          >
+            <X className="w-4 h-4 text-slate-500" />
+          </button>
+        )}
+      </div>
+
+      <div className="p-6 pt-3 flex flex-col gap-6">
       {/* Profile summary */}
       <div className="flex flex-col items-center text-center space-y-4 pb-6 border-b border-slate-100">
         <div className="relative">
@@ -145,6 +160,7 @@ const ResearcherInfo = ({ participant, conversation, messages = [] }) => {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

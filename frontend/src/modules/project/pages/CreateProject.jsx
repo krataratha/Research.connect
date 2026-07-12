@@ -11,13 +11,16 @@ const Field = ({ label, children, className = '' }) => <label className={`block 
 export default function CreateProject() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', longDescription: '', researchDomain: '', status: 'Draft', startDate: '', endDate: '', githubUrl: '' });
+  const [form, setForm] = useState({ title: '', description: '', longDescription: '', researchDomain: '', customDomain: '', status: 'Draft', startDate: '', endDate: '', githubUrl: '' });
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const submit = async (event) => {
     event.preventDefault();
     if (!form.title.trim() || !form.description.trim()) return toast.error('Project title and short description are required.');
+    if (form.researchDomain === 'Other' && !form.customDomain.trim()) return toast.error('Please specify your research domain.');
     setSaving(true);
-    try { await api.post('/projects', form); toast.success('Project created successfully'); navigate('/projects'); }
+    const payload = { ...form, researchDomain: form.researchDomain === 'Other' ? form.customDomain.trim() : form.researchDomain };
+    delete payload.customDomain;
+    try { await api.post('/projects', payload); toast.success('Project created successfully'); navigate('/projects'); }
     catch (error) { toast.error(error.response?.data?.message || 'Could not create project. Please try again.'); }
     finally { setSaving(false); }
   };
@@ -30,6 +33,7 @@ export default function CreateProject() {
       <Field label="Detailed description" className="md:col-span-2"><textarea value={form.longDescription} onChange={(e) => update('longDescription', e.target.value)} rows="4" placeholder="Add more context if needed (optional)" className={fieldClass}/></Field>
       <Field label="Research domain"><select value={form.researchDomain} onChange={(e) => update('researchDomain', e.target.value)} className={fieldClass}><option value="">Select a domain</option>{domains.map((domain) => <option key={domain}>{domain}</option>)}</select></Field>
       <Field label="Status"><select value={form.status} onChange={(e) => update('status', e.target.value)} className={fieldClass}>{['Draft', 'Active', 'In Progress', 'Completed'].map((status) => <option key={status}>{status}</option>)}</select></Field>
+      {form.researchDomain === 'Other' && <Field label="Specify domain" className="md:col-span-2"><input required value={form.customDomain} onChange={(e) => update('customDomain', e.target.value)} placeholder="Enter your research domain" className={fieldClass}/></Field>}
       <Field label="Start date"><input type="date" value={form.startDate} onChange={(e) => update('startDate', e.target.value)} className={fieldClass}/></Field>
       <Field label="Expected end date"><input type="date" value={form.endDate} onChange={(e) => update('endDate', e.target.value)} className={fieldClass}/></Field>
       <Field label="GitHub repository" className="md:col-span-2"><input type="url" value={form.githubUrl} onChange={(e) => update('githubUrl', e.target.value)} placeholder="https://github.com/owner/repository (optional)" className={fieldClass}/></Field>

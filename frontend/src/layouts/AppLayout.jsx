@@ -9,9 +9,10 @@ const AppLayout = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-page text-text-primary">
+    <div className="flex flex-col h-screen min-h-screen overflow-hidden bg-bg-page text-text-primary">
       <AuthenticatedNavbar />
-      <div className="flex flex-grow relative">
+
+      <div className="flex flex-1 flex-grow min-h-0 relative">
         <ProfileSidebar
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsed}
@@ -27,7 +28,7 @@ const AppLayout = () => {
           <Menu className="w-5 h-5" />
         </button>
 
-        <main className="flex-grow overflow-x-hidden p-6 md:p-8">
+        <main className="flex-1 flex-grow min-w-0 overflow-y-auto overflow-x-hidden p-6 md:p-8">
           <Outlet />
         </main>
       </div>
