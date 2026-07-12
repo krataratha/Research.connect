@@ -12,8 +12,8 @@ const useDebounce = (fn, delay) => {
   }, [fn, delay]);
 };
 
-const SearchBar = ({ placeholder = 'Search publications, authors, journals…', className = '', onSearch, minimal = false }) => {
-  const [query, setQuery] = useState('');
+const SearchBar = ({ placeholder = 'Search publications, authors, journals…', className = '', onSearch, minimal = false, initialValue = '' }) => {
+  const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState(null);
   const [history, setHistory] = useState([]);
   const [isFocused, setIsFocused] = useState(false);
@@ -22,6 +22,11 @@ const SearchBar = ({ placeholder = 'Search publications, authors, journals…', 
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  // Sync initialValue to local query state
+  useEffect(() => {
+    setQuery(initialValue);
+  }, [initialValue]);
 
   // Load history on focus
   const loadHistory = async () => {
@@ -81,7 +86,9 @@ const SearchBar = ({ placeholder = 'Search publications, authors, journals…', 
     suggestions.publications?.length > 0 ||
     suggestions.authors?.length > 0 ||
     suggestions.journals?.length > 0 ||
-    suggestions.keywords?.length > 0
+    suggestions.keywords?.length > 0 ||
+    suggestions.researchers?.length > 0 ||
+    suggestions.projects?.length > 0
   );
 
   return (
@@ -135,6 +142,29 @@ const SearchBar = ({ placeholder = 'Search publications, authors, journals…', 
             {/* Autocomplete Suggestions */}
             {query.length >= 2 && hasSuggestions && (
               <div className="p-2">
+                {suggestions.researchers?.length > 0 && (
+                  <div>
+                    <div className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Researchers</div>
+                    {suggestions.researchers.map((res, i) => (
+                      <button
+                        key={i}
+                        onClick={() => navigate(res.profileSlug ? `/profile/${res.profileSlug}` : `/profile/${res.id}`)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 rounded-xl transition-colors text-left"
+                      >
+                        {res.avatar ? (
+                          <img src={res.avatar} alt={res.fullName} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
+                            {res.fullName?.charAt(0).toUpperCase() || 'R'}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900">{res.fullName}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {suggestions.publications?.length > 0 && (
                   <div>
                     <div className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Publications</div>

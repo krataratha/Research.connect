@@ -301,6 +301,9 @@ UserSchema.set('toObject', {
 UserSchema.index({ status: 1 });
 UserSchema.index({ isDeleted: 1 });
 UserSchema.index({ createdAt: -1 });
+UserSchema.index({ firstName: 1 });
+UserSchema.index({ lastName: 1 });
+UserSchema.index({ fullName: 1 });
 
 const User = mongoose.model('User', UserSchema);
 

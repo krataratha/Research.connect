@@ -52,6 +52,8 @@ const PublicationAuthorSchema = new Schema(
 );
 
 PublicationAuthorSchema.index({ publicationId: 1, authorId: 1 });
+PublicationAuthorSchema.index({ name: 1 });
+PublicationAuthorSchema.index({ institution: 1 });
 
 const PublicationAuthor = mongoose.model('PublicationAuthor', PublicationAuthorSchema);
 

@@ -72,8 +72,8 @@ router.post('/publication/ai-summary', feedController.getAiSummary);
 router.post('/dataset', createDatasetValidator, feedController.createDataset);
 router.get('/datasets', responseCache(10), feedController.getDatasets);
 
-// Global Search
-router.get('/search', searchLimiter, searchValidator, feedController.globalSearch);
+// Global Search (Handled by searchModule routes in app.js instead of feedModule routes)
+// router.get('/search', searchLimiter, searchValidator, feedController.globalSearch);
 router.get('/questions', responseCache(10), feedController.getQuestions);
 router.get('/projects', responseCache(10), feedController.getProjects);
 router.get('/events', responseCache(30), feedController.getEvents);

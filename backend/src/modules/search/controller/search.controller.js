@@ -12,14 +12,32 @@ class SearchController {
       return res.success('Trending data retrieved.', { trending, results: [], total: 0 });
     }
 
-    const results = await searchService.searchPublications({ q, type, sort, page, limit, ...filters });
+    const results = await searchService.combinedSearch({
+      q,
+      currentUserId: req.user?.id
+    });
 
     // Save history for authenticated users (non-blocking)
     if (req.user) {
-      searchService.saveHistory(req.user._id, q, filters, results.total, 'all').catch(() => {});
+      searchService.saveHistory(req.user._id, q, filters, 0, 'all').catch(() => {});
     }
 
-    return res.success('Search completed.', results);
+    return res.success('Search completed.', {
+      query: q,
+      data: results
+    });
+  });
+
+  // GET /api/v1/search/keywords
+  searchKeywords = asyncHandler(async (req, res) => {
+    const results = await searchService.searchKeywords(req.query);
+    return res.success('Keywords search completed.', results);
+  });
+
+  // GET /api/v1/search/institutions
+  searchInstitutions = asyncHandler(async (req, res) => {
+    const results = await searchService.searchInstitutions(req.query);
+    return res.success('Institutions search completed.', results);
   });
 
   // GET /api/v1/search/publications

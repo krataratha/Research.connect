@@ -16,10 +16,16 @@ const redisClient = createClient({
 let isLimitExceeded = false;
 
 redisClient.on('error', (err) => {
-  if (err.message && err.message.includes('max requests limit exceeded')) {
+  if (err.message && (
+    err.message.includes('max requests limit exceeded') ||
+    err.message.includes('TimeoutError') ||
+    err.name === 'TimeoutError' ||
+    err.message.includes('ETIMEDOUT') ||
+    err.message.includes('ECONNREFUSED')
+  )) {
     if (!isLimitExceeded) {
       isLimitExceeded = true;
-      logger.warn('[REDIS ERROR] Upstash request limit exceeded. Disabling Redis and falling back to in-memory mode.');
+      logger.warn('[REDIS ERROR] Redis connection failed or limit exceeded. Disabling Redis and falling back to in-memory mode.');
     }
   } else {
     logger.error('[REDIS CLIENT ERROR]', err);
@@ -62,20 +68,35 @@ const clientProxy = new Proxy(redisClient, {
           return (async () => {
             try {
               const res = await value.apply(target, args);
-              // Run a test command to verify if Upstash is over quota
+              // Run a test command to verify if Upstash is over quota or timing out
               try {
-                await target.get('__test_rate_limit__');
+                await Promise.race([
+                  target.get('__test_rate_limit__'),
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('TimeoutError')), 2000))
+                ]);
               } catch (pingErr) {
-                if (pingErr.message && pingErr.message.includes('max requests limit exceeded')) {
+                if (pingErr.message && (
+                  pingErr.message.includes('max requests limit exceeded') ||
+                  pingErr.message.includes('TimeoutError') ||
+                  pingErr.name === 'TimeoutError' ||
+                  pingErr.message.includes('ETIMEDOUT') ||
+                  pingErr.message.includes('ECONNREFUSED')
+                )) {
                   isLimitExceeded = true;
-                  logger.warn('[REDIS] Upstash rate limit exceeded during connection test. Falling back to in-memory mode.');
+                  logger.warn('[REDIS] Redis rate limit or timeout during connection test. Falling back to in-memory mode.');
                 }
               }
               return res;
             } catch (err) {
-              if (err.message && err.message.includes('max requests limit exceeded')) {
+              if (err.message && (
+                err.message.includes('max requests limit exceeded') ||
+                err.message.includes('TimeoutError') ||
+                err.name === 'TimeoutError' ||
+                err.message.includes('ETIMEDOUT') ||
+                err.message.includes('ECONNREFUSED')
+              )) {
                 isLimitExceeded = true;
-                logger.warn('[REDIS] Upstash rate limit exceeded during connect. Falling back to in-memory mode.');
+                logger.warn('[REDIS] Redis rate limit or timeout during connect. Falling back to in-memory mode.');
               }
               throw err;
             }
@@ -86,10 +107,16 @@ const clientProxy = new Proxy(redisClient, {
           const result = value.apply(target, args);
           if (result instanceof Promise) {
             return result.catch((err) => {
-              if (err.message && err.message.includes('max requests limit exceeded')) {
+              if (err.message && (
+                err.message.includes('max requests limit exceeded') ||
+                err.message.includes('TimeoutError') ||
+                err.name === 'TimeoutError' ||
+                err.message.includes('ETIMEDOUT') ||
+                err.message.includes('ECONNREFUSED')
+              )) {
                 if (!isLimitExceeded) {
                   isLimitExceeded = true;
-                  logger.warn('[REDIS] Upstash rate limit exceeded. Falling back to in-memory mode.');
+                  logger.warn('[REDIS] Redis rate limit or timeout detected. Falling back to in-memory mode.');
                 }
                 throw new Error('Redis client is offline due to rate limit exhaustion');
               }
@@ -98,10 +125,16 @@ const clientProxy = new Proxy(redisClient, {
           }
           return result;
         } catch (err) {
-          if (err.message && err.message.includes('max requests limit exceeded')) {
+          if (err.message && (
+            err.message.includes('max requests limit exceeded') ||
+            err.message.includes('TimeoutError') ||
+            err.name === 'TimeoutError' ||
+            err.message.includes('ETIMEDOUT') ||
+            err.message.includes('ECONNREFUSED')
+          )) {
             if (!isLimitExceeded) {
               isLimitExceeded = true;
-              logger.warn('[REDIS] Upstash rate limit exceeded. Falling back to in-memory mode.');
+              logger.warn('[REDIS] Redis rate limit or timeout detected. Falling back to in-memory mode.');
             }
             throw new Error('Redis client is offline due to rate limit exhaustion');
           }
