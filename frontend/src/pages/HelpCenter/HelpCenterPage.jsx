@@ -52,12 +52,12 @@ const HelpCenterPage = () => {
       </div>
 
       {/* Main Layout Grid */}
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-8 w-full">
         {/* Navigation Sidebar */}
         <HelpSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
 
         {/* Content Area */}
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeSection}
