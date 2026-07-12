@@ -3,7 +3,11 @@ const logger = require('../../../common/logger/winston');
 const Message = require('../model/Message');
 
 module.exports = (io, socket) => {
-  const userId = socket.user.id || socket.user._id;
+  const userId = socket.user?.userId || socket.user?.id || socket.user?._id;
+  if (!userId) {
+    logger.warn(`socket.user is missing userId properties for socket: ${socket.id}`);
+    return;
+  }
   const userIdStr = userId.toString();
 
   // Helper for joining rooms

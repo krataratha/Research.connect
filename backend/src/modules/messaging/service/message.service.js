@@ -3,6 +3,7 @@ const Connection = require('../../../models/Connection');
 const Follow = require('../../../models/Follow');
 const User = require('../../../models/User');
 const Profile = require('../../../models/Profile');
+const Presence = require('../../../socket/presence/Presence');
 const ConnectionRequest = require('../../connections/model/ConnectionRequest');
 const { ValidationError, UnauthorizedError } = require('../../../common/errors/AppError');
 const messageRepository = require('../repository/message.repository');
@@ -835,9 +836,11 @@ class MessageService {
     let detailedParticipant = null;
     if (otherParticipant) {
       const profile = await Profile.findOne({ userId: otherParticipant._id }).lean();
+      const presence = await Presence.findOne({ userId: otherParticipant._id }).lean();
       detailedParticipant = {
         ...otherParticipant,
-        isOnline: isUserOnline(otherParticipant._id),
+        isOnline: presence ? presence.status === 'online' : false,
+        lastSeen: presence?.lastSeen || null,
         bio: profile?.bio || '',
         institution: profile?.institution || '',
         department: profile?.department || '',

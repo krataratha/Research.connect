@@ -5,7 +5,7 @@ class RoomManager {
    * Automatically joins user to default rooms (user, notifications, connections channels)
    */
   joinUserRooms(socket) {
-    const userId = socket.user.id || socket.user._id;
+    const userId = socket.user?.userId || socket.user?.id || socket.user?._id;
     if (!userId) return;
 
     const rooms = [

@@ -279,6 +279,40 @@ const MessagesPage = () => {
       queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
     };
 
+    const handlePresenceUpdate = ({ userId, status, lastSeen }) => {
+      const isOnline = status === 'online';
+      
+      // Update conversations cache
+      queryClient.setQueryData(['conversations'], (oldData) => {
+        if (!oldData) return oldData;
+        return oldData.map(c => {
+          if (c.otherParticipant?._id === userId) {
+            return {
+              ...c,
+              otherParticipant: {
+                ...c.otherParticipant,
+                isOnline,
+                lastSeen: lastSeen || c.otherParticipant.lastSeen
+              }
+            };
+          }
+          return c;
+        });
+      });
+
+      // Update messagingContacts cache
+      queryClient.setQueryData(['messagingContacts'], (oldData) => {
+        if (!oldData) return oldData;
+        const updateList = (list) => 
+          (list || []).map(p => p._id === userId ? { ...p, isOnline, lastSeen: lastSeen || p.lastSeen } : p);
+        return {
+          connections: updateList(oldData.connections),
+          followers: updateList(oldData.followers),
+          following: updateList(oldData.following)
+        };
+      });
+    };
+
     socket.on('call:incoming', handleIncomingCall);
     socket.on('call:accepted', handleCallAccepted);
     socket.on('call:rejected', handleCallRejected);
@@ -295,6 +329,7 @@ const MessagesPage = () => {
     socket.on('reactionRemoved', handleMessageUpdate);
     socket.on('conversation:update', handleConversationUpdate);
     socket.on('conversationUpdated', handleConversationUpdate);
+    socket.on('presence:update', handlePresenceUpdate);
 
     return () => {
       socket.off('call:incoming', handleIncomingCall);
@@ -313,6 +348,7 @@ const MessagesPage = () => {
       socket.off('reactionRemoved', handleMessageUpdate);
       socket.off('conversation:update', handleConversationUpdate);
       socket.off('conversationUpdated', handleConversationUpdate);
+      socket.off('presence:update', handlePresenceUpdate);
     };
   }, [socket, activeId]);
 
@@ -971,13 +1007,15 @@ const MessagesPage = () => {
       </div>
 
       {/* Call Overlay Panel */}
-      <CallOverlay
-        callState={callState}
-        onAccept={handleAcceptCall}
-        onDecline={handleDeclineCall}
-        onHangup={handleHangupCall}
-        socket={socket}
-      />
+      {callState.status !== 'idle' && (
+        <CallOverlay
+          callState={callState}
+          onAccept={handleAcceptCall}
+          onDecline={handleDeclineCall}
+          onHangup={handleHangupCall}
+          socket={socket}
+        />
+      )}
 
       {/* Compose / New Chat Modal */}
       <NewChatModal

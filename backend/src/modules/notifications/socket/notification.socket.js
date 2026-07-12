@@ -1,7 +1,7 @@
 const logger = require('../../../common/logger/winston');
 
 module.exports = (io, socket) => {
-  const userId = socket.user?.id || socket.user?._id;
+  const userId = socket.user?.userId || socket.user?.id || socket.user?._id;
 
   socket.on('notification:join', () => {
     if (!userId) return;

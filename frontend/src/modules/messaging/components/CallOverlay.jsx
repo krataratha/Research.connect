@@ -138,6 +138,13 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
         screenTrackRef.current.stop();
         screenTrackRef.current = null;
       }
+      // Reset srcObject to completely release hardware
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = null;
+      }
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+      }
       if (socket) {
         socket.off('call:signal');
       }

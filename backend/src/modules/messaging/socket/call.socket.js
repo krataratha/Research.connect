@@ -2,7 +2,11 @@ const logger = require('../../../common/logger/winston');
 const Call = require('../../../models/Call');
 
 module.exports = (io, socket) => {
-  const userId = socket.user.id || socket.user._id;
+  const userId = socket.user?.userId || socket.user?.id || socket.user?._id;
+  if (!userId) {
+    logger.warn(`socket.user is missing userId properties for call socket: ${socket.id}`);
+    return;
+  }
 
   /**
    * Caller initiates WebRTC call

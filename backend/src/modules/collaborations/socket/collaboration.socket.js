@@ -3,6 +3,7 @@ const CollaborationMessage = require('../model/CollaborationMessage');
 const User = require('../../../models/User');
 
 module.exports = (io, socket) => {
+  const userId = socket.user?.userId || socket.user?.id || socket.user?._id;
   /**
    * join workspace room
    */
@@ -10,7 +11,7 @@ module.exports = (io, socket) => {
     if (!collaborationId) return;
     const room = `collaboration:${collaborationId}`;
     socket.join(room);
-    logger.info(`🔌 User ${socket.user?.id} joined workspace room: ${room}`);
+    logger.info(`🔌 User ${userId} joined workspace room: ${room}`);
   });
 
   /**
@@ -20,7 +21,7 @@ module.exports = (io, socket) => {
     if (!collaborationId) return;
     const room = `collaboration:${collaborationId}`;
     socket.leave(room);
-    logger.info(`🔌 User ${socket.user?.id} left workspace room: ${room}`);
+    logger.info(`🔌 User ${userId} left workspace room: ${room}`);
   });
 
   /**
@@ -29,7 +30,7 @@ module.exports = (io, socket) => {
   socket.on('workspace:message', async ({ collaborationId, text, attachments = [] }) => {
     if (!collaborationId || !text) return;
     
-    const senderId = socket.user?.id || socket.user?._id;
+    const senderId = userId;
     const room = `collaboration:${collaborationId}`;
 
     try {
@@ -63,7 +64,7 @@ module.exports = (io, socket) => {
   socket.on('workspace:typing', ({ collaborationId }) => {
     if (!collaborationId) return;
     socket.to(`collaboration:${collaborationId}`).emit('workspace:typing', {
-      userId: socket.user?.id,
+      userId: userId,
       username: socket.user?.username
     });
   });
@@ -71,7 +72,7 @@ module.exports = (io, socket) => {
   socket.on('workspace:stopTyping', ({ collaborationId }) => {
     if (!collaborationId) return;
     socket.to(`collaboration:${collaborationId}`).emit('workspace:stopTyping', {
-      userId: socket.user?.id
+      userId: userId
     });
   });
 };

@@ -4,6 +4,32 @@ import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 
+const formatLastSeen = (lastSeenDate) => {
+  if (!lastSeenDate) return 'Offline';
+  const date = new Date(lastSeenDate);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    const hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12;
+    return `Offline • Last seen today at ${formattedHours}:${minutes} ${ampm}`;
+  } else if (diffDays === 1) {
+    const hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12;
+    return `Offline • Last seen yesterday at ${formattedHours}:${minutes} ${ampm}`;
+  } else if (diffDays < 7) {
+    return `Offline • Last seen ${diffDays} days ago`;
+  } else {
+    return `Offline • Last seen on ${date.toLocaleDateString()}`;
+  }
+};
+
 const ChatWindow = ({ 
   conversation, 
   messages = [], 
@@ -140,9 +166,12 @@ const ChatWindow = ({
               </h4>
               {!conversation.isGroup && <Shield className="w-3.5 h-3.5 text-blue-600 fill-blue-600" title="Verified Researcher" />}
             </div>
-            <p className="text-[10px] font-bold text-slate-400 truncate max-w-md">
-              {otherParticipant?.designation ? `${otherParticipant.designation} at ` : ''}
-              {otherParticipant?.institution || (otherParticipant?.isOnline ? 'Online' : 'Offline')}
+            <p className="text-[10px] font-bold text-slate-400 truncate max-w-md flex items-center gap-1.5">
+              <span>{otherParticipant?.designation ? `${otherParticipant.designation} at ` : ''}</span>
+              <span>{otherParticipant?.institution || ''}</span>
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold ${otherParticipant?.isOnline ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-500'}`}>
+                {otherParticipant?.isOnline ? '🟢 Online' : formatLastSeen(otherParticipant?.lastSeen)}
+              </span>
             </p>
           </div>
         </div>
