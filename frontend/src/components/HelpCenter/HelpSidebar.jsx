@@ -30,7 +30,7 @@ const HelpSidebar = ({ activeSection, setActiveSection }) => {
   ];
 
   return (
-    <aside className="w-full md:w-80 md:shrink-0 bg-bg-card rounded-2xl border border-border p-3 md:p-4 shadow-sm h-fit">
+    <aside className="w-full md:w-80 bg-bg-card rounded-2xl border border-border p-3 md:p-4 shadow-sm h-fit">
       <nav className="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible gap-2 md:gap-0 md:space-y-1 no-scrollbar scroll-smooth">
         {menuItems.map((item) => {
           const Icon = item.icon;
