@@ -26,6 +26,32 @@ export default function ProjectsPage() {
   const [viewMode, setViewMode] = useState('grid'); // grid, list
   const [page, setPage] = useState(1);
   const [applyingProject, setApplyingProject] = useState(null);
+  
+  // Real network connection tracking
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const getErrorMessage = (err) => {
+    if (!isOnline || err?.isOffline) return 'No internet connection.';
+    if (err?.isTimeout || err?.status === 408) return 'Server is taking longer than expected.';
+    const status = err?.status || err?.error?.status || err?.response?.status;
+    if (status === 401) return 'Session expired. Please login again.';
+    if (status === 403) return "You don't have permission.";
+    if (status === 404) return 'Projects not found.';
+    if (status === 500) return 'Internal server error.';
+    if (status === 503) return 'Service temporarily unavailable.';
+    return err?.message || err?.error?.message || 'Something went wrong. Please try again.';
+  };
 
   // 1. Fetch Projects list
   const { data, isLoading, error } = useQuery({
@@ -45,6 +71,12 @@ export default function ProjectsPage() {
       return res.data; // { docs, total, page, limit, totalPages }
     },
     placeholderData: (previousData) => previousData,
+    // Retry 3 times with exponential backoff (500ms, 1s, 2s) for GET requests
+    retry: (failureCount, err) => {
+      if (err?.isCanceled) return false;
+      return failureCount < 3;
+    },
+    retryDelay: (attempt) => [500, 1000, 2000][attempt] || 2000,
   });
 
   // 2. Fetch owner stats if authenticated
@@ -55,6 +87,11 @@ export default function ProjectsPage() {
       return res.data;
     },
     enabled: !!user,
+    retry: (failureCount, err) => {
+      if (err?.isCanceled) return false;
+      return failureCount < 3;
+    },
+    retryDelay: (attempt) => [500, 1000, 2000][attempt] || 2000,
   });
 
   // Bookmark toggle mutation
@@ -247,7 +284,7 @@ export default function ProjectsPage() {
           </div>
         ) : error ? (
           <div className="bg-red-50 border border-red-150 rounded-2xl p-6 text-center text-red-650 font-bold">
-            Failed to load projects. Please check your network connection and try again.
+            {getErrorMessage(error)}
           </div>
         ) : data?.docs?.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-2xl p-16 text-center shadow-sm">

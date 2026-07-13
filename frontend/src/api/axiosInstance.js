@@ -6,7 +6,7 @@ import { updateToken, logoutSuccess } from '../redux/slices/authSlice';
 // Use the backend url with suffix 'api' since in backend all routes are defined with prefix 'api'
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'  || '/api', 
-  timeout: 30000,
+  timeout: 10000, // Enforce standard 10-second timeout
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -14,9 +14,41 @@ const axiosInstance = axios.create({
   }
 });
 
+// Request Deduplication and Abort tracking
+const pendingRequests = new Map();
+
+const getRequestKey = (config) => {
+  const { method, url, params, data } = config;
+  const serializedParams = params ? JSON.stringify(params) : '';
+  // Avoid serializing large data objects, but serialize method, url and query params
+  return [method, url, serializedParams].join('&');
+};
+
+const addPendingRequest = (config) => {
+  const requestKey = getRequestKey(config);
+  if (pendingRequests.has(requestKey)) {
+    const controller = pendingRequests.get(requestKey);
+    controller.abort(); // Cancel the duplicate pending request
+    pendingRequests.delete(requestKey);
+  }
+  const controller = new AbortController();
+  config.signal = controller.signal;
+  pendingRequests.set(requestKey, controller);
+};
+
+const removePendingRequest = (config) => {
+  const requestKey = getRequestKey(config);
+  if (pendingRequests.has(requestKey)) {
+    pendingRequests.delete(requestKey);
+  }
+};
+
 // Request Interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Abort duplicate requests
+    addPendingRequest(config);
+
     // Generate a unique Request ID for distributed tracing
     config.headers['X-Request-Id'] = typeof crypto !== 'undefined' && crypto.randomUUID 
       ? crypto.randomUUID() 
@@ -76,12 +108,19 @@ const showDeduplicatedError = (message, options) => {
 // Response Interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
+    removePendingRequest(response.config);
     // Return formatted data block directly for ease of use
     return response.data;
   },
   async (error) => {
-    const originalRequest = error.config;
-    const status = error.response ? error.response.status : null;
+    if (error.config) {
+      removePendingRequest(error.config);
+    }
+
+    // Check if request was aborted/cancelled
+    if (axios.isCancel(error)) {
+      return Promise.reject({ isCanceled: true, message: 'Request aborted.' });
+    }
 
     // Toast configuration
     const toastStyle = {
@@ -92,6 +131,31 @@ axiosInstance.interceptors.response.use(
         fontFamily: 'Inter, sans-serif'
       }
     };
+
+    // Check if actual network connection is down
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const offlineError = {
+        message: 'No internet connection.',
+        isOffline: true,
+        status: 'OFFLINE'
+      };
+      showDeduplicatedError(offlineError.message, toastStyle);
+      return Promise.reject(offlineError);
+    }
+
+    // Check for request timeout (10s limit)
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      const timeoutError = {
+        message: 'Server is taking longer than expected. (Request timed out)',
+        isTimeout: true,
+        status: 408
+      };
+      showDeduplicatedError(timeoutError.message, toastStyle);
+      return Promise.reject(timeoutError);
+    }
+
+    const originalRequest = error.config;
+    const status = error.response ? error.response.status : null;
 
     if (status === 401 && !originalRequest._retry) {
       // If we are already on login page or attempting to refresh token, do not retry

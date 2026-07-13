@@ -19,6 +19,7 @@ import MilestoneTracker from '../components/MilestoneTracker';
 import AnnouncementsList from '../components/AnnouncementsList';
 import ProjectSettings from '../components/ProjectSettings';
 import DashboardOverview from '../components/DashboardOverview';
+import ProjectErrorBoundary from '../components/ProjectErrorBoundary';
 
 export default function ProjectDashboard() {
   const { projectId } = useParams();
@@ -37,6 +38,11 @@ export default function ProjectDashboard() {
       return res.data;
     },
     enabled: !!projectId,
+    retry: (failureCount, err) => {
+      if (err?.isCanceled) return false;
+      return failureCount < 3;
+    },
+    retryDelay: (attempt) => [500, 1000, 2000][attempt] || 2000,
   });
 
   // 2. Fetch project permissions and role
@@ -150,23 +156,25 @@ export default function ProjectDashboard() {
       </aside>
 
       {/* Main View Area */}
-      <main className="flex-1 overflow-y-auto px-6 py-6 max-w-7xl mx-auto w-full">
-        {/* Render sections */}
-        {activeSection === 'overview' && <DashboardOverview projectId={projectId} project={project} />}
-        {activeSection === 'chat' && (
-          <ProjectChat
-            projectId={projectId}
-            typingUsers={typingUsers}
-            emitTyping={emitTyping}
-            emitStopTyping={emitStopTyping}
-          />
-        )}
-        {activeSection === 'tasks' && <TaskBoard projectId={projectId} permissions={permissions} />}
-        {activeSection === 'milestones' && <MilestoneTracker projectId={projectId} permissions={permissions} />}
-        {activeSection === 'files' && <FileExplorer projectId={projectId} permissions={permissions} />}
-        {activeSection === 'announcements' && <AnnouncementsList projectId={projectId} permissions={permissions} />}
-        {activeSection === 'members' && <MemberManagement projectId={projectId} permissions={permissions} isOwner={isOwner} />}
-        {activeSection === 'settings' && <ProjectSettings projectId={projectId} project={project} />}
+      <main className="flex-1 overflow-y-auto px-6 py-6 max-w-7xl mx-auto w-full flex">
+        {/* Render sections inside localized Error Boundary for widget isolation */}
+        <ProjectErrorBoundary key={activeSection}>
+          {activeSection === 'overview' && <DashboardOverview projectId={projectId} project={project} />}
+          {activeSection === 'chat' && (
+            <ProjectChat
+              projectId={projectId}
+              typingUsers={typingUsers}
+              emitTyping={emitTyping}
+              emitStopTyping={emitStopTyping}
+            />
+          )}
+          {activeSection === 'tasks' && <TaskBoard projectId={projectId} permissions={permissions} />}
+          {activeSection === 'milestones' && <MilestoneTracker projectId={projectId} permissions={permissions} />}
+          {activeSection === 'files' && <FileExplorer projectId={projectId} permissions={permissions} />}
+          {activeSection === 'announcements' && <AnnouncementsList projectId={projectId} permissions={permissions} />}
+          {activeSection === 'members' && <MemberManagement projectId={projectId} permissions={permissions} isOwner={isOwner} />}
+          {activeSection === 'settings' && <ProjectSettings projectId={projectId} project={project} />}
+        </ProjectErrorBoundary>
       </main>
     </div>
   );

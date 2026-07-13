@@ -57,8 +57,11 @@ const errorHandlerMiddleware = (err, req, res, next) => {
   }
 
   const payload = {
-    code: errorCode,
-    ...(errorDetails && { details: errorDetails }),
+    errorCode: errorCode,
+    status: statusCode,
+    message: message,
+    details: errorDetails,
+    requestId: req.id || 'N/A',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   };
 
