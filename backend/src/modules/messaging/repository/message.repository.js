@@ -133,6 +133,7 @@ class MessageRepository extends BaseRepository {
     const messages = await Message.find(query)
       .sort({ _id: -1 })
       .limit(limit + 1)
+      .populate('senderId', 'firstName lastName profileImage username profileSlug slug')
       .populate('attachment')
       .populate('attachmentId')
       .populate('replyTo')

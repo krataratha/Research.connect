@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSocket } from '../../../context/SocketContext';
+import { useAuth } from '../../../context/AuthContext';
 import messagesService from '../services/messages.service';
 import networkService from '../../connections/services/network.service';
 import ConversationList from '../components/ConversationList';
@@ -23,13 +24,15 @@ const MessagesPage = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { socket } = useSocket();
+  const { user } = useAuth();
+  const currentUserId = user?.userId || user?._id || user?.id;
 
   const userQueryId = searchParams.get('user');
   const conversationQueryId = searchParams.get('conversation');
 
   const [activeId, setActiveId] = useState(conversationId || null);
   const [mobileView, setMobileView] = useState('list'); // 'list' or 'chat'
-  const [showInfoPanel, setShowInfoPanel] = useState(true);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [showFolderDrawer, setShowFolderDrawer] = useState(false);
   
@@ -208,14 +211,24 @@ const MessagesPage = () => {
     }
   });
 
-  // Socket room joining and cleanups
+  // Socket room joining and cleanups — also rejoins on reconnect, since
+  // socket.io reuses the same client instance across reconnects and this
+  // effect's dependencies ([activeId, socket]) don't change when that happens.
   useEffect(() => {
     if (!socket || !activeId) return;
 
-    socket.emit('chat:join', { conversationId: activeId });
-    markReadMutation.mutate(activeId);
+    const join = () => {
+      socket.emit('chat:join', { conversationId: activeId });
+      markReadMutation.mutate(activeId);
+      queryClient.invalidateQueries({ queryKey: ['messages', activeId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    };
+
+    join();
+    socket.on('connect', join);
 
     return () => {
+      socket.off('connect', join);
       socket.emit('chat:leave', { conversationId: activeId });
     };
   }, [activeId, socket]);
@@ -248,12 +261,31 @@ const MessagesPage = () => {
       setCallState({ status: 'idle', type: 'voice', callerName: '', callerImage: '', callId: null, targetUserId: null });
     };
 
-    // Auto-update conversation list when new message is received globally
-    const handleNewMessage = () => {
+    // Push an incoming message straight into the messages cache so it shows
+    // up instantly, without waiting on a refetch round-trip.
+    const handleNewMessage = (message) => {
+      if (!message) return;
+      const convId = message.conversationId?._id || message.conversationId;
+      const senderIdStr = message.senderId?._id || message.senderId;
+      console.log('🟢 [MessagesPage] message:new fired. convId=', convId, 'activeId=', activeId, 'hasCacheForConv=', !!queryClient.getQueryData(['messages', convId]));
+      queryClient.setQueryData(['messages', convId], (old) => {
+        if (!old) {
+          console.log('🟢 [MessagesPage] no cache yet for this conversation, skipping patch');
+          return old;
+        }
+        if (old.docs?.some((m) => m._id === message._id)) {
+          console.log('🟢 [MessagesPage] message already in cache, skipping duplicate');
+          return old;
+        }
+        // If this is our own message echoing back over the socket, drop its
+        // optimistic placeholder so it isn't rendered twice.
+        const docs = (old.docs || []).filter(
+          (m) => !(m.tempId && senderIdStr === currentUserId && m.text === message.text)
+        );
+        console.log('🟢 [MessagesPage] patched cache, new doc count=', docs.length + 1);
+        return { ...old, docs: [...docs, message] };
+      });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      if (activeId) {
-        queryClient.invalidateQueries({ queryKey: ['messages', activeId] });
-      }
     };
 
     // Auto-update conversation list when new conversation is added (e.g. on accepting connection request)
@@ -263,9 +295,34 @@ const MessagesPage = () => {
 
     // Listen for message delivered receipts (delivery tick on sender side)
     const handleMessageDelivered = ({ messageId, conversationId: convId }) => {
-      if (convId) {
-        queryClient.invalidateQueries({ queryKey: ['messages', convId] });
-      }
+      if (!convId || !messageId) return;
+      queryClient.setQueryData(['messages', convId], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          docs: old.docs.map((m) =>
+            m._id === messageId && m.status !== 'seen' ? { ...m, status: 'delivered' } : m
+          )
+        };
+      });
+    };
+
+    // Listen for read receipts (blue tick) — marks my own messages as seen
+    // by the other participant, patched directly for an instant tick update.
+    const handleMessagesSeen = ({ conversationId: convId }) => {
+      if (!convId) return;
+      queryClient.setQueryData(['messages', convId], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          docs: old.docs.map((m) => {
+            const senderIdStr = m.senderId?._id || m.senderId;
+            return senderIdStr === currentUserId && m.status !== 'seen'
+              ? { ...m, status: 'seen' }
+              : m;
+          })
+        };
+      });
     };
 
     // Real-time message updates (edits, deletions, reactions)
@@ -276,9 +333,16 @@ const MessagesPage = () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
-    const handleConversationUpdate = () => {
+    const handleConversationUpdate = ({ conversationId: convId } = {}) => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+      // Fallback: conversation:update reliably fires on every new message, so
+      // use it to also refresh the open chat's messages in case the
+      // room-scoped message:new event was missed (e.g. socket briefly
+      // dropped out of the conversation room).
+      if (activeId && (!convId || convId === activeId)) {
+        queryClient.invalidateQueries({ queryKey: ['messages', activeId] });
+      }
     };
 
     socket.on('call:incoming', handleIncomingCall);
@@ -290,6 +354,8 @@ const MessagesPage = () => {
     socket.on('conversation:new', handleNewConversation);
     socket.on('message:delivered', handleMessageDelivered);
     socket.on('messageDelivered', handleMessageDelivered);
+    socket.on('message:read', handleMessagesSeen);
+    socket.on('messageRead', handleMessagesSeen);
     socket.on('message:update', handleMessageUpdate);
     socket.on('messageEdited', handleMessageUpdate);
     socket.on('messageDeleted', handleMessageUpdate);
@@ -308,6 +374,8 @@ const MessagesPage = () => {
       socket.off('conversation:new', handleNewConversation);
       socket.off('message:delivered', handleMessageDelivered);
       socket.off('messageDelivered', handleMessageDelivered);
+      socket.off('message:read', handleMessagesSeen);
+      socket.off('messageRead', handleMessagesSeen);
       socket.off('message:update', handleMessageUpdate);
       socket.off('messageEdited', handleMessageUpdate);
       socket.off('messageDeleted', handleMessageUpdate);
@@ -316,9 +384,11 @@ const MessagesPage = () => {
       socket.off('conversation:update', handleConversationUpdate);
       socket.off('conversationUpdated', handleConversationUpdate);
     };
-  }, [socket, activeId]);
+  }, [socket, activeId, currentUserId]);
 
-  // Send message mutation
+  // Send message mutation — optimistically renders the message immediately
+  // (single grey tick) so it appears in real time even before the server
+  // or the other participant has received it.
   const sendMessageMutation = useMutation({
     mutationFn: async (payload) => {
       return await messagesService.sendMessage({
@@ -326,9 +396,48 @@ const MessagesPage = () => {
         ...payload
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', activeId] });
+    onMutate: async (payload) => {
+      const convId = activeId;
+      await queryClient.cancelQueries({ queryKey: ['messages', convId] });
+      const previous = queryClient.getQueryData(['messages', convId]);
+
+      const tempId = `temp-${Date.now()}`;
+      const optimisticMessage = {
+        _id: tempId,
+        tempId,
+        conversationId: convId,
+        senderId: { _id: currentUserId, firstName: user?.firstName, profileImage: user?.profileImage },
+        text: payload.text,
+        type: payload.type || 'text',
+        replyTo: payload.replyTo || null,
+        status: 'sent',
+        createdAt: new Date().toISOString(),
+        reactions: []
+      };
+
+      queryClient.setQueryData(['messages', convId], (old) => ({
+        ...(old || { docs: [] }),
+        docs: [...(old?.docs || []), optimisticMessage]
+      }));
+
+      return { previous, tempId, convId };
+    },
+    onSuccess: (res, _payload, context) => {
+      const realMessage = res?.data;
+      queryClient.setQueryData(['messages', context.convId], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          docs: old.docs.map((m) => (m._id === context.tempId ? realMessage : m))
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+    onError: (err, _payload, context) => {
+      if (context) {
+        queryClient.setQueryData(['messages', context.convId], context.previous);
+      }
+      toast.error(err.response?.data?.message || 'Message failed to send.');
     }
   });
 
@@ -480,8 +589,6 @@ const MessagesPage = () => {
     { id: 'archived', label: 'Archived', icon: Archive },
     { id: 'groups', label: 'Groups', icon: Users },
     { id: 'collaboration', label: 'Research Collaboration', icon: Lightbulb },
-    { id: 'followers', label: 'Followers', icon: Users, badge: contactFollowers.length > 0 ? contactFollowers.length : null },
-    { id: 'following', label: 'Following', icon: Users, badge: contactFollowing.length > 0 ? contactFollowing.length : null },
     { id: 'requests', label: 'Connection Requests', icon: UserPlus, badge: incomingRequests.length > 0 ? incomingRequests.length : null },
     { id: 'calls', label: 'Calls', icon: PhoneCall },
     { id: 'files', label: 'Shared Files', icon: FolderOpen },
@@ -501,17 +608,49 @@ const MessagesPage = () => {
     setShowFolderDrawer(false);
   };
 
+  // Shared folder-list markup, reused by both the mobile bottom sheet and the
+  // desktop dropdown so the two stay visually/behaviorally in sync.
+  const renderFolderNav = (navClassName) => (
+    <nav className={navClassName}>
+      {sidebarFolders.map((folder) => {
+        const IconComponent = folder.icon;
+        const isActive = activeTab === folder.id;
+        return (
+          <button
+            key={folder.id}
+            onClick={() => selectFolder(folder.id)}
+            className={`w-full flex items-center justify-between px-3.5 py-3 md:py-2.5 rounded-2xl md:rounded-xl text-sm md:text-xs font-bold transition-all cursor-pointer ${
+              isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <IconComponent className={`w-4.5 h-4.5 md:w-4 md:h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+              <span>{folder.label}</span>
+            </div>
+            {folder.badge && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {folder.badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </nav>
+  );
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] -m-6 md:-m-8 bg-slate-50/50 overflow-hidden relative select-none">
 
-      {/* Filter trigger button — shows Workspace Folders panel only when clicked. Mobile: hidden once inside a chat. Desktop: always visible. */}
-      {[
-        { wrapperClass: 'md:hidden', show: mobileView !== 'chat' },
-        { wrapperClass: 'hidden md:flex', show: true }
-      ].map(({ wrapperClass, show }, i) => show && (
-        <div key={i} className={`${wrapperClass} items-center gap-2 px-4 py-2.5 bg-white border-b border-slate-100 shrink-0`}>
+      {/* Filter trigger button — hidden on mobile once a chat is open, always visible on desktop/tablet. */}
+      <div
+        className={`items-center gap-2 px-4 py-2.5 bg-white border-b border-slate-100 shrink-0 relative z-20 ${
+          mobileView === 'chat' ? 'hidden md:flex' : 'flex'
+        }`}
+      >
+        <div className="relative">
           <button
-            onClick={() => setShowFolderDrawer(true)}
+            onClick={() => setShowFolderDrawer((prev) => !prev)}
+            aria-expanded={showFolderDrawer}
             className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border active:scale-95 ${
               showFolderDrawer
                 ? 'bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/20'
@@ -529,21 +668,44 @@ const MessagesPage = () => {
             ) : null}
             <ChevronDown className={`w-3 h-3 transition-transform ${showFolderDrawer ? 'rotate-180 text-white' : 'text-slate-400'}`} />
           </button>
-        </div>
-      ))}
 
-      {/* Workspace Folders — filter panel, only shown when the user clicks "Filter" above. Positioned within this page's own container (absolute, not fixed) so it never overlaps the app's main sidenav. */}
+          {/* Desktop/tablet: compact dropdown anchored right under the button — no full-screen takeover. */}
+          {showFolderDrawer && (
+            <>
+              <div className="hidden md:block fixed inset-0 z-40" onClick={() => setShowFolderDrawer(false)} />
+              <div className="hidden md:flex absolute left-0 top-full mt-2 w-72 z-50 flex-col bg-white border border-slate-200 rounded-2xl shadow-2xl max-h-[70vh] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
+                  <h2 className="text-xs font-extrabold text-slate-800 flex items-center gap-2">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Workspace Folders</span>
+                  </h2>
+                  <button
+                    onClick={() => setShowFolderDrawer(false)}
+                    className="p-1 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                    title="Close"
+                  >
+                    <X className="w-3.5 h-3.5 text-slate-500" />
+                  </button>
+                </div>
+                {renderFolderNav('flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-1')}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile: bottom sheet — easier to reach with a thumb than a side drawer. */}
       {showFolderDrawer && (
         <div
-          className="absolute inset-0 z-50 flex items-end md:items-stretch md:justify-start"
+          className="md:hidden fixed inset-0 z-50 flex items-end"
           onClick={() => setShowFolderDrawer(false)}
         >
           <div className="absolute inset-0 bg-black/30 animate-in fade-in duration-150" />
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full md:w-72 max-h-[75vh] md:max-h-full md:h-full bg-white rounded-t-3xl md:rounded-none md:rounded-r-3xl shadow-2xl flex flex-col animate-in slide-in-from-bottom md:slide-in-from-left duration-200"
+            className="relative w-full max-h-[75vh] bg-white rounded-t-3xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-200"
           >
-            <div className="md:hidden w-10 h-1 bg-slate-200 rounded-full mx-auto my-2.5 shrink-0" />
+            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto my-2.5 shrink-0" />
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 shrink-0">
               <h2 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-blue-600" />
@@ -557,31 +719,7 @@ const MessagesPage = () => {
                 <X className="w-4 h-4 text-slate-500" />
               </button>
             </div>
-            <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
-              {sidebarFolders.map((folder) => {
-                const IconComponent = folder.icon;
-                const isActive = activeTab === folder.id;
-                return (
-                  <button
-                    key={folder.id}
-                    onClick={() => selectFolder(folder.id)}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 md:py-2.5 rounded-2xl md:rounded-xl text-sm md:text-xs font-bold transition-all cursor-pointer ${
-                      isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <IconComponent className={`w-4.5 h-4.5 md:w-4 md:h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                      <span>{folder.label}</span>
-                    </div>
-                    {folder.badge && (
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                        {folder.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
+            {renderFolderNav('flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-1')}
           </div>
         </div>
       )}
@@ -1015,10 +1153,10 @@ const MessagesPage = () => {
               />
             </div>
 
-            {/* Main chat window center view */}
+            {/* Main chat window center view — on mobile this (including the "Welcome" empty state) only shows once the user taps into a chat; on desktop it's always visible. */}
             <div 
               className={`flex-1 h-full flex flex-col min-w-0 bg-white relative ${
-                mobileView === 'list' && activeId ? 'hidden md:flex' : 'flex'
+                mobileView === 'chat' ? 'flex' : 'hidden md:flex'
               }`}
             >
               <ChatWindow
@@ -1053,7 +1191,7 @@ const MessagesPage = () => {
                   <div className="absolute inset-0 bg-black/30" />
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="relative w-full sm:w-96 max-h-[85vh] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+                    className="relative w-full sm:w-96 max-h-[85vh] min-h-0 bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
                   >
                     <div className="sm:hidden w-10 h-1 bg-slate-200 rounded-full mx-auto my-2.5 shrink-0" />
                     <ResearcherInfo

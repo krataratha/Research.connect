@@ -180,6 +180,7 @@ class MessageService {
     await Conversation.findByIdAndUpdate(conversationId, updateQuery);
 
     const populated = await Message.findById(message._id)
+      .populate('senderId', 'firstName lastName profileImage username profileSlug slug')
       .populate('attachment')
       .populate('attachmentId')
       .populate('replyTo')
@@ -361,6 +362,7 @@ class MessageService {
     await msg.save();
 
     const populated = await Message.findById(messageId)
+      .populate('senderId', 'firstName lastName profileImage username profileSlug slug')
       .populate('attachment')
       .populate('attachmentId')
       .populate('replyTo')
@@ -392,6 +394,7 @@ class MessageService {
       await msg.save();
 
       const populated = await Message.findById(messageId)
+        .populate('senderId', 'firstName lastName profileImage username profileSlug slug')
         .populate('attachment')
         .populate('attachmentId')
         .populate('replyTo')
@@ -426,6 +429,7 @@ class MessageService {
     );
 
     const populated = await Message.findById(messageId)
+      .populate('senderId', 'firstName lastName profileImage username profileSlug slug')
       .populate('attachment')
       .populate('replyTo')
       .lean();

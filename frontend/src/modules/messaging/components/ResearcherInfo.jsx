@@ -38,7 +38,7 @@ const ResearcherInfo = ({ participant, conversation, messages = [], onClose }) =
     : '12 May 2024';
 
   return (
-    <div className="h-full bg-white lg:border-l border-slate-200 w-full lg:w-80 flex flex-col text-left overflow-y-auto shrink-0 select-none lg:shadow-sm">
+    <div className="h-full min-h-0 flex-1 bg-white lg:border-l border-slate-200 w-full lg:w-80 flex flex-col text-left overflow-y-auto select-none lg:shadow-sm">
       {/* Panel header — lets the user close the Overview after opening it */}
       <div className="flex items-center justify-between px-6 pt-5 pb-1 shrink-0 sticky top-0 bg-white z-10">
         <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Overview</h3>

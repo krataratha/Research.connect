@@ -277,8 +277,13 @@ const MessagesView = () => {
         ) : null}
 
         {activeMessages.map((message, index) => {
-          const senderId = message.sender?._id || message.sender;
-          const isMe = senderId?.toString() === user?._id?.toString();
+          // Backend messages carry `senderId` (string, ObjectId, or populated
+          // user object) — not `sender`. Normalize before comparing so real
+          // conversations correctly split into left/right bubbles.
+          const rawSender = message.senderId ?? message.sender;
+          const senderId = (rawSender && typeof rawSender === 'object') ? (rawSender._id || rawSender.id) : rawSender;
+          const currentUserId = user?.userId || user?._id || user?.id;
+          const isMe = senderId != null && currentUserId != null && senderId.toString() === currentUserId.toString();
           return (
             <div key={message._id || index} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} text-left`}>
               <div

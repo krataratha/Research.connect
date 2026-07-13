@@ -13,7 +13,18 @@ const MessageBubble = ({ message, onReply, onEditInit, otherParticipant }) => {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const { _id, senderId, text, type, attachment, replyTo, status, edited, deleted, createdAt, reactions = [] } = message;
-  const isMe = senderId === user.id || senderId._id === user.id;
+
+  // senderId can arrive as a plain string, a raw ObjectId, or a populated
+  // { _id, firstName, ... } user object depending on the API path. Normalize
+  // both sides to a plain string before comparing, otherwise messages can
+  // silently all render on the same side (e.g. "aaa123" !== { _id: "aaa123" }).
+  const toIdString = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') return String(val._id || val.id || val);
+    return String(val);
+  };
+  const isMe = toIdString(senderId) === toIdString(user?.userId || user?._id || user?.id);
 
   const reactMutation = useMutation({
     mutationFn: async (emoji) => await messagesService.reactToMessage(_id, emoji),
