@@ -7,6 +7,8 @@ import { Toaster } from 'react-hot-toast';
 import store from './redux';
 import App from './App';
 import { SocketProvider } from './context/SocketContext';
+import { PresenceProvider } from './context/PresenceContext';
+import { CallProvider } from './context/CallContext';
 import { AuthProvider } from './context/AuthContext';
 import './styles/index.css';
 
@@ -28,7 +30,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <BrowserRouter>
           <AuthProvider>
             <SocketProvider>
-              <App />
+              <PresenceProvider>
+                <CallProvider>
+                  <App />
+                </CallProvider>
+              </PresenceProvider>
             </SocketProvider>
           </AuthProvider>
           <Toaster 

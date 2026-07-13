@@ -13,7 +13,7 @@ const PinnedChat = require('../model/PinnedChat');
 const ArchivedChat = require('../model/ArchivedChat');
 const MessageAttachment = require('../model/MessageAttachment');
 const MessageReaction = require('../model/MessageReaction');
-const Call = require('../../../models/Call');
+const CallHistory = require('../../../models/CallHistory');
 const { emitToUser, emitToRoom, isUserOnline } = require('../../../config/socket');
 
 class MessageService {
@@ -589,13 +589,13 @@ class MessageService {
    * Log WebRTC Call Start
    */
   async logCallStart(userId, { type, targetUserId, conversationId }) {
-    const call = new Call({
-      initiatorId: userId,
-      participants: [userId, targetUserId],
+    const call = new CallHistory({
+      caller: userId,
+      receiver: targetUserId,
+      status: 'missed',
       type: type || 'voice',
-      status: 'initiated',
-      conversationId: conversationId || null,
-      startTime: new Date()
+      participants: [userId, targetUserId],
+      startedAt: new Date()
     });
     await call.save();
     return call;
@@ -605,14 +605,14 @@ class MessageService {
    * Log WebRTC Call End
    */
   async logCallEnd(userId, callId, status) {
-    const call = await Call.findById(callId);
+    const call = await CallHistory.findById(callId);
     if (!call) {
       throw new ValidationError('Call record not found.');
     }
 
     call.status = status || 'completed';
-    call.endTime = new Date();
-    call.duration = Math.round((call.endTime - call.startTime) / 1000);
+    call.endedAt = new Date();
+    call.duration = Math.max(0, Math.round((call.endedAt - call.startedAt) / 1000));
     await call.save();
     return call;
   }
@@ -622,25 +622,33 @@ class MessageService {
    */
   async getCallHistory(userId) {
     const castUserId = new mongoose.Types.ObjectId(userId);
-    const calls = await Call.find({ participants: castUserId })
-      .populate('initiatorId', 'firstName lastName username profileSlug slug profileImage')
+    const calls = await CallHistory.find({ participants: castUserId })
+      .populate('caller', 'firstName lastName username profileSlug slug profileImage')
+      .populate('receiver', 'firstName lastName username profileSlug slug profileImage')
       .populate('participants', 'firstName lastName username profileSlug slug profileImage')
       .sort({ createdAt: -1 })
       .lean();
 
-    // Normalize profileImage (populate+lean bypasses toJSON transformer)
     return calls.map(call => ({
       ...call,
-      initiatorId: call.initiatorId ? {
-        ...call.initiatorId,
-        profileImage: call.initiatorId.profileImage?.url || call.initiatorId.profileImage || ''
-      } : call.initiatorId,
+      initiatorId: call.caller ? {
+        ...call.caller,
+        profileImage: call.caller.profileImage?.url || call.caller.profileImage || ''
+      } : null,
+      caller: call.caller ? {
+        ...call.caller,
+        profileImage: call.caller.profileImage?.url || call.caller.profileImage || ''
+      } : null,
+      receiver: call.receiver ? {
+        ...call.receiver,
+        profileImage: call.receiver.profileImage?.url || call.receiver.profileImage || ''
+      } : null,
       participants: Array.isArray(call.participants)
         ? call.participants.map(p => ({
             ...p,
             profileImage: p.profileImage?.url || p.profileImage || ''
           }))
-        : call.participants
+        : []
     }));
   }
 

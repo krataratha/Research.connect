@@ -1,6 +1,6 @@
 /**
  * Formats a lastSeen timestamp to a user-friendly relative string.
- * e.g., "Last seen today at 3:45 PM", "Last seen yesterday at 12:30 PM", "Last seen Jul 10 at 2:15 PM"
+ * e.g., "Last seen just now", "Last seen 3 minutes ago", "Last seen today at 11:38 AM", "Last seen Monday", "Last seen 12 July"
  */
 export const formatLastSeen = (dateString) => {
   if (!dateString) return 'Offline';
@@ -8,26 +8,46 @@ export const formatLastSeen = (dateString) => {
   if (isNaN(date.getTime())) return 'Offline';
 
   const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+
+  if (diffSec < 60) {
+    return 'Last seen just now';
+  }
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) {
+    return `Last seen ${diffMin} ${diffMin === 1 ? 'minute' : 'minutes'} ago`;
+  }
+
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
   const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
   const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   if (compareDate.getTime() === today.getTime()) {
     return `Last seen today at ${timeStr}`;
   } else if (compareDate.getTime() === yesterday.getTime()) {
     return `Last seen yesterday at ${timeStr}`;
+  }
+
+  // Within the last 7 days
+  const oneWeekAgo = new Date(today);
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  if (compareDate.getTime() > oneWeekAgo.getTime()) {
+    const weekdayStr = date.toLocaleDateString([], { weekday: 'long' });
+    return `Last seen ${weekdayStr} at ${timeStr}`;
+  }
+
+  // Older than 7 days
+  const dayStr = date.getDate();
+  const monthStr = date.toLocaleString([], { month: 'long' });
+  if (date.getFullYear() === now.getFullYear()) {
+    return `Last seen ${dayStr} ${monthStr}`;
   } else {
-    const monthStr = date.toLocaleString([], { month: 'short' });
-    const dayStr = date.getDate();
-    if (date.getFullYear() === now.getFullYear()) {
-      return `Last seen ${monthStr} ${dayStr} at ${timeStr}`;
-    } else {
-      return `Last seen ${monthStr} ${dayStr}, ${date.getFullYear()} at ${timeStr}`;
-    }
+    return `Last seen ${dayStr} ${monthStr} ${date.getFullYear()}`;
   }
 };
 

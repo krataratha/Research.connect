@@ -19,6 +19,11 @@ const presenceSchema = new mongoose.Schema(
       default: 'offline',
       index: true
     },
+    isOnline: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
     lastSeen: {
       type: Date,
       default: Date.now
@@ -30,6 +35,14 @@ const presenceSchema = new mongoose.Schema(
     device: {
       type: String,
       default: 'desktop'
+    },
+    browser: {
+      type: String,
+      default: 'unknown'
+    },
+    platform: {
+      type: String,
+      default: 'unknown'
     }
   },
   {

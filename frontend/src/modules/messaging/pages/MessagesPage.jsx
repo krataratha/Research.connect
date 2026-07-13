@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSocket } from '../../../context/SocketContext';
 import { useAuth } from '../../../context/AuthContext';
+import { useCall } from '../../../context/CallContext';
 import messagesService from '../services/messages.service';
 import networkService from '../../connections/services/network.service';
 import ConversationList from '../components/ConversationList';
@@ -43,15 +44,7 @@ const MessagesPage = () => {
   const [activeSubTab, setActiveSubTab] = useState('all'); // all, unread, groups (used inside ConversationList)
   const [filesSearch, setFilesSearch] = useState('');
 
-  // Call Overlay State
-  const [callState, setCallState] = useState({
-    status: 'idle', // 'idle' | 'dialing' | 'incoming' | 'active' | 'ended'
-    type: 'voice',  // 'voice' | 'video'
-    callerName: '',
-    callerImage: '',
-    callId: null,
-    targetUserId: null
-  });
+  const { startCall } = useCall();
 
   // Fetch active conversations list
   const { data: convData, isLoading: isConvLoading } = useQuery({
@@ -243,33 +236,9 @@ const MessagesPage = () => {
     };
   }, [activeId, socket]);
 
-  // Socket event listeners for calling signaling
+  // Socket event listeners for messaging
   useEffect(() => {
     if (!socket) return;
-
-    const handleIncomingCall = ({ callerId, callerName, callerImage, callId, type }) => {
-      setCallState({
-        status: 'incoming',
-        type,
-        callerName,
-        callerImage,
-        callId,
-        targetUserId: callerId
-      });
-    };
-
-    const handleCallAccepted = () => {
-      setCallState(prev => ({ ...prev, status: 'active' }));
-    };
-
-    const handleCallRejected = () => {
-      toast.error('Call rejected by researcher');
-      setCallState({ status: 'idle', type: 'voice', callerName: '', callerImage: '', callId: null, targetUserId: null });
-    };
-
-    const handleCallHungup = () => {
-      setCallState({ status: 'idle', type: 'voice', callerName: '', callerImage: '', callId: null, targetUserId: null });
-    };
 
     // Push an incoming message straight into the messages cache so it shows
     // up instantly, without waiting on a refetch round-trip.
@@ -298,12 +267,12 @@ const MessagesPage = () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
-    // Auto-update conversation list when new conversation is added (e.g. on accepting connection request)
+    // Auto-update conversation list when new conversation is added
     const handleNewConversation = () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
-    // Listen for message delivered receipts (delivery tick on sender side)
+    // Listen for message delivered receipts
     const handleMessageDelivered = ({ messageId, conversationId: convId }) => {
       if (!convId || !messageId) return;
       queryClient.setQueryData(['messages', convId], (old) => {
@@ -317,8 +286,7 @@ const MessagesPage = () => {
       });
     };
 
-    // Listen for read receipts (blue tick) — marks my own messages as seen
-    // by the other participant, patched directly for an instant tick update.
+    // Listen for read receipts
     const handleMessagesSeen = ({ conversationId: convId }) => {
       if (!convId) return;
       queryClient.setQueryData(['messages', convId], (old) => {
@@ -349,19 +317,11 @@ const MessagesPage = () => {
     const handleConversationUpdate = ({ conversationId: convId } = {}) => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
-      // Fallback: conversation:update reliably fires on every new message, so
-      // use it to also refresh the open chat's messages in case the
-      // room-scoped message:new event was missed (e.g. socket briefly
-      // dropped out of the conversation room).
       if (activeId && (!convId || convId === activeId)) {
         queryClient.invalidateQueries({ queryKey: ['messages', activeId] });
       }
     };
 
-    socket.on('call:incoming', handleIncomingCall);
-    socket.on('call:accepted', handleCallAccepted);
-    socket.on('call:rejected', handleCallRejected);
-    socket.on('call:hungup', handleCallHungup);
     socket.on('message:new', handleNewMessage);
     socket.on('receiveMessage', handleNewMessage);
     socket.on('message:received', handleNewMessage);
@@ -380,10 +340,6 @@ const MessagesPage = () => {
     socket.on('conversationUpdated', handleConversationUpdate);
 
     return () => {
-      socket.off('call:incoming', handleIncomingCall);
-      socket.off('call:accepted', handleCallAccepted);
-      socket.off('call:rejected', handleCallRejected);
-      socket.off('call:hungup', handleCallHungup);
       socket.off('message:new', handleNewMessage);
       socket.off('receiveMessage', handleNewMessage);
       socket.off('message:received', handleNewMessage);
@@ -490,73 +446,7 @@ const MessagesPage = () => {
     }
   };
 
-  // Calling handlers
-  const handleStartCall = async (type) => {
-    if (!activeConversation?.otherParticipant) return;
-    const targetUser = activeConversation.otherParticipant;
 
-    try {
-      const res = await messagesService.startCall({
-        type,
-        targetUserId: targetUser._id,
-        conversationId: activeConversation._id
-      });
-
-      const call = res.data;
-      setCallState({
-        status: 'dialing',
-        type,
-        callerName: `${targetUser.firstName} ${targetUser.lastName}`,
-        callerImage: targetUser.profileImage,
-        callId: call._id,
-        targetUserId: targetUser._id,
-        initiator: true
-      });
-
-      if (socket) {
-        socket.emit('call:initiate', {
-          targetUserId: targetUser._id,
-          type,
-          conversationId: activeConversation._id,
-          callId: call._id
-        });
-      }
-    } catch (err) {
-      toast.error('Could not initiate WebRTC call');
-    }
-  };
-
-  const handleAcceptCall = async () => {
-    if (socket && callState.targetUserId) {
-      socket.emit('call:accept', {
-        callerId: callState.targetUserId,
-        callId: callState.callId
-      });
-    }
-    setCallState(prev => ({ ...prev, status: 'active' }));
-  };
-
-  const handleDeclineCall = async () => {
-    if (socket && callState.targetUserId) {
-      socket.emit('call:reject', {
-        callerId: callState.targetUserId,
-        callId: callState.callId
-      });
-    }
-    await messagesService.endCall(callState.callId, 'rejected');
-    setCallState({ status: 'idle', type: 'voice', callerName: '', callerImage: '', callId: null, targetUserId: null });
-  };
-
-  const handleHangupCall = async () => {
-    if (socket && callState.targetUserId) {
-      socket.emit('call:hangup', {
-        targetUserId: callState.targetUserId,
-        callId: callState.callId
-      });
-    }
-    await messagesService.endCall(callState.callId, 'completed');
-    setCallState({ status: 'idle', type: 'voice', callerName: '', callerImage: '', callId: null, targetUserId: null });
-  };
 
   // Filter conversations for the sidebar based on activeTab
   const getFilteredConversations = () => {
@@ -1180,7 +1070,7 @@ const MessagesPage = () => {
                 messages={localMessages}
                 isLoading={isMessagesLoading}
                 onSendMessage={handleSendMessage}
-                onStartCall={handleStartCall}
+                onStartCall={(type) => startCall(activeConversation?.otherParticipant?._id, type, activeConversation?._id)}
                 socket={socket}
                 showInfoPanel={showInfoPanel}
                 setShowInfoPanel={setShowInfoPanel}
@@ -1225,13 +1115,7 @@ const MessagesPage = () => {
       </div>
 
       {/* Call Overlay Panel */}
-      <CallOverlay
-        callState={callState}
-        onAccept={handleAcceptCall}
-        onDecline={handleDeclineCall}
-        onHangup={handleHangupCall}
-        socket={socket}
-      />
+      <CallOverlay />
 
       {/* Compose / New Chat Modal */}
       <NewChatModal

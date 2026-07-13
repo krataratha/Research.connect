@@ -5,6 +5,7 @@ import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import Avatar from '../../../components/ui/Avatar';
 import { formatLastSeen, getGroupDateString } from '../../../utils/date';
+import { usePresence } from '../../../context/PresenceContext';
 
 // Custom Intersection Observer Hook for Virtualization
 const useIntersectionObserver = ({ root = null, rootMargin = '0px', threshold = 0 } = {}) => {
@@ -78,7 +79,12 @@ const ChatWindow = ({
   const messagesEndRef = useRef(null);
   const viewportRef = useRef(null);
 
+  const { getUserPresence } = usePresence();
   const otherParticipant = conversation?.otherParticipant;
+  const presence = getUserPresence(otherParticipant?._id || otherParticipant?.id);
+  const isOnline = presence.isOnline;
+  const lastSeen = presence.lastSeen;
+
   const otherName = otherParticipant ? `${otherParticipant.firstName} ${otherParticipant.lastName}` : 'Researcher';
   const otherImage = otherParticipant?.profileImage;
 
@@ -218,7 +224,7 @@ const ChatWindow = ({
             src={otherImage}
             name={otherName}
             size="lg"
-            isOnline={otherParticipant?.isOnline}
+            isOnline={isOnline}
           />
 
           <div className="min-w-0">
@@ -227,7 +233,7 @@ const ChatWindow = ({
               {!conversation.isGroup && <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500" />}
             </div>
             <p className="text-xs text-slate-500 truncate">
-              {otherParticipant?.isOnline ? 'Online now' : formatLastSeen(otherParticipant?.lastSeen)}
+              {isOnline ? 'Online now' : formatLastSeen(lastSeen)}
               {(otherParticipant?.designation || otherParticipant?.institution) && (
                 ` • ${otherParticipant?.designation || 'Researcher'}${otherParticipant?.institution ? ` at ${otherParticipant.institution}` : ''}`
               )}

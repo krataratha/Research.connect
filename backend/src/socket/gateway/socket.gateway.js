@@ -23,7 +23,6 @@ class SocketGateway {
         origin: env.clientUrl,
         methods: ['GET', 'POST']
       },
-
       pingTimeout: 20000,
       pingInterval: 25000
     });
@@ -38,7 +37,7 @@ class SocketGateway {
         const userId = socket.user.userId || socket.user.id || socket.user._id;
         const socketId = socket.id;
 
-        // Parse user-agent info if available
+        // Parse user-agent info
         const userAgentStr = socket.handshake.headers['user-agent'] || '';
         const ip = socket.handshake.address || '';
         
@@ -58,18 +57,8 @@ class SocketGateway {
         // Join default namespaces rooms
         roomManager.joinUserRooms(socket);
 
-        // Disconnect duplicate active socket sessions for this user ID
-        try {
-          const sockets = await this.io.in(`user:${userId}`).fetchSockets();
-          for (const s of sockets) {
-            if (s.id !== socketId) {
-              logger.info(`[SOCKET] Disconnecting older socket session ${s.id} for user ${userId}`);
-              s.disconnect(true);
-            }
-          }
-        } catch (err) {
-          logger.error(`[SOCKET] Failed to clear duplicate socket sessions: ${err.message}`);
-        }
+        // NOTE: Redesigned multi-device support - DO NOT disconnect older sockets of the same user.
+        // Multiple tabs and devices are tracked together in the Redis Set user:{userId}:sockets.
 
         // Register notifications socket router
         try {
@@ -85,7 +74,7 @@ class SocketGateway {
           logger.error(`Failed mounting messaging socket listeners: ${err.message}`);
         }
 
-        // Register call socket router
+        // Register call socket router (Redesigned)
         try {
           require('../../modules/messaging/socket/call.socket')(this.io, socket);
         } catch (err) {
@@ -106,7 +95,26 @@ class SocketGateway {
           logger.error(`Failed mounting project socket listeners: ${err.message}`);
         }
 
-        // Heartbeat signal from client (received every 30s)
+        // Custom Heartbeat Ping-Pong (Part 12)
+        socket.on('ping', async () => {
+          try {
+            socket.emit('pong');
+            const now = new Date();
+            await SocketSession.updateOne(
+              { socketId },
+              { $set: { lastHeartbeat: now } }
+            );
+            if (redisClient && redisClient.isOpen && redisClient.isReady) {
+              await redisClient.hSet(`presence:details:${userId}`, {
+                updatedAt: now.toISOString()
+              });
+            }
+          } catch (err) {
+            logger.error(`Socket ping update failed: ${err.message}`);
+          }
+        });
+
+        // Legacy Heartbeat
         socket.on('heartbeat', async () => {
           try {
             await SocketSession.updateOne(
@@ -117,7 +125,7 @@ class SocketGateway {
               await redisClient.expire(`presence:status:${userId}`, 300);
             }
           } catch (err) {
-            logger.error(`Socket heartbeat update failed: ${err.message}`);
+            logger.error(`Socket legacy heartbeat update failed: ${err.message}`);
           }
         });
 
@@ -135,7 +143,7 @@ class SocketGateway {
       }
     });
 
-    // 3. Start Heartbeat Pruning Scheduler (runs every 30 seconds)
+    // 3. Start Heartbeat Pruning Scheduler (runs every 20 seconds to match the 20s cycle)
     this.startHeartbeatPruner();
 
     return this.io;
@@ -147,7 +155,8 @@ class SocketGateway {
   startHeartbeatPruner() {
     this.heartbeatIntervalId = setInterval(async () => {
       try {
-        const threshold = new Date(Date.now() - 60000); // Missed 2 heartbeats (60s)
+        // Prune if no heartbeat for 60 seconds (3 missed heartbeats)
+        const threshold = new Date(Date.now() - 60000); 
         const deadSessions = await SocketSession.find({
           lastHeartbeat: { $lt: threshold }
         }).lean();
@@ -155,13 +164,19 @@ class SocketGateway {
         if (deadSessions.length > 0) {
           logger.info(`⚙️ Socket Heartbeat Pruner: Cleaning up ${deadSessions.length} dead socket sessions.`);
           for (const session of deadSessions) {
+            // Disconnect socket connection on server if active
+            const activeSocket = this.io.sockets.sockets.get(session.socketId);
+            if (activeSocket) {
+              logger.info(`Force disconnecting dead socket: ${session.socketId}`);
+              activeSocket.disconnect(true);
+            }
             await presenceManager.setUserOffline(session.userId, session.socketId, this.io);
           }
         }
       } catch (err) {
         logger.error(`Socket heartbeat pruner error: ${err.message}`);
       }
-    }, 30000);
+    }, 20000);
   }
 
   /**
@@ -194,4 +209,3 @@ class SocketGateway {
 }
 
 module.exports = new SocketGateway();
-

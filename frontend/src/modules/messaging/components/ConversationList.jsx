@@ -4,11 +4,16 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import messagesService from '../services/messages.service';
 import Avatar from '../../../components/ui/Avatar';
+import { usePresence } from '../../../context/PresenceContext';
 
 const ConversationItem = memo(({ conv, activeId, onSelect, onContextMenu, formatTime }) => {
   const { otherParticipant, lastMessage, unreadCount, isPinned, isGroup, name } = conv;
+  const { getUserPresence } = usePresence();
+  
   const fullName = isGroup ? name : (otherParticipant ? `${otherParticipant.firstName} ${otherParticipant.lastName}` : 'Researcher');
-  const isOnline = otherParticipant?.isOnline;
+  
+  const presence = getUserPresence(otherParticipant?._id || otherParticipant?.id);
+  const isOnline = presence.isOnline;
   const avatarUrl = isGroup ? '' : otherParticipant?.profileImage;
   const isActive = activeId === conv._id;
   const isUnread = unreadCount > 0;
@@ -67,6 +72,7 @@ const ConversationList = ({
   onStartNewChat = null,
   onComposeClick = null
 }) => {
+  const { getUserPresence } = usePresence();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [sheetConv, setSheetConv] = useState(null);
@@ -196,7 +202,7 @@ const ConversationList = ({
                   src={person.profileImage}
                   name={`${person.firstName} ${person.lastName}`}
                   size="md"
-                  isOnline={person.isOnline}
+                  isOnline={getUserPresence(person._id).isOnline}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-bold text-slate-800 truncate">{person.firstName} {person.lastName}</p>

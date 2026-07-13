@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -9,8 +9,13 @@ const SocketContext = createContext(null);
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
   const [socket, setSocket] = useState(null);
+  const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const queryClient = useQueryClient();
+
+  const lastPongRef = useRef(Date.now());
+  const heartbeatIntervalRef = useRef(null);
 
   useEffect(() => {
     if (!user) {
@@ -18,24 +23,81 @@ export const SocketProvider = ({ children }) => {
         socket.disconnect();
         setSocket(null);
       }
+      setConnected(false);
+      setConnecting(false);
       return;
     }
 
     const token = localStorage.getItem('token');
     const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
+    setConnecting(true);
+
+    // Setup Socket.IO client with custom reconnect parameters (Exponential Backoff)
     const newSocket = io(socketUrl, {
       auth: { token },
       transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000, // max backoff of 10s
+      randomizationFactor: 0.5,
+      timeout: 20000
     });
 
     newSocket.on('connect', () => {
-      // Socket connected successfully
+      setConnected(true);
+      setConnecting(false);
+      lastPongRef.current = Date.now();
+      console.log('🔌 Socket connected successfully:', newSocket.id);
+    });
+
+    newSocket.on('disconnect', (reason) => {
+      setConnected(false);
+      setConnecting(false);
+      console.warn('🔌 Socket disconnected. Reason:', reason);
+      if (reason === 'io server disconnect') {
+        // server kicked us, reconnect manually
+        newSocket.connect();
+      }
     });
 
     newSocket.on('connect_error', (err) => {
+      setConnected(false);
+      setConnecting(true);
       console.warn('🔌 Socket connection error:', err.message);
     });
+
+    newSocket.on('reconnect_attempt', (attempt) => {
+      setConnecting(true);
+      console.log(`🔌 Socket reconnection attempt #${attempt}`);
+    });
+
+    newSocket.on('reconnect_failed', () => {
+      setConnected(false);
+      setConnecting(false);
+      console.error('🔌 Socket reconnection failed completely');
+    });
+
+    // Custom Heartbeat Listener
+    newSocket.on('pong', () => {
+      lastPongRef.current = Date.now();
+    });
+
+    // Custom Heartbeat Loop: Ping every 20s. Missed 3 pongs (60s) = Disconnect/Offline.
+    lastPongRef.current = Date.now();
+    heartbeatIntervalRef.current = setInterval(() => {
+      if (newSocket.connected) {
+        newSocket.emit('ping');
+        
+        const missedTime = Date.now() - lastPongRef.current;
+        if (missedTime > 60000) {
+          console.warn('🔌 Heartbeat Hook: 3 pings missed. Connection dead. Forcefully reconnecting...');
+          newSocket.disconnect();
+          newSocket.connect();
+        }
+      }
+    }, 20000);
 
     // Listen for new real-time notifications
     newSocket.on('notification:new', (notification) => {
@@ -64,7 +126,7 @@ export const SocketProvider = ({ children }) => {
       queryClient.setQueryData(['unreadCount'], { count });
     });
 
-    // Listen for notification updates (e.g. marked read)
+    // Listen for notification updates
     newSocket.on('notification:update', (updatedNotification) => {
       setNotifications((prev) => 
         prev.map(n => n._id === updatedNotification._id ? { ...n, ...updatedNotification } : n)
@@ -87,7 +149,6 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on('message:received', (message) => {
-      console.log('💬 Socket: message:received:', message);
       queryClient.invalidateQueries({ queryKey: ['messages', message.conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     });
@@ -120,27 +181,6 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on('typing:stop', ({ conversationId, userId }) => {
       window.dispatchEvent(new CustomEvent('typing:stop', { detail: { conversationId, userId } }));
-    });
-
-    // Listen for user presence changes
-    newSocket.on('presence:update', ({ userId, status, lastSeen }) => {
-      queryClient.setQueryData(['conversations'], (old) => {
-        if (!old) return old;
-        return old.map(c => {
-          if (c.otherParticipant && (c.otherParticipant._id === userId || c.otherParticipant._id?.toString() === userId?.toString())) {
-            return {
-              ...c,
-              otherParticipant: {
-                ...c.otherParticipant,
-                isOnline: status === 'online',
-                lastSeen: lastSeen || c.otherParticipant.lastSeen
-              }
-            };
-          }
-          return c;
-        });
-      });
-      window.dispatchEvent(new CustomEvent('presence:update', { detail: { userId, status, lastSeen } }));
     });
 
     // Listen for avatar / profile updates
@@ -181,6 +221,9 @@ export const SocketProvider = ({ children }) => {
     setSocket(newSocket);
 
     return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
       newSocket.disconnect();
     };
   }, [user]);
@@ -194,7 +237,7 @@ export const SocketProvider = ({ children }) => {
   }, [user]);
 
   return (
-    <SocketContext.Provider value={{ socket, notifications, setNotifications }}>
+    <SocketContext.Provider value={{ socket, connected, connecting, notifications, setNotifications }}>
       {children}
     </SocketContext.Provider>
   );
