@@ -1,7 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCheck, Trash2, ArrowUpRight, BellOff } from 'lucide-react';
+import { CheckCheck, Trash2, ArrowUpRight, BellOff, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import notificationsService from '../services/notifications.service';
 import connectionsService from '../../connections/services/connections.service';
@@ -11,7 +11,6 @@ import UserAvatar from '../../../components/ui/Avatar';
 const NotificationDropdown = ({ onClose }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const dropdownRef = useRef(null);
 
   // Pending connection requests (surfaced here on mobile, since the
   // standalone Requests icon is hidden below the md breakpoint)
@@ -44,17 +43,6 @@ const NotificationDropdown = ({ onClose }) => {
       }
     }
   });
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleOutsideClick = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        onClose();
-      }
-    };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [onClose]);
 
   // Fetch latest 20 notifications
   const { data: notificationsData, isLoading } = useQuery({
@@ -120,7 +108,6 @@ const NotificationDropdown = ({ onClose }) => {
 
   return (
     <div 
-      ref={dropdownRef}
       className="fixed sm:absolute right-2 left-2 sm:left-auto sm:right-0 top-16 sm:top-auto mt-0 sm:mt-2 w-auto sm:w-80 max-w-[calc(100vw-1rem)] sm:max-w-none bg-white border border-slate-200 rounded-3xl shadow-xl z-50 overflow-hidden text-left flex flex-col max-h-[75vh] sm:max-h-[460px] animate-in fade-in slide-in-from-top-2 duration-200"
     >
       {/* Header */}
@@ -129,17 +116,27 @@ const NotificationDropdown = ({ onClose }) => {
           <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide">Notifications</h4>
           <p className="text-[9px] text-[#475569] font-bold uppercase tracking-wider">Latest updates</p>
         </div>
-        
-        {notifications.some(n => !n.isRead) && (
+
+        <div className="flex items-center gap-1.5">
+          {notifications.some(n => !n.isRead) && (
+            <button
+              onClick={handleMarkAllRead}
+              disabled={markAllReadMutation.isPending}
+              className="flex items-center gap-1 text-[10px] font-black uppercase text-[#2563EB] hover:text-[#1D4ED8] bg-white border border-slate-200 px-2 py-1 rounded-lg transition-all cursor-pointer shadow-xs active:scale-95"
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+              <span>Mark all read</span>
+            </button>
+          )}
+
           <button
-            onClick={handleMarkAllRead}
-            disabled={markAllReadMutation.isPending}
-            className="flex items-center gap-1 text-[10px] font-black uppercase text-[#2563EB] hover:text-[#1D4ED8] bg-white border border-slate-200 px-2 py-1 rounded-lg transition-all cursor-pointer shadow-xs active:scale-95"
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-slate-200/70 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer shrink-0"
+            title="Close"
           >
-            <CheckCheck className="w-3.5 h-3.5" />
-            <span>Mark all read</span>
+            <X className="w-3.5 h-3.5" />
           </button>
-        )}
+        </div>
       </div>
 
       {/* Pending Requests - mobile only (desktop has a dedicated Requests icon) */}

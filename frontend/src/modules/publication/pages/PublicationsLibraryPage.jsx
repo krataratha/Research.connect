@@ -108,11 +108,11 @@ const PublicationsLibraryPage = () => {
   const profile = profileRes?.success ? profileRes.data : null;
   const currentUserId = currentUser?._id || currentUser?.id;
   const profileUserId = profile?.userId?._id || profile?.userId?.id || profile?.userId;
-  const isOwner = currentUser && profile && (
+  const isOwner = !!(currentUser && profile && (
     (currentUserId && profileUserId && currentUserId.toString() === profileUserId.toString()) || 
     currentUser.profileSlug === profileSlug || 
     currentUser.username === profileSlug
-  );
+  ));
 
   // 2. Fetch Publications Portfolio
   const { data: pubsRes, isLoading: isPubsLoading, refetch } = useQuery({
@@ -175,7 +175,7 @@ const PublicationsLibraryPage = () => {
   const { data: trashCountRes, refetch: refetchTrashCount } = useQuery({
     queryKey: ['publications-trash-count', profileSlug],
     queryFn: () => publicationService.getMyPublications({ page: 1, limit: 1, trash: 'true' }),
-    enabled: !!profileSlug && isOwner
+    enabled: !!profileSlug && !!isOwner
   });
   const trashCount = trashCountRes?.success ? (trashCountRes.data.total ?? 0) : 0;
 
