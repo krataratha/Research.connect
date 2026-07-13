@@ -333,7 +333,7 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
  * Universal Upload File logic.
  */
 const uploadFile = async ({ file, userId, purpose, resourceId }) => {
-  return uploadFileInternal({ file, userId, purpose, resourceId, useTransaction: true });
+  return uploadFileInternal({ file, userId, purpose, resourceId, useTransaction: false });
 };
 
 /**
@@ -454,7 +454,7 @@ const deleteUploadInternal = async (assetId, userId, useTransaction = true) => {
  * Delete an upload from MongoDB and R2.
  */
 const deleteUpload = async (assetId, userId) => {
-  return deleteUploadInternal(assetId, userId, true);
+  return deleteUploadInternal(assetId, userId, false);
 };
 
 const deleteProfilePhoto = async (userId) => {
@@ -469,7 +469,7 @@ const deleteProfilePhoto = async (userId) => {
     emitProfileImageUpdate(userId, 'profileImageUpdated', payload);
     return { success: true, message: 'Profile photo cleared.' };
   }
-  return deleteUploadInternal(upload.asset_id, userId, true);
+  return deleteUploadInternal(upload.asset_id, userId, false);
 };
 
 /**
@@ -486,7 +486,7 @@ const deleteProfileBanner = async (userId) => {
     emitProfileImageUpdate(userId, 'bannerUpdated', payload);
     return { success: true, message: 'Profile banner reset to default.' };
   }
-  return deleteUploadInternal(upload.asset_id, userId, true);
+  return deleteUploadInternal(upload.asset_id, userId, false);
 };
 
 module.exports = {
