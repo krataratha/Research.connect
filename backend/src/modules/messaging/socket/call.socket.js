@@ -80,18 +80,14 @@ module.exports = (io, socket) => {
         socket.emit('CALL_BUSY', { targetUserId: targetUserIdStr, callId });
         socket.emit('call:rejected', { callId, reason: 'busy' });
         
-        // Log busy call history in DB
-        const call = new CallHistory({
-          _id: callId,
-          caller: userId,
-          receiver: targetUserId,
-          status: 'busy',
-          type: type || 'voice',
-          participants: [userId, targetUserId],
-          startedAt: new Date(),
-          endedAt: new Date()
-        });
-        await call.save();
+        // Update existing CallHistory record status to busy
+        const call = await CallHistory.findOne({ callId });
+        if (call) {
+          call.status = 'busy';
+          call.endedAt = new Date();
+          call.duration = 0;
+          await call.save();
+        }
         return;
       }
 
@@ -103,36 +99,29 @@ module.exports = (io, socket) => {
         socket.emit('CALL_TIMEOUT', { callId });
         socket.emit('call:rejected', { callId, reason: 'offline' });
         
-        const call = new CallHistory({
-          _id: callId,
-          caller: userId,
-          receiver: targetUserId,
-          status: 'missed',
-          type: type || 'voice',
-          participants: [userId, targetUserId],
-          startedAt: new Date(),
-          endedAt: new Date()
-        });
-        await call.save();
+        const call = await CallHistory.findOne({ callId });
+        if (call) {
+          call.status = 'missed';
+          call.endedAt = new Date();
+          call.duration = 0;
+          await call.save();
+        }
         return;
       }
 
-      logger.info(`📞 Call Invite: User ${callerIdStr} is calling ${targetUserIdStr} (CallId: ${callId})`);
+      logger.info(`📞 Call Invite: User ${callerIdStr} (Socket: ${socket.id}) is calling ${targetUserIdStr} (CallId: ${callId})`);
 
-      // Set active call status in Redis/Memory
+      // Set active call status in Redis/Memory with specific socket IDs
       const callDetails = { callId, type: type || 'voice', peerId: targetUserIdStr };
-      await setActiveCall(callerIdStr, { ...callDetails, role: 'caller', status: 'ringing' });
+      await setActiveCall(callerIdStr, { ...callDetails, role: 'caller', status: 'ringing', socketId: socket.id });
       await setActiveCall(targetUserIdStr, { ...callDetails, role: 'callee', status: 'ringing' });
 
-      // Save starting CallHistory record
-      let callRecord;
-      if (callId) {
-        callRecord = await CallHistory.findById(callId);
-      }
-      
+      // Find or create CallHistory record
+      let callRecord = await CallHistory.findOne({ callId });
       if (!callRecord) {
+        const { v4: uuidv4 } = require('uuid');
         callRecord = new CallHistory({
-          _id: callId,
+          callId: callId || uuidv4(),
           caller: userId,
           receiver: targetUserId,
           status: 'missed', // default to missed in case they timeout
@@ -143,54 +132,51 @@ module.exports = (io, socket) => {
         await callRecord.save();
       }
 
-      // Relay CALL_INVITE (and call:incoming) to receiver
-      io.to(`user:${targetUserIdStr}`).emit('CALL_INVITE', {
+      // Relay CALL_INVITE (and call:incoming) to receiver's room with caller's socket ID
+      const inviteData = {
         callerId: userId,
         callerName: socket.user.fullName || 'Researcher',
         callerImage: socket.user.profileImage || '',
-        callId: callRecord._id,
+        callId: callRecord.callId,
         type: type || 'voice',
-        conversationId
-      });
+        conversationId,
+        callerSocketId: socket.id // Relay caller's specific socket ID
+      };
 
-      io.to(`user:${targetUserIdStr}`).emit('call:incoming', {
-        callerId: userId,
-        callerName: socket.user.fullName || 'Researcher',
-        callerImage: socket.user.profileImage || '',
-        callId: callRecord._id,
-        type: type || 'voice',
-        conversationId
-      });
+      io.to(`user:${targetUserIdStr}`).emit('CALL_INVITE', inviteData);
+      io.to(`user:${targetUserIdStr}`).emit('call:incoming', inviteData);
 
       // Set 30 seconds timer for Missed Call / Timeout
       const timeoutId = setTimeout(async () => {
         try {
-          logger.info(`📞 Call Timeout: CallId ${callRecord._id} timed out after 30 seconds.`);
+          logger.info(`📞 Call Timeout: CallId ${callRecord.callId} timed out after 30 seconds.`);
           
           // Clear active keys
           await removeActiveCall(callerIdStr);
           await removeActiveCall(targetUserIdStr);
           
           // Update database record
-          callRecord.status = 'missed';
-          callRecord.endedAt = new Date();
-          callRecord.duration = 0;
-          await callRecord.save();
+          const currentRecord = await CallHistory.findOne({ callId: callRecord.callId });
+          if (currentRecord && currentRecord.status === 'missed') {
+            currentRecord.endedAt = new Date();
+            currentRecord.duration = 0;
+            await currentRecord.save();
+          }
 
           // Emit timeout events
-          io.to(`user:${callerIdStr}`).emit('CALL_TIMEOUT', { callId: callRecord._id });
-          io.to(`user:${targetUserIdStr}`).emit('CALL_TIMEOUT', { callId: callRecord._id });
+          io.to(`user:${callerIdStr}`).emit('CALL_TIMEOUT', { callId: callRecord.callId });
+          io.to(`user:${targetUserIdStr}`).emit('CALL_TIMEOUT', { callId: callRecord.callId });
 
-          io.to(`user:${callerIdStr}`).emit('call:rejected', { callId: callRecord._id, reason: 'timeout' });
-          io.to(`user:${targetUserIdStr}`).emit('call:hungup', { callId: callRecord._id });
+          io.to(`user:${callerIdStr}`).emit('call:rejected', { callId: callRecord.callId, reason: 'timeout' });
+          io.to(`user:${targetUserIdStr}`).emit('call:hungup', { callId: callRecord.callId });
           
-          activeTimeouts.delete(callRecord._id.toString());
+          activeTimeouts.delete(callRecord.callId.toString());
         } catch (timerErr) {
           logger.error(`Error during call timeout scheduler execution: ${timerErr.message}`);
         }
       }, 30000);
 
-      activeTimeouts.set(callRecord._id.toString(), timeoutId);
+      activeTimeouts.set(callRecord.callId.toString(), timeoutId);
 
     } catch (err) {
       logger.error(`Failed to initiate call via socket: ${err.message}`);
@@ -204,9 +190,13 @@ module.exports = (io, socket) => {
    * 2. CALL_RINGING
    * Callee lets caller know that call invitation has been shown and is ringing
    */
-  const handleCallRinging = ({ callerId, callId }) => {
+  const handleCallRinging = ({ callerId, callId, targetSocketId }) => {
     if (!callerId) return;
-    io.to(`user:${callerId}`).emit('CALL_RINGING', { callId });
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('CALL_RINGING', { callId });
+    } else {
+      io.to(`user:${callerId}`).emit('CALL_RINGING', { callId });
+    }
   };
   socket.on('CALL_RINGING', handleCallRinging);
 
@@ -214,7 +204,7 @@ module.exports = (io, socket) => {
    * 3. CALL_ACCEPT (or call:accept)
    * Callee accepts WebRTC call
    */
-  const handleCallAccept = async ({ callerId, callId }) => {
+  const handleCallAccept = async ({ callerId, callId, targetSocketId }) => {
     if (!callId) return;
     const callIdStr = callId.toString();
 
@@ -227,11 +217,11 @@ module.exports = (io, socket) => {
 
       // Update call states in Redis/Memory to active
       const callerIdStr = callerId.toString();
-      await setActiveCall(callerIdStr, { callId, status: 'active', role: 'caller', peerId: userIdStr });
-      await setActiveCall(userIdStr, { callId, status: 'active', role: 'callee', peerId: callerIdStr });
+      await setActiveCall(callerIdStr, { callId, status: 'active', role: 'caller', peerId: userIdStr, socketId: targetSocketId, peerSocketId: socket.id });
+      await setActiveCall(userIdStr, { callId, status: 'active', role: 'callee', peerId: callerIdStr, socketId: socket.id, peerSocketId: targetSocketId });
 
       // Update CallHistory in MongoDB
-      const call = await CallHistory.findById(callId);
+      const call = await CallHistory.findOne({ callId });
       if (call) {
         call.status = 'completed'; // default final status if completes successfully
         await call.save();
@@ -239,9 +229,18 @@ module.exports = (io, socket) => {
 
       logger.info(`📞 Call Accepted: User ${userIdStr} accepted CallId ${callId}`);
 
-      // Relay acceptance
-      io.to(`user:${callerId}`).emit('CALL_ACCEPT', { callId, accepterId: userId });
-      io.to(`user:${callerId}`).emit('call:accepted', { callId, accepterId: userId });
+      // Broadcast to other tabs of this callee user that the call was answered elsewhere
+      socket.to(`user:${userIdStr}`).emit('CALL_ANSWERED_ELSEWHERE', { callId });
+
+      // Relay acceptance specifically to the caller's socket or room
+      const acceptData = { callId, accepterId: userId, accepterSocketId: socket.id };
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('CALL_ACCEPT', acceptData);
+        io.to(targetSocketId).emit('call:accepted', acceptData);
+      } else {
+        io.to(`user:${callerId}`).emit('CALL_ACCEPT', acceptData);
+        io.to(`user:${callerId}`).emit('call:accepted', acceptData);
+      }
     } catch (err) {
       logger.error(`Failed to accept call via socket: ${err.message}`);
     }
@@ -254,7 +253,7 @@ module.exports = (io, socket) => {
    * 4. CALL_REJECT (or call:reject)
    * Callee rejects incoming call invitation
    */
-  const handleCallReject = async ({ callerId, callId }) => {
+  const handleCallReject = async ({ callerId, callId, targetSocketId }) => {
     if (!callId) return;
     const callIdStr = callId.toString();
 
@@ -271,7 +270,7 @@ module.exports = (io, socket) => {
       await removeActiveCall(userIdStr);
 
       // Update CallHistory DB record
-      const call = await CallHistory.findById(callId);
+      const call = await CallHistory.findOne({ callId });
       if (call) {
         call.status = 'rejected';
         call.endedAt = new Date();
@@ -281,9 +280,15 @@ module.exports = (io, socket) => {
 
       logger.info(`📞 Call Rejected: User ${userIdStr} rejected CallId ${callId}`);
 
-      // Relay reject
-      io.to(`user:${callerId}`).emit('CALL_REJECT', { callId, rejecterId: userId });
-      io.to(`user:${callerId}`).emit('call:rejected', { callId, rejecterId: userId });
+      // Relay reject to specific socket or broad room
+      const rejectData = { callId, rejecterId: userId };
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('CALL_REJECT', rejectData);
+        io.to(targetSocketId).emit('call:rejected', rejectData);
+      } else {
+        io.to(`user:${callerId}`).emit('CALL_REJECT', rejectData);
+        io.to(`user:${callerId}`).emit('call:rejected', rejectData);
+      }
     } catch (err) {
       logger.error(`Failed to reject call via socket: ${err.message}`);
     }
@@ -296,7 +301,7 @@ module.exports = (io, socket) => {
    * 5. CALL_CANCEL
    * Caller cancels call before receiver answers
    */
-  const handleCallCancel = async ({ targetUserId, callId }) => {
+  const handleCallCancel = async ({ targetUserId, callId, targetSocketId }) => {
     if (!callId) return;
     const callIdStr = callId.toString();
 
@@ -310,7 +315,7 @@ module.exports = (io, socket) => {
       await removeActiveCall(userIdStr);
       await removeActiveCall(targetUserIdStr);
 
-      const call = await CallHistory.findById(callId);
+      const call = await CallHistory.findOne({ callId });
       if (call) {
         call.status = 'cancelled';
         call.endedAt = new Date();
@@ -320,8 +325,14 @@ module.exports = (io, socket) => {
 
       logger.info(`📞 Call Cancelled: Caller ${userIdStr} cancelled CallId ${callId}`);
 
-      io.to(`user:${targetUserIdStr}`).emit('CALL_CANCEL', { callId, cancellerId: userId });
-      io.to(`user:${targetUserIdStr}`).emit('call:hungup', { callId });
+      const cancelData = { callId, cancellerId: userId };
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('CALL_CANCEL', cancelData);
+        io.to(targetSocketId).emit('call:hungup', cancelData);
+      } else {
+        io.to(`user:${targetUserIdStr}`).emit('CALL_CANCEL', cancelData);
+        io.to(`user:${targetUserIdStr}`).emit('call:hungup', cancelData);
+      }
     } catch (err) {
       logger.error(`Failed to cancel call via socket: ${err.message}`);
     }
@@ -332,7 +343,7 @@ module.exports = (io, socket) => {
    * 6. CALL_END (or call:hangup)
    * Active call gets hung up by either party
    */
-  const handleCallEnd = async ({ targetUserId, callId, iceState, connectionState }) => {
+  const handleCallEnd = async ({ targetUserId, callId, targetSocketId, iceState, connectionState }) => {
     if (!callId) return;
     const callIdStr = callId.toString();
 
@@ -346,7 +357,7 @@ module.exports = (io, socket) => {
       await removeActiveCall(userIdStr);
       await removeActiveCall(targetUserIdStr);
 
-      const call = await CallHistory.findById(callId);
+      const call = await CallHistory.findOne({ callId });
       if (call) {
         call.endedAt = new Date();
         call.duration = Math.max(0, Math.round((call.endedAt - call.startedAt) / 1000));
@@ -364,8 +375,14 @@ module.exports = (io, socket) => {
 
       logger.info(`📞 Call End: User ${userIdStr} hung up CallId ${callId}`);
 
-      io.to(`user:${targetUserIdStr}`).emit('CALL_END', { callId, hangupperId: userId });
-      io.to(`user:${targetUserIdStr}`).emit('call:hungup', { callId, hangupperId: userId });
+      const endData = { callId, hangupperId: userId };
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('CALL_END', endData);
+        io.to(targetSocketId).emit('call:hungup', endData);
+      } else {
+        io.to(`user:${targetUserIdStr}`).emit('CALL_END', endData);
+        io.to(`user:${targetUserIdStr}`).emit('call:hungup', endData);
+      }
     } catch (err) {
       logger.error(`Failed to hang up call via socket: ${err.message}`);
     }
@@ -377,62 +394,91 @@ module.exports = (io, socket) => {
   /**
    * 7. WebRTC Signaling relay (offers, answers, ICE candidates)
    */
-  socket.on('call:signal', async ({ targetUserId, signal, callId }) => {
-    if (!targetUserId) return;
-    const targetUserIdStr = targetUserId.toString();
-
-    // Authorization check: Make sure this signal belongs to an active call involving sender
-    const inCall = await isUserInCall(userIdStr);
-    if (!inCall) {
-      logger.warn(`Blocked unauthorized call:signal from ${userIdStr} to ${targetUserIdStr}. User not flagged in call.`);
-      return;
-    }
+  socket.on('call:signal', async ({ targetSocketId, signal, callId }) => {
+    if (!targetSocketId) return;
 
     // Relay compatibility signals
-    io.to(`user:${targetUserIdStr}`).emit('call:signal', {
+    io.to(targetSocketId).emit('call:signal', {
       senderId: userId,
+      senderSocketId: socket.id,
       signal
     });
 
     // Relay precise specification signals
     if (signal.sdp) {
       if (signal.sdp.type === 'offer') {
-        io.to(`user:${targetUserIdStr}`).emit('WEBRTC_OFFER', { senderId: userId, sdp: signal.sdp, callId });
+        io.to(targetSocketId).emit('WEBRTC_OFFER', { senderId: userId, senderSocketId: socket.id, sdp: signal.sdp, callId });
       } else if (signal.sdp.type === 'answer') {
-        io.to(`user:${targetUserIdStr}`).emit('WEBRTC_ANSWER', { senderId: userId, sdp: signal.sdp, callId });
+        io.to(targetSocketId).emit('WEBRTC_ANSWER', { senderId: userId, senderSocketId: socket.id, sdp: signal.sdp, callId });
       }
     } else if (signal.candidate) {
-      io.to(`user:${targetUserIdStr}`).emit('ICE_CANDIDATE', { senderId: userId, candidate: signal.candidate, callId });
+      io.to(targetSocketId).emit('ICE_CANDIDATE', { senderId: userId, senderSocketId: socket.id, candidate: signal.candidate, callId });
     }
   });
 
-  // Explicit events relay
-  socket.on('WEBRTC_OFFER', async ({ targetUserId, sdp, callId }) => {
-    if (!targetUserId) return;
-    io.to(`user:${targetUserId}`).emit('WEBRTC_OFFER', { senderId: userId, sdp, callId });
+  // Explicit events relay targeting specific sockets
+  socket.on('WEBRTC_OFFER', async ({ targetSocketId, sdp, callId }) => {
+    if (!targetSocketId) return;
+    io.to(targetSocketId).emit('WEBRTC_OFFER', { senderId: userId, senderSocketId: socket.id, sdp, callId });
   });
 
-  socket.on('WEBRTC_ANSWER', async ({ targetUserId, sdp, callId }) => {
-    if (!targetUserId) return;
-    io.to(`user:${targetUserId}`).emit('WEBRTC_ANSWER', { senderId: userId, sdp, callId });
+  socket.on('WEBRTC_ANSWER', async ({ targetSocketId, sdp, callId }) => {
+    if (!targetSocketId) return;
+    io.to(targetSocketId).emit('WEBRTC_ANSWER', { senderId: userId, senderSocketId: socket.id, sdp, callId });
   });
 
-  socket.on('ICE_CANDIDATE', async ({ targetUserId, candidate, callId }) => {
-    if (!targetUserId) return;
-    io.to(`user:${targetUserId}`).emit('ICE_CANDIDATE', { senderId: userId, candidate, callId });
+  socket.on('ICE_CANDIDATE', async ({ targetSocketId, candidate, callId }) => {
+    if (!targetSocketId) return;
+    io.to(targetSocketId).emit('ICE_CANDIDATE', { senderId: userId, senderSocketId: socket.id, candidate, callId });
   });
 
   /**
    * 8. MEDIA_STATE_CHANGED
-   * Relay microphone, camera, and screen sharing state updates to the peer
+   * Relay microphone, camera, and screen sharing state updates to the peer's specific socket
    */
-  socket.on('MEDIA_STATE_CHANGED', ({ targetUserId, micActive, videoActive, screenSharing }) => {
-    if (!targetUserId) return;
-    io.to(`user:${targetUserId}`).emit('MEDIA_STATE_CHANGED', {
+  socket.on('MEDIA_STATE_CHANGED', ({ targetSocketId, targetUserId, micActive, videoActive, screenSharing }) => {
+    const payload = {
       senderId: userId,
+      senderSocketId: socket.id,
       micActive,
       videoActive,
       screenSharing
-    });
+    };
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('MEDIA_STATE_CHANGED', payload);
+    } else if (targetUserId) {
+      io.to(`user:${targetUserId}`).emit('MEDIA_STATE_CHANGED', payload);
+    }
+  });
+
+  /**
+   * 9. DISCONNECT CLEANUP
+   * If a socket disconnects, automatically clean up any active calls they were in.
+   */
+  socket.on('disconnect', async () => {
+    try {
+      logger.info(`📞 Calling: Socket ${socket.id} (User ${userIdStr}) disconnected. Cleaning up active calls.`);
+      
+      let activeCall = null;
+      if (redisClient && redisClient.isOpen && redisClient.isReady) {
+        const activeCallStr = await redisClient.get(`user:${userIdStr}:active_call`);
+        if (activeCallStr) {
+          activeCall = JSON.parse(activeCallStr);
+        }
+      } else {
+        activeCall = memoryActiveCalls.get(userIdStr);
+      }
+
+      if (activeCall && activeCall.socketId === socket.id) {
+        logger.info(`📞 Calling: Active call ${activeCall.callId} disconnected on socket ${socket.id}. Hanging up peer.`);
+        await handleCallEnd({ 
+          targetUserId: activeCall.peerId, 
+          callId: activeCall.callId,
+          targetSocketId: activeCall.peerSocketId
+        });
+      }
+    } catch (err) {
+      logger.error(`Error during calling disconnect cleanup: ${err.message}`);
+    }
   });
 };

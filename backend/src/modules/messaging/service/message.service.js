@@ -589,7 +589,10 @@ class MessageService {
    * Log WebRTC Call Start
    */
   async logCallStart(userId, { type, targetUserId, conversationId }) {
+    const { v4: uuidv4 } = require('uuid');
+    const callId = uuidv4();
     const call = new CallHistory({
+      callId,
       caller: userId,
       receiver: targetUserId,
       status: 'missed',
@@ -605,7 +608,7 @@ class MessageService {
    * Log WebRTC Call End
    */
   async logCallEnd(userId, callId, status) {
-    const call = await CallHistory.findById(callId);
+    const call = await CallHistory.findOne({ callId });
     if (!call) {
       throw new ValidationError('Call record not found.');
     }

@@ -3,6 +3,12 @@ const Schema = mongoose.Schema;
 
 const CallHistorySchema = new Schema(
   {
+    callId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true
+    },
     caller: {
       type: Schema.Types.ObjectId,
       ref: 'User',

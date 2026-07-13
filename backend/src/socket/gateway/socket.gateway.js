@@ -27,6 +27,11 @@ class SocketGateway {
       pingInterval: 25000
     });
 
+    // Clean up all socket sessions on startup to avoid stale DB entries
+    SocketSession.deleteMany({}).catch((err) => {
+      logger.error(`Failed to clean up stale socket sessions: ${err.message}`);
+    });
+
     // 1. Mount auth and rate limiters
     this.io.use(socketAuthMiddleware);
     this.io.use(socketRateLimiter);
@@ -95,40 +100,6 @@ class SocketGateway {
           logger.error(`Failed mounting project socket listeners: ${err.message}`);
         }
 
-        // Custom Heartbeat Ping-Pong (Part 12)
-        socket.on('ping', async () => {
-          try {
-            socket.emit('pong');
-            const now = new Date();
-            await SocketSession.updateOne(
-              { socketId },
-              { $set: { lastHeartbeat: now } }
-            );
-            if (redisClient && redisClient.isOpen && redisClient.isReady) {
-              await redisClient.hSet(`presence:details:${userId}`, {
-                updatedAt: now.toISOString()
-              });
-            }
-          } catch (err) {
-            logger.error(`Socket ping update failed: ${err.message}`);
-          }
-        });
-
-        // Legacy Heartbeat
-        socket.on('heartbeat', async () => {
-          try {
-            await SocketSession.updateOne(
-              { socketId },
-              { $set: { lastHeartbeat: new Date() } }
-            );
-            if (redisClient && redisClient.isOpen && redisClient.isReady) {
-              await redisClient.expire(`presence:status:${userId}`, 300);
-            }
-          } catch (err) {
-            logger.error(`Socket legacy heartbeat update failed: ${err.message}`);
-          }
-        });
-
         // Disconnect
         socket.on('disconnect', async (reason) => {
           try {
@@ -143,49 +114,14 @@ class SocketGateway {
       }
     });
 
-    // 3. Start Heartbeat Pruning Scheduler (runs every 20 seconds to match the 20s cycle)
-    this.startHeartbeatPruner();
-
     return this.io;
-  }
-
-  /**
-   * Background pruner to clean up dead sessions that missed heartbeats
-   */
-  startHeartbeatPruner() {
-    this.heartbeatIntervalId = setInterval(async () => {
-      try {
-        // Prune if no heartbeat for 60 seconds (3 missed heartbeats)
-        const threshold = new Date(Date.now() - 60000); 
-        const deadSessions = await SocketSession.find({
-          lastHeartbeat: { $lt: threshold }
-        }).lean();
-
-        if (deadSessions.length > 0) {
-          logger.info(`⚙️ Socket Heartbeat Pruner: Cleaning up ${deadSessions.length} dead socket sessions.`);
-          for (const session of deadSessions) {
-            // Disconnect socket connection on server if active
-            const activeSocket = this.io.sockets.sockets.get(session.socketId);
-            if (activeSocket) {
-              logger.info(`Force disconnecting dead socket: ${session.socketId}`);
-              activeSocket.disconnect(true);
-            }
-            await presenceManager.setUserOffline(session.userId, session.socketId, this.io);
-          }
-        }
-      } catch (err) {
-        logger.error(`Socket heartbeat pruner error: ${err.message}`);
-      }
-    }, 20000);
   }
 
   /**
    * Stop background timers on shutdown
    */
   destroy() {
-    if (this.heartbeatIntervalId) {
-      clearInterval(this.heartbeatIntervalId);
-    }
+    // Timer removed, heartbeat handled natively by Socket.IO
   }
 
   getIO() {

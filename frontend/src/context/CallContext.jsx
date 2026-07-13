@@ -19,12 +19,18 @@ export const CallProvider = ({ children }) => {
     callerImage: '',
     callId: null,
     targetUserId: null,
+    peerSocketId: null, // Track specific socket of the peer
     initiator: false,
     iceState: 'new',
     connectionState: 'new',
     duration: 0,
     remoteMediaState: { micActive: true, videoActive: true, screenSharing: false }
   });
+
+  const callStateRef = useRef(callState);
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
 
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -90,7 +96,7 @@ export const CallProvider = ({ children }) => {
       if (navigator.vibrate) {
         navigator.vibrate([500, 250, 500, 250, 500]);
         const vibrateInterval = setInterval(() => {
-          if (callState.status === 'incoming') {
+          if (callStateRef.current.status === 'incoming') {
             navigator.vibrate([500, 250, 500, 250, 500]);
           } else {
             clearInterval(vibrateInterval);
@@ -98,7 +104,7 @@ export const CallProvider = ({ children }) => {
         }, 3000);
       }
     } catch (err) {}
-  }, [callState.status]);
+  }, []);
 
   // Clean up WebRTC session
   const cleanUpCall = useCallback(() => {
@@ -142,6 +148,7 @@ export const CallProvider = ({ children }) => {
       callerImage: '',
       callId: null,
       targetUserId: null,
+      peerSocketId: null,
       initiator: false,
       iceState: 'new',
       connectionState: 'new',
@@ -168,8 +175,8 @@ export const CallProvider = ({ children }) => {
   // WebRTC Setup Process
   const setupWebRTC = useCallback(async () => {
     try {
-      const type = callState.type;
-      const targetUserId = callState.targetUserId;
+      const type = callStateRef.current.type;
+      const targetUserId = callStateRef.current.targetUserId;
 
       // 1. Capture Local Stream
       const constraints = {
@@ -206,13 +213,13 @@ export const CallProvider = ({ children }) => {
         }
       };
 
-      // Handle ICE Candidates
+      // Handle ICE Candidates targeting specific socket
       pc.onicecandidate = (event) => {
-        if (event.candidate && socket && targetUserId) {
+        if (event.candidate && socket && callStateRef.current.peerSocketId) {
           socket.emit('ICE_CANDIDATE', {
-            targetUserId,
+            targetSocketId: callStateRef.current.peerSocketId,
             candidate: event.candidate,
-            callId: callState.callId
+            callId: callStateRef.current.callId
           });
         }
       };
@@ -226,10 +233,10 @@ export const CallProvider = ({ children }) => {
         if (iceState === 'failed' || iceState === 'disconnected') {
           console.warn('🔌 WebRTC Connection Alert: ICE Failed or Disconnected. Retrying Connection...');
           setNetworkQuality('poor');
-          if (callState.initiator) {
+          if (callStateRef.current.initiator && callStateRef.current.peerSocketId) {
             pc.createOffer({ iceRestart: true }).then((offer) => {
               pc.setLocalDescription(offer);
-              socket.emit('WEBRTC_OFFER', { targetUserId, sdp: offer, callId: callState.callId });
+              socket.emit('WEBRTC_OFFER', { targetSocketId: callStateRef.current.peerSocketId, sdp: offer, callId: callStateRef.current.callId });
             }).catch((err) => console.error('ICE restart offer creation failed:', err));
           }
         } else if (iceState === 'connected' || iceState === 'completed') {
@@ -264,14 +271,14 @@ export const CallProvider = ({ children }) => {
         }
       }, 5000);
 
-      // If initiator, create the SDP offer
-      if (callState.initiator) {
+      // If initiator, create the SDP offer targeting the peer's socket
+      if (callStateRef.current.initiator && callStateRef.current.peerSocketId) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         socket.emit('WEBRTC_OFFER', {
-          targetUserId,
+          targetSocketId: callStateRef.current.peerSocketId,
           sdp: offer,
-          callId: callState.callId
+          callId: callStateRef.current.callId
         });
       }
 
@@ -280,7 +287,7 @@ export const CallProvider = ({ children }) => {
       toast.error('Could not access microphone/camera. Permission denied.');
       cleanUpCall();
     }
-  }, [callState.type, callState.targetUserId, callState.initiator, callState.callId, socket, cleanUpCall]);
+  }, [socket, cleanUpCall]);
 
   // Handle call state transition triggers
   useEffect(() => {
@@ -297,11 +304,15 @@ export const CallProvider = ({ children }) => {
     };
   }, [callState.status, setupWebRTC, playRingtone, stopRingtone]);
 
-  // Listen to Calling signaling events
+  // Listen to Calling signaling events (Registered ONCE when socket connects)
   useEffect(() => {
     if (!socket) return;
 
-    const handleIncomingCall = ({ callerId, callerName, callerImage, callId, type }) => {
+    const handleIncomingCall = ({ callerId, callerName, callerImage, callId, type, callerSocketId }) => {
+      // If already in a call, ignore incoming calls (backend handles busy rejection)
+      if (callStateRef.current.status !== 'idle') {
+        return;
+      }
       setCallState({
         status: 'incoming',
         type,
@@ -310,6 +321,7 @@ export const CallProvider = ({ children }) => {
         callerImage,
         callId,
         targetUserId: callerId,
+        peerSocketId: callerSocketId,
         initiator: false,
         iceState: 'new',
         connectionState: 'new',
@@ -321,14 +333,14 @@ export const CallProvider = ({ children }) => {
     const handleCallRinging = () => {
       setCallState(prev => {
         if (prev.status === 'dialing') {
-          return { ...prev, status: 'dialing' }; // UI indicates ringing
+          return { ...prev, status: 'dialing' }; // Keep dialing, UI shows ringing
         }
         return prev;
       });
     };
 
-    const handleCallAccept = () => {
-      setCallState(prev => ({ ...prev, status: 'active' }));
+    const handleCallAccept = ({ accepterSocketId }) => {
+      setCallState(prev => ({ ...prev, status: 'active', peerSocketId: accepterSocketId }));
     };
 
     const handleCallReject = ({ reason }) => {
@@ -351,7 +363,7 @@ export const CallProvider = ({ children }) => {
       cleanUpCall();
     };
 
-    const handleWebRTCOffer = async ({ senderId, sdp }) => {
+    const handleWebRTCOffer = async ({ senderSocketId, sdp }) => {
       try {
         const pc = peerConnectionRef.current;
         if (!pc) return;
@@ -361,9 +373,9 @@ export const CallProvider = ({ children }) => {
         await pc.setLocalDescription(answer);
         
         socket.emit('WEBRTC_ANSWER', {
-          targetUserId: senderId,
+          targetSocketId: senderSocketId || callStateRef.current.peerSocketId,
           sdp: answer,
-          callId: callState.callId
+          callId: callStateRef.current.callId
         });
       } catch (err) {
         console.error('Failed to set WebRTC offer:', err);
@@ -397,6 +409,11 @@ export const CallProvider = ({ children }) => {
       }));
     };
 
+    const handleCallAnsweredElsewhere = () => {
+      toast('Call answered on another device');
+      cleanUpCall();
+    };
+
     socket.on('CALL_INVITE', handleIncomingCall);
     socket.on('CALL_RINGING', handleCallRinging);
     socket.on('CALL_ACCEPT', handleCallAccept);
@@ -408,6 +425,7 @@ export const CallProvider = ({ children }) => {
     socket.on('WEBRTC_ANSWER', handleWebRTCAnswer);
     socket.on('ICE_CANDIDATE', handleIceCandidate);
     socket.on('MEDIA_STATE_CHANGED', handleMediaStateChanged);
+    socket.on('CALL_ANSWERED_ELSEWHERE', handleCallAnsweredElsewhere);
 
     // Legacy compat
     socket.on('call:incoming', handleIncomingCall);
@@ -427,13 +445,14 @@ export const CallProvider = ({ children }) => {
       socket.off('WEBRTC_ANSWER', handleWebRTCAnswer);
       socket.off('ICE_CANDIDATE', handleIceCandidate);
       socket.off('MEDIA_STATE_CHANGED', handleMediaStateChanged);
+      socket.off('CALL_ANSWERED_ELSEWHERE', handleCallAnsweredElsewhere);
       
       socket.off('call:incoming', handleIncomingCall);
       socket.off('call:accepted', handleCallAccept);
       socket.off('call:rejected', handleCallReject);
       socket.off('call:hungup', handleCallEnd);
     };
-  }, [socket, callState.callId, cleanUpCall]);
+  }, [socket, cleanUpCall]);
 
   // Initiate call API and Socket emit
   const startCall = async (targetUserId, type, conversationId) => {
@@ -447,6 +466,7 @@ export const CallProvider = ({ children }) => {
         callerImage: '',
         callId: null,
         targetUserId,
+        peerSocketId: null,
         initiator: true,
         iceState: 'new',
         connectionState: 'new',
@@ -465,7 +485,7 @@ export const CallProvider = ({ children }) => {
 
       setCallState((prev) => ({
         ...prev,
-        callId: call._id
+        callId: call.callId
       }));
 
       if (socket) {
@@ -473,7 +493,7 @@ export const CallProvider = ({ children }) => {
           targetUserId,
           type,
           conversationId,
-          callId: call._id
+          callId: call.callId
         });
       }
     } catch (err) {
@@ -483,20 +503,22 @@ export const CallProvider = ({ children }) => {
   };
 
   const acceptCall = () => {
-    if (socket && callState.targetUserId) {
+    if (socket && callStateRef.current.peerSocketId) {
       socket.emit('CALL_ACCEPT', {
-        callerId: callState.targetUserId,
-        callId: callState.callId
+        callerId: callStateRef.current.targetUserId,
+        targetSocketId: callStateRef.current.peerSocketId,
+        callId: callStateRef.current.callId
       });
     }
     setCallState((prev) => ({ ...prev, status: 'active' }));
   };
 
   const rejectCall = async () => {
-    const callId = callState.callId;
-    if (socket && callState.targetUserId) {
+    const callId = callStateRef.current.callId;
+    if (socket && callStateRef.current.peerSocketId) {
       socket.emit('CALL_REJECT', {
-        callerId: callState.targetUserId,
+        callerId: callStateRef.current.targetUserId,
+        targetSocketId: callStateRef.current.peerSocketId,
         callId
       });
     }
@@ -507,20 +529,23 @@ export const CallProvider = ({ children }) => {
   };
 
   const endCall = async () => {
-    const callId = callState.callId;
-    const targetUserId = callState.targetUserId;
-    const isInitiator = callState.initiator;
+    const callId = callStateRef.current.callId;
+    const targetUserId = callStateRef.current.targetUserId;
+    const peerSocketId = callStateRef.current.peerSocketId;
+    const isInitiator = callStateRef.current.initiator;
+    const status = callStateRef.current.status;
 
-    if (socket && targetUserId) {
-      if (callState.status === 'dialing' || callState.status === 'incoming') {
+    if (socket) {
+      if (status === 'dialing' || status === 'incoming') {
         socket.emit(isInitiator ? 'CALL_CANCEL' : 'CALL_REJECT', {
           targetUserId: targetUserId,
-          callerId: targetUserId,
+          targetSocketId: peerSocketId,
           callId
         });
       } else {
         socket.emit('CALL_END', {
           targetUserId,
+          targetSocketId: peerSocketId,
           callId,
           iceState: peerConnectionRef.current?.iceConnectionState,
           connectionState: peerConnectionRef.current?.connectionState
@@ -530,7 +555,7 @@ export const CallProvider = ({ children }) => {
 
     cleanUpCall();
     try {
-      const finalStatus = callState.status === 'active' ? 'completed' : (isInitiator ? 'cancelled' : 'rejected');
+      const finalStatus = status === 'active' ? 'completed' : (isInitiator ? 'cancelled' : 'rejected');
       await messagesService.endCall(callId, finalStatus);
     } catch (e) {}
   };
@@ -545,9 +570,10 @@ export const CallProvider = ({ children }) => {
       });
     }
     // notify remote peer
-    if (socket && callState.targetUserId) {
+    if (socket && callStateRef.current.targetUserId) {
       socket.emit('MEDIA_STATE_CHANGED', {
-        targetUserId: callState.targetUserId,
+        targetUserId: callStateRef.current.targetUserId,
+        targetSocketId: callStateRef.current.peerSocketId,
         micActive: nextVal,
         videoActive,
         screenSharing
@@ -565,9 +591,10 @@ export const CallProvider = ({ children }) => {
       });
     }
     // notify remote peer
-    if (socket && callState.targetUserId) {
+    if (socket && callStateRef.current.targetUserId) {
       socket.emit('MEDIA_STATE_CHANGED', {
-        targetUserId: callState.targetUserId,
+        targetUserId: callStateRef.current.targetUserId,
+        targetSocketId: callStateRef.current.peerSocketId,
         micActive,
         videoActive: nextVal,
         screenSharing
@@ -597,9 +624,10 @@ export const CallProvider = ({ children }) => {
 
         setScreenSharing(true);
         
-        if (socket && callState.targetUserId) {
+        if (socket && callStateRef.current.targetUserId) {
           socket.emit('MEDIA_STATE_CHANGED', {
-            targetUserId: callState.targetUserId,
+            targetUserId: callStateRef.current.targetUserId,
+            targetSocketId: callStateRef.current.peerSocketId,
             micActive,
             videoActive,
             screenSharing: true
@@ -628,9 +656,10 @@ export const CallProvider = ({ children }) => {
     }
     setScreenSharing(false);
     
-    if (socket && callState.targetUserId) {
+    if (socket && callStateRef.current.targetUserId) {
       socket.emit('MEDIA_STATE_CHANGED', {
-        targetUserId: callState.targetUserId,
+        targetUserId: callStateRef.current.targetUserId,
+        targetSocketId: callStateRef.current.peerSocketId,
         micActive,
         videoActive,
         screenSharing: false
@@ -639,7 +668,7 @@ export const CallProvider = ({ children }) => {
   };
 
   const switchCamera = async () => {
-    if (callState.type !== 'video' || !localStreamRef.current) return;
+    if (callStateRef.current.type !== 'video' || !localStreamRef.current) return;
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter((d) => d.kind === 'videoinput');
