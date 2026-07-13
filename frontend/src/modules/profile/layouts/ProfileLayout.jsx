@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Outlet } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
-import { Menu, BookMarked } from 'lucide-react';
+import { BookMarked } from 'lucide-react';
 
 import profileService from '../../../services/profile.service';
 
@@ -67,7 +67,10 @@ const ProfileLayout = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-page text-text-primary">
-      <AuthenticatedNavbar />
+      <AuthenticatedNavbar
+        onMenuClick={() => setIsMobileOpen(!isMobileOpen)}
+        isMobileMenuOpen={isMobileOpen}
+      />
       <div className="flex flex-grow relative">
         <ProfileSidebar 
           isCollapsed={isCollapsed} 
@@ -75,15 +78,6 @@ const ProfileLayout = () => {
           isMobileOpen={isMobileOpen}
           setIsMobileOpen={setIsMobileOpen}
         />
-        
-        {/* Menu Toggle Button for Mobile */}
-        <button
-          onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="md:hidden fixed top-[69px] left-2 z-30 w-10 h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg active:scale-95 transition-all"
-          title="Profile Menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
 
         <main className="flex-grow overflow-x-hidden p-6 md:p-8">
           <div className="max-w-7xl mx-auto pb-12">

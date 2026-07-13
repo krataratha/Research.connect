@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCheck, Trash2, ArrowUpRight, BellOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import notificationsService from '../services/notifications.service';
+import connectionsService from '../../connections/services/connections.service';
 import { formatTimeAgo } from './NotificationCard';
 import UserAvatar from '../../../components/ui/Avatar';
 
@@ -11,6 +12,38 @@ const NotificationDropdown = ({ onClose }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const dropdownRef = useRef(null);
+
+  // Pending connection requests (surfaced here on mobile, since the
+  // standalone Requests icon is hidden below the md breakpoint)
+  const { data: receivedRequests } = useQuery({
+    queryKey: ['connectionRequests', 'received'],
+    queryFn: async () => {
+      const res = await connectionsService.getReceivedRequests();
+      return res.data || [];
+    }
+  });
+
+  const acceptRequestMutation = useMutation({
+    mutationFn: async (requestId) => connectionsService.acceptConnectionRequest(requestId),
+    onSuccess: (res) => {
+      if (res.success) {
+        toast.success('Connection request accepted!');
+        queryClient.invalidateQueries({ queryKey: ['connectionRequests'] });
+        queryClient.invalidateQueries({ queryKey: ['connections'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+      }
+    }
+  });
+
+  const rejectRequestMutation = useMutation({
+    mutationFn: async (requestId) => connectionsService.rejectConnectionRequest(requestId),
+    onSuccess: (res) => {
+      if (res.success) {
+        toast.success('Connection request ignored.');
+        queryClient.invalidateQueries({ queryKey: ['connectionRequests'] });
+      }
+    }
+  });
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -106,6 +139,53 @@ const NotificationDropdown = ({ onClose }) => {
             <CheckCheck className="w-3.5 h-3.5" />
             <span>Mark all read</span>
           </button>
+        )}
+      </div>
+
+      {/* Pending Requests - mobile only (desktop has a dedicated Requests icon) */}
+      <div className="md:hidden border-b border-slate-100 bg-slate-50/50 px-4 py-3">
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[10px] font-black text-slate-900 uppercase tracking-wide">Pending requests</span>
+          {receivedRequests && receivedRequests.length > 0 && (
+            <span className="text-[9px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+              {receivedRequests.length}
+            </span>
+          )}
+        </div>
+        {receivedRequests && receivedRequests.length > 0 ? (
+          <div className="flex flex-col gap-2.5 max-h-48 overflow-y-auto">
+            {receivedRequests.map((req) => (
+              <div key={req._id} className="border-b border-slate-100 pb-2.5 last:border-0 last:pb-0">
+                <p className="text-xs font-bold text-slate-800">{req.user?.fullName}</p>
+                {req.profile?.headline && (
+                  <p className="text-[10px] text-slate-400 truncate mt-0.5">{req.profile.headline}</p>
+                )}
+                {req.note && (
+                  <p className="text-[10px] text-slate-500 italic truncate mt-1" title={req.note}>
+                    "{req.note}"
+                  </p>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => acceptRequestMutation.mutate(req._id)}
+                    disabled={acceptRequestMutation.isPending}
+                    className="text-[11px] font-bold px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => rejectRequestMutation.mutate(req._id)}
+                    disabled={rejectRequestMutation.isPending}
+                    className="text-[11px] font-bold px-3 py-1 border border-slate-200 text-slate-600 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    Ignore
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[11px] text-slate-400 italic text-center py-1">No pending requests.</p>
         )}
       </div>
 
