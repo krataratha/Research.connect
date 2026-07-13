@@ -41,8 +41,14 @@ backend/src/
 │   ├── responses/      # Standardized API response formatter (ApiResponse)
 │   ├── service/        # BaseService CRUD logic class
 │   └── utils/          # Token, hash, encryption, and email (Nodemailer) helpers
-├── models/             # Mongoose schemas (46 schemas including User, Profile, etc.)
-├── modules/            # Domain Feature Modules (Isolated directories)
+├── models/             # Mongoose schemas (83 model files)
+├── socket/             # Socket.IO real-time infrastructure
+│   ├── gateway/        # Socket event gateway and main handler
+│   ├── middleware/     # Socket authentication (JWT verification for sockets)
+│   ├── presence/       # Online/offline user presence tracking
+│   ├── rooms/          # Conversation room join/leave management
+│   └── sessions/       # Socket session state tracking per user
+├── modules/            # Domain Feature Modules (22 active isolated directories)
 │   ├── landing/        # Landing page API endpoints
 │   ├── authentication/ # Authentication, OTP verification, and RTR token session module
 │   ├── profile/        # Researcher profile updates & user synchronization
