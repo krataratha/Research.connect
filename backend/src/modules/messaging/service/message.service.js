@@ -181,19 +181,20 @@ class MessageService {
     await Conversation.findByIdAndUpdate(conversationId, updateQuery);
 
     // Optimize: Avoid findById and populate queries if there are no attachments or replies (Requirement 5)
-    let populated;
-    if (attachmentId || replyTo) {
-      populated = await Message.findById(message._id)
-        .populate('attachment')
-        .populate('attachmentId')
-        .populate('replyTo')
-        .lean();
-    } else {
-      populated = message.toObject ? message.toObject() : message;
-      populated.attachment = null;
-      populated.attachmentId = null;
-      populated.replyTo = null;
+    const populateFields = [
+      { path: 'senderId', select: 'firstName lastName profileImage username profileSlug slug' }
+    ];
+    if (attachmentId) {
+      populateFields.push({ path: 'attachment' });
+      populateFields.push({ path: 'attachmentId' });
     }
+    if (replyTo) {
+      populateFields.push({ path: 'replyTo' });
+    }
+
+    const populated = await Message.findById(message._id)
+      .populate(populateFields)
+      .lean();
 
     // Emit live events to both users
     // Emit new message event to the conversation room using both event names
@@ -371,6 +372,7 @@ class MessageService {
     await msg.save();
 
     const populated = await Message.findById(messageId)
+      .populate('senderId', 'firstName lastName profileImage username profileSlug slug')
       .populate('attachment')
       .populate('attachmentId')
       .populate('replyTo')
@@ -403,6 +405,7 @@ class MessageService {
       await msg.save();
 
       const populated = await Message.findById(messageId)
+        .populate('senderId', 'firstName lastName profileImage username profileSlug slug')
         .populate('attachment')
         .populate('attachmentId')
         .populate('replyTo')
@@ -437,6 +440,7 @@ class MessageService {
     );
 
     const populated = await Message.findById(messageId)
+      .populate('senderId', 'firstName lastName profileImage username profileSlug slug')
       .populate('attachment')
       .populate('replyTo')
       .lean();

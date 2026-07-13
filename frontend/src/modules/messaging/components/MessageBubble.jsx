@@ -30,8 +30,6 @@ const MessageBubble = memo(({ message, onReply, onEditInit, otherParticipant, sh
   const msgSenderId = getUserIdStr(senderId || message.sender);
   const isSender = authenticatedUserId && msgSenderId && msgSenderId === authenticatedUserId;
 
-
-
   const reactMutation = useMutation({
     mutationFn: async (emoji) => await messagesService.reactToMessage(_id, emoji),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['messages', message.conversationId] })
