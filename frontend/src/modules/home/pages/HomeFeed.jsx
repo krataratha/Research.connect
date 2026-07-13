@@ -9,10 +9,10 @@ import scholarService from '../../../services/scholar.service';
 import recommendationService from '../../../services/recommendation.service';
 import PublicationCard from '../../../components/common/cards/PublicationCard';
 import { 
-  Sparkles, Award, Star, Compass, Calendar, 
+  Sparkles, Award, Star, 
   Briefcase, TrendingUp, Users, RefreshCw, Flame, 
   Clock, CheckCircle, ArrowRight, BrainCircuit, BookOpen,
-  Database, PlusCircle, Check, Network, HelpCircle, Download, Loader2,
+  PlusCircle, Check, Network, HelpCircle, Loader2,
   Mail, MessageSquare, Search, Heart
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -26,17 +26,11 @@ const HomeFeed = () => {
 
   const [activeTab, setActiveTab] = useState('recommended'); 
   const [refreshing, setRefreshing] = useState(false);
-  const [sharingDataset, setSharingDataset] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [showAllCoAuthorsModal, setShowAllCoAuthorsModal] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
   const profileCompletionRef = useRef(null);
   const tabRef = useRef(activeTab);
-
-  // New dataset form state
-  const [datasetTitle, setDatasetTitle] = useState('');
-  const [datasetDesc, setDatasetDesc] = useState('');
-  const [datasetFormat, setDatasetFormat] = useState('CSV');
 
   // Infinite Scroll Feed States
   const [page, setPage] = useState(1);
@@ -52,26 +46,6 @@ const HomeFeed = () => {
       return res.success ? res.data?.docs || [] : [];
     },
     staleTime: 10 * 60 * 1000
-  });
-
-  // React Query for upcoming conferences widget (Cached for 15 minutes)
-  const { data: conferencesData } = useQuery({
-    queryKey: ['conferences'],
-    queryFn: async () => {
-      const res = await recommendationService.getConferences(3);
-      return res.success ? res.data?.docs || [] : [];
-    },
-    staleTime: 15 * 60 * 1000
-  });
-
-  // React Query for funding opportunities widget (Cached for 15 minutes)
-  const { data: fundingData } = useQuery({
-    queryKey: ['funding'],
-    queryFn: async () => {
-      const res = await recommendationService.getFunding(3);
-      return res.success ? res.data?.docs || [] : [];
-    },
-    staleTime: 15 * 60 * 1000
   });
 
   // React Query for feed sidebar data (contains trending keywords, AI insights, suggested researchers)
@@ -113,8 +87,6 @@ const HomeFeed = () => {
   });
 
   const suggestedResearchers = suggestionsData || [];
-  const conferences = conferencesData || [];
-  const funding = fundingData || [];
   const scholarProfile = scholarData?.profile || null;
   const citations = scholarData?.citations || null;
   const dbCoAuthors = scholarData?.coauthors || [];
@@ -154,12 +126,10 @@ const HomeFeed = () => {
         else if (activeTab === 'latest') res = await feedService.getLatest(page, 10);
         else if (activeTab === 'following') res = await feedService.getFollowingFeed(page, 10);
         else if (activeTab === 'projects') res = await feedService.getProjects(page, 10);
-        else if (activeTab === 'questions') res = await feedService.getQuestions(page, 10);
-        else if (activeTab === 'datasets') res = await feedService.getDatasets(page, 10);
 
         if (res && res.success && isSubscribed) {
           let docs = [];
-          if (activeTab === 'projects' || activeTab === 'datasets') {
+          if (activeTab === 'projects') {
             docs = res.data?.data?.docs || res.data?.docs || [];
           } else {
             docs = res.data?.docs || [];
@@ -303,29 +273,6 @@ const HomeFeed = () => {
       }
     } catch (err) {
       toast.error('Could not complete follow operation');
-    }
-  };
-
-  const handleShareDatasetSubmit = async (e) => {
-    e.preventDefault();
-    if (!datasetTitle.trim() || !datasetDesc.trim()) return;
-
-    try {
-      const res = await feedService.createDataset({
-        title: datasetTitle,
-        description: datasetDesc,
-        format: datasetFormat,
-        size: '15 MB'
-      });
-      if (res.success) {
-        toast.success('Dataset shared successfully!');
-        setDatasetTitle('');
-        setDatasetDesc('');
-        setSharingDataset(false);
-        queryClient.invalidateQueries({ queryKey: ['feed', 'datasets'] });
-      }
-    } catch (err) {
-      toast.error('Failed to share dataset.');
     }
   };
 
@@ -893,13 +840,11 @@ const HomeFeed = () => {
           {/* Feed Tabs Container */}
           <div className="flex items-center justify-between sm:justify-start overflow-x-auto whitespace-nowrap border-b border-slate-200 text-xs sm:text-sm font-semibold text-slate-500 no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
             {[
-              { id: 'recommended', label: 'AI Recommended', icon: Sparkles },
+              { id: 'recommended', label: 'Recommended', icon: Sparkles },
               { id: 'trending', label: 'Trending', icon: Flame },
               { id: 'latest', label: 'Latest', icon: Clock },
               { id: 'following', label: 'Following', icon: Users },
-              { id: 'projects', label: 'Projects', icon: Briefcase },
-              { id: 'questions', label: 'Q&A', icon: Compass },
-              { id: 'datasets', label: 'Datasets', icon: Database }
+              { id: 'projects', label: 'Projects', icon: Briefcase }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -921,39 +866,6 @@ const HomeFeed = () => {
             })}
           </div>
 
-          {/* Share Dataset Form Popup overlay */}
-          {sharingDataset && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
-              <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white border border-slate-200 p-4 sm:p-6 rounded-[18px] max-w-md w-full text-left space-y-4 shadow-xl">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                  <h3 className="font-extrabold text-sm text-slate-900">Share New Research Dataset</h3>
-                  <button onClick={() => setSharingDataset(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-                </div>
-                <form onSubmit={handleShareDatasetSubmit} className="space-y-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">Dataset Title</label>
-                    <input type="text" required value={datasetTitle} onChange={e => setDatasetTitle(e.target.value)} placeholder="e.g. Brain Wave recordings..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">Description & Methodology</label>
-                    <textarea required value={datasetDesc} onChange={e => setDatasetDesc(e.target.value)} placeholder="Explain variables, frequency, and extraction..." rows={3} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">Format</label>
-                    <select value={datasetFormat} onChange={e => setDatasetFormat(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600">
-                      <option>CSV</option>
-                      <option>JSON</option>
-                      <option>HDF5</option>
-                      <option>Parquet</option>
-                    </select>
-                  </div>
-                  <button type="submit" className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm">
-                    Post Shared Dataset
-                  </button>
-                </form>
-              </motion.div>
-            </div>
-          )}
             {/* Feed List */}
           <div className="space-y-6">
             {loading ? (
@@ -993,59 +905,6 @@ const HomeFeed = () => {
                       <p className="text-sm text-slate-600 mt-3 leading-relaxed font-normal">{proj.description}</p>
                     </motion.div>
                   ))
-                ) : activeTab === 'questions' ? (
-                  activeList.map(q => (
-                    <motion.div 
-                      key={q._id}
-                      className="bg-white border border-slate-200 p-4 sm:p-6 rounded-[18px] shadow-sm text-left hover:shadow-lg transition-all"
-                      whileHover={{ y: -2 }}
-                    >
-                      <h3 className="font-bold text-sm sm:text-base text-slate-900 flex items-start gap-2 leading-snug">
-                        <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded text-xs font-bold shrink-0">Q</span>
-                        <span>{q.title}</span>
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-1">Asked by {q.userId?.fullName || 'Scholar'} • {q.researchAreas?.join(', ')}</p>
-                      <p className="text-sm text-slate-600 mt-3 leading-relaxed font-normal">{q.description}</p>
-                    </motion.div>
-                  ))
-                ) : activeTab === 'datasets' ? (
-                  <div className="space-y-4">
-                    <div className="flex justify-end">
-                      <button 
-                        onClick={() => setSharingDataset(true)}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
-                      >
-                        <PlusCircle className="w-4 h-4" /> Share Dataset
-                      </button>
-                    </div>
-                    {activeList.map(ds => (
-                      <motion.div 
-                        key={ds._id}
-                        className="bg-white border border-slate-200 p-4 sm:p-6 rounded-[18px] shadow-sm text-left relative hover:shadow-lg transition-all"
-                        whileHover={{ y: -2 }}
-                      >
-                        <div className="flex flex-wrap justify-between items-start gap-3 sm:gap-4">
-                          <div className="min-w-0">
-                            <h3 className="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-1.5 leading-snug">
-                              <Database className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-blue-500 shrink-0" />
-                              <span className="truncate">{ds.title}</span>
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-1">Shared by {ds.userId?.fullName || 'Scholar'} • Format: <span className="font-bold text-indigo-600">{ds.format}</span> ({ds.size || '12 MB'})</p>
-                          </div>
-                          <button 
-                            onClick={() => {
-                              toast.success('Downloading dataset...');
-                              if (ds.url) window.open(ds.url, '_blank');
-                            }}
-                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 rounded-lg flex items-center gap-1.5 transition-colors shrink-0"
-                          >
-                            <Download className="w-3.5 h-3.5" /> Download
-                          </button>
-                        </div>
-                        <p className="text-sm text-slate-600 mt-3 leading-relaxed font-normal">{ds.description}</p>
-                      </motion.div>
-                    ))}
-                  </div>
                 ) : (
                   activeList.map(pub => (
                     <PublicationCard 
@@ -1096,68 +955,6 @@ const HomeFeed = () => {
 
           {/* 6. Google Scholar Analytics */}
           {renderGoogleScholarAnalytics()}
-
-
-          {/* 8. Upcoming Conferences */}
-          <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4">
-            <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#22C55E]" /> Upcoming Conferences
-            </h3>
-            <div className="space-y-3.5">
-              {conferences.length === 0 ? (
-                <p className="text-xs text-[#475569]/60 text-center py-2">No upcoming conferences.</p>
-              ) : (
-                conferences.slice(0, 3).map((e, idx) => (
-                  <div key={idx} className="flex gap-3 text-xs text-left">
-                    <div className="w-12 sm:w-14 shrink-0 self-start rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center font-bold border border-[#DCFCE7]/60 px-1 py-2 overflow-hidden">
-                      <span className="block w-full min-w-0 text-[8px] uppercase font-black leading-tight text-center break-words [overflow-wrap:anywhere]">{e.type}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 
-                        onClick={() => e.link && window.open(e.link, '_blank')}
-                        className="font-bold text-[#0F172A] hover:underline cursor-pointer leading-tight"
-                      >
-                        {e.title}
-                      </h4>
-                      <p className="text-[10px] text-[#475569] mt-1">Date: {new Date(e.date).toLocaleDateString()} • {e.organization}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* 9. Funding Opportunities */}
-          <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4">
-            <h3 className="font-bold text-xs text-[#F59E0B] uppercase tracking-wider flex items-center gap-2">
-              <Award className="w-4 h-4 text-[#F59E0B]" /> Funding Opportunities
-            </h3>
-            <div className="space-y-4">
-              {funding.length === 0 ? (
-                <p className="text-xs text-[#475569]/60 text-center py-2">No funding opportunities found.</p>
-              ) : (
-                funding.slice(0, 3).map((f, idx) => (
-                  <div key={idx} className="text-xs border-b border-[#E2E8F0] last:border-0 pb-3 last:pb-0">
-                    <h4 className="font-bold text-[#0F172A] leading-tight">{f.title || f.metadata?.title}</h4>
-                    <p className="text-[10px] text-[#475569] mt-1">{f.description || f.metadata?.description}</p>
-                    <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#E2E8F0]/40">
-                      <span className="text-[10px] font-bold text-[#475569]/85">
-                        Amount: {f.metadata?.grantAmount || 'Varies'} • Deadline: {f.metadata?.deadline ? new Date(f.metadata.deadline).toLocaleDateString() : 'N/A'}
-                      </span>
-                      {f.metadata?.applyUrl && (
-                        <button 
-                          onClick={() => window.open(f.metadata.applyUrl, '_blank')}
-                          className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all duration-200 transform hover:scale-[1.03] active:scale-95 shadow-sm"
-                        >
-                          Apply
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
 
           {/* 10. Profile Completion */}
           <div ref={profileCompletionRef} className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4">

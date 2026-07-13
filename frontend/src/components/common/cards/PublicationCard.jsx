@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Heart, Bookmark, MessageSquare, Share2, Award, 
   Eye, Download, FileText, ChevronDown, ChevronUp, 
-  Sparkles, BrainCircuit, ExternalLink, Quote, ShieldCheck,
+  ExternalLink, Quote, ShieldCheck,
   Send, CornerDownRight, Check
 } from 'lucide-react';
 import { toggleLikeInFeed, toggleBookmarkInFeed } from '../../../redux/slices/feedSlice';
@@ -32,15 +32,6 @@ const PublicationCard = ({ pub }) => {
 
   // Expand abstract
   const [showAbstract, setShowAbstract] = useState(false);
-
-  // Quick summary
-  const [aiSummary, setAiSummary] = useState('');
-  const [loadingSummary, setLoadingSummary] = useState(false);
-
-  // Explain with AI
-  const [explainModal, setExplainModal] = useState(false);
-  const [explainingText, setExplainingText] = useState('');
-  const [loadingExplanation, setLoadingExplanation] = useState(false);
 
   // Fetch comments when comments section is toggled
   useEffect(() => {
@@ -138,32 +129,6 @@ const PublicationCard = ({ pub }) => {
     } catch (err) {
       console.error(err);
     }
-  };
-
-  const generateAiSummary = () => {
-    if (aiSummary) {
-      setAiSummary('');
-      return;
-    }
-    setLoadingSummary(true);
-    setTimeout(() => {
-      setAiSummary(
-        pub.aiAnalysis?.summary || `AI Summary: This publication introduces a revolutionary approach using multi-factor attention weights. Novelty score: ${pub.aiAnalysis?.noveltyScore || 7}/10.`
-      );
-      setLoadingSummary(false);
-      toast.success('AI Summary Generated!');
-    }, 1000);
-  };
-
-  const explainWithAi = () => {
-    setExplainModal(true);
-    setLoadingExplanation(true);
-    setTimeout(() => {
-      setExplainingText(
-        `AI Explanation: In simple terms, this research is about making academic search engines smarter. Instead of just searching for matching keywords (like Google Scholar often does), this model understands the context and relationship of different fields simultaneously by using an "Attention Mechanism" similar to the technology powering ChatGPT.`
-      );
-      setLoadingExplanation(false);
-    }, 1200);
   };
 
   const downloadPdf = () => {
@@ -457,54 +422,8 @@ const PublicationCard = ({ pub }) => {
             <FileText className="w-3.5 h-3.5" /> PDF
           </button>
 
-          {/* AI Explain */}
-          <button 
-            onClick={explainWithAi}
-            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold flex items-center gap-1 shadow-sm active:scale-95 transition-all"
-          >
-            <BrainCircuit className="w-3.5 h-3.5 animate-pulse" /> Explain
-          </button>
-
-          {/* AI Summary */}
-          <button 
-            onClick={generateAiSummary}
-            className="p-2 rounded-lg hover:bg-slate-50 text-slate-500 transition-all"
-            title="Generate AI Summary"
-          >
-            <Sparkles className="w-4 h-4 text-amber-500" />
-          </button>
-
         </div>
       </div>
-
-      {/* AI Quick Summary Section */}
-      <AnimatePresence>
-        {loadingSummary && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-4 p-3.5 bg-amber-50/30 border border-amber-200/20 rounded-xl text-xs flex items-center gap-2"
-          >
-            <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-amber-700 font-bold">AI assistant summarizing publication abstract...</span>
-          </motion.div>
-        )}
-
-        {aiSummary && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-4 p-4 bg-amber-50/50 border border-amber-200 rounded-xl text-xs leading-relaxed text-slate-700 text-left relative overflow-hidden"
-          >
-            <div className="absolute top-2 right-2 text-[9px] uppercase font-bold tracking-wider text-amber-600 flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> Quick Summary
-            </div>
-            <p className="pr-12">{aiSummary}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Nested Comments Drawer */}
       <AnimatePresence>
@@ -549,53 +468,6 @@ const PublicationCard = ({ pub }) => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Explain With AI Modal */}
-      {explainModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
-          <motion.div 
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden p-6 text-left"
-          >
-            <div className="flex items-center justify-between pb-4 border-b border-slate-105">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <BrainCircuit className="w-5 h-5 text-blue-600 animate-bounce" /> AI Explainer
-              </h3>
-              <button 
-                onClick={() => setExplainModal(false)}
-                className="text-slate-400 hover:text-slate-650 font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Concept: {pub.title}</p>
-              
-              {loadingExplanation ? (
-                <div className="py-6 flex flex-col items-center gap-2 text-slate-500">
-                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-xs font-bold">Breaking down complex academic concepts...</span>
-                </div>
-              ) : (
-                <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  {explainingText}
-                </p>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-105">
-              <button 
-                onClick={() => setExplainModal(false)}
-                className="bg-blue-600 hover:bg-blue-750 text-white font-bold px-4 py-2 rounded-xl text-xs"
-              >
-                Close Explanation
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
 
       {/* AI Analysis Modal */}
       <AiAnalysisModal 
