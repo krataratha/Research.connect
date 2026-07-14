@@ -8,6 +8,7 @@ const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
+  const userId = user?.userId || user?._id || user?.id;
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -226,7 +227,7 @@ export const SocketProvider = ({ children }) => {
       }
       newSocket.disconnect();
     };
-  }, [user]);
+  }, [userId]);
 
   // Reset notifications on logout
   useEffect(() => {
@@ -234,7 +235,7 @@ export const SocketProvider = ({ children }) => {
       setNotifications([]);
       return;
     }
-  }, [user]);
+  }, [userId]);
 
   return (
     <SocketContext.Provider value={{ socket, connected, connecting, notifications, setNotifications }}>
