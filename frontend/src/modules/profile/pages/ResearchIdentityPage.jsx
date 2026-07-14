@@ -174,18 +174,18 @@ const ResearchIdentityPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-4xl lg:max-w-5xl mx-auto py-4 px-3 sm:py-6 sm:px-4">
       {/* Onboarding Steps Visual Indicator */}
-      <div className="flex justify-between items-center mb-8 max-w-md mx-auto">
+      <div className="flex justify-between items-center mb-4 sm:mb-6 max-w-[260px] sm:max-w-md mx-auto">
         {[1, 2, 3].map((s) => (
           <div key={s} className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0 ${
               step >= s ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-slate-100 text-text-secondary border border-border'
             }`}>
               {s}
             </div>
             {s < 3 && (
-              <div className={`h-1 w-16 mx-2 rounded ${
+              <div className={`h-1 w-10 sm:w-16 mx-1.5 sm:mx-2 rounded ${
                 step > s ? 'bg-primary' : 'bg-slate-200'
               }`} />
             )}
@@ -200,24 +200,24 @@ const ResearchIdentityPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-white rounded-3xl p-8 border border-border shadow-sm"
+            className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border shadow-sm"
           >
-            <div className="text-center mb-8">
-              <Compass className="w-12 h-12 text-primary mx-auto mb-3" />
-              <h2 className="text-2xl font-black text-text-primary tracking-tight">Connect Academic Identities</h2>
-              <p className="text-xs text-text-secondary mt-2 max-w-lg mx-auto">
+            <div className="text-center mb-4 sm:mb-6">
+              <Compass className="w-8 h-8 sm:w-10 sm:h-10 text-primary mx-auto mb-2" />
+              <h2 className="text-lg sm:text-2xl font-black text-text-primary tracking-tight">Connect Academic Identities</h2>
+              <p className="text-xs text-text-secondary mt-1 max-w-lg mx-auto">
                 Link your Google Scholar profile to synchronize your academic publications, co-authors, citations timeline, and unlock derived metrics.
               </p>
             </div>
 
-            <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3.5 mb-6">
+            <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl sm:rounded-2xl px-3 py-2.5 mb-4">
               <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-blue-800 font-medium leading-relaxed">
                 Already connected an account? You can review, update, or disconnect any linked profile anytime from Settings → Connected Accounts.
               </p>
             </div>
 
-            <form onSubmit={handleConnect} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleConnect} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               <Input
                 label="Google Scholar Profile URL"
                 placeholder="https://scholar.google.com/citations?user=..."
@@ -250,11 +250,11 @@ const ResearchIdentityPage = () => {
                 onChange={(val) => handleInputChange('scopus', val)}
               />
 
-              <div className="md:col-span-2 pt-6 flex flex-col sm:flex-row gap-4">
+              <div className="col-span-1 md:col-span-2 lg:col-span-3 pt-2 sm:pt-3 flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Button
                   type="submit"
                   variant="primary"
-                  className="flex-grow py-3.5 text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2"
+                  className="w-full sm:flex-grow py-3.5 text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2"
                   loading={loading}
                   icon={<Play className="w-4 h-4" />}
                 >
@@ -264,7 +264,7 @@ const ResearchIdentityPage = () => {
                   type="button"
                   variant="secondary"
                   onClick={() => navigate('/')}
-                  className="flex-grow py-3.5 text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2"
+                  className="w-full sm:flex-grow py-3.5 text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2"
                 >
                   Skip for Now
                 </Button>
@@ -279,32 +279,32 @@ const ResearchIdentityPage = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl p-8 border border-border shadow-sm text-center"
+            className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border shadow-sm text-center"
           >
-            <div className="mb-6">
-              <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-3" />
-              <h3 className="text-xl font-black text-text-primary tracking-tight">Syncing Google Scholar Portfolio</h3>
-              <p className="text-xs text-text-secondary mt-2 font-medium">
+            <div className="mb-4 sm:mb-5">
+              <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 text-primary animate-spin mx-auto mb-2" />
+              <h3 className="text-base sm:text-xl font-black text-text-primary tracking-tight px-2">Syncing Google Scholar Portfolio</h3>
+              <p className="text-xs text-text-secondary mt-1 font-medium px-2">
                 {getProgressPhase(progress)}
               </p>
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden mb-6 border border-slate-200/50">
+            <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden mb-4 sm:mb-5 border border-slate-200/50">
               <div 
                 className="bg-gradient-to-r from-primary to-accent-indigo h-full rounded-full transition-all duration-500 ease-out" 
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="flex justify-between text-[10px] font-extrabold text-text-secondary mb-6 uppercase tracking-wider">
+            <div className="flex justify-between text-[10px] font-extrabold text-text-secondary mb-4 sm:mb-5 uppercase tracking-wider">
               <span>Status: Synchronizing</span>
               <span>{progress}% Completed</span>
             </div>
 
             {/* Live Terminal Log Stream */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 font-mono text-[11px] h-60 overflow-y-auto space-y-2 scrollbar-thin text-left text-slate-300 shadow-inner">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-4 font-mono text-[10px] sm:text-[11px] h-40 sm:h-48 overflow-y-auto space-y-2 scrollbar-thin text-left text-slate-300 shadow-inner">
               {logs.map((log, idx) => (
-                <div key={idx} className={`leading-normal ${
+                <div key={idx} className={`leading-normal break-words ${
                   log.level === 'error' ? 'text-red-400' : log.level === 'warn' ? 'text-yellow-400' : 'text-emerald-400'
                 }`}>
                   <span className="text-slate-500 font-bold mr-2">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
@@ -322,33 +322,33 @@ const ResearchIdentityPage = () => {
             key="success-screen"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-8 border border-border text-center shadow-sm"
+            className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border text-center shadow-sm"
           >
-            <div className="w-16 h-16 bg-accent-green/10 text-accent-green rounded-full flex items-center justify-center mx-auto mb-4 border border-accent-green/20">
-              <CheckCircle className="w-8 h-8" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-accent-green/10 text-accent-green rounded-full flex items-center justify-center mx-auto mb-3 border border-accent-green/20">
+              <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <h2 className="text-2xl font-black text-text-primary tracking-tight">Academic Identity Synchronized!</h2>
-            <p className="text-xs text-text-secondary mt-2 max-w-md mx-auto leading-relaxed">
+            <h2 className="text-lg sm:text-2xl font-black text-text-primary tracking-tight px-2">Academic Identity Synchronized!</h2>
+            <p className="text-xs text-text-secondary mt-1 max-w-md mx-auto leading-relaxed px-2">
               Your Google Scholar portfolio and citation graph have been imported into MongoDB. All manual fields are locked and protected.
             </p>
 
             {/* Metrics cards overview */}
             {summaryData && (
-              <div className="grid grid-cols-3 gap-4 my-8 max-w-lg mx-auto">
-                <div className="p-4 bg-bg-page border border-border rounded-2xl shadow-sm">
-                  <BookOpen className="w-5 h-5 text-primary mx-auto mb-1.5" />
-                  <p className="text-[10px] text-text-secondary uppercase font-bold tracking-wider">Publications</p>
-                  <p className="text-lg font-black text-text-primary mt-1">Synced</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 my-4 sm:my-6 max-w-lg mx-auto">
+                <div className="p-2.5 sm:p-3.5 bg-bg-page border border-border rounded-xl sm:rounded-2xl shadow-sm">
+                  <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary mx-auto mb-1" />
+                  <p className="text-[9px] sm:text-[10px] text-text-secondary uppercase font-bold tracking-wider">Publications</p>
+                  <p className="text-sm sm:text-lg font-black text-text-primary mt-1">Synced</p>
                 </div>
-                <div className="p-4 bg-bg-page border border-border rounded-2xl shadow-sm">
-                  <GraduationCap className="w-5 h-5 text-accent-indigo mx-auto mb-1.5" />
-                  <p className="text-[10px] text-text-secondary uppercase font-bold tracking-wider">Citations</p>
-                  <p className="text-lg font-black text-text-primary mt-1">{summaryData.totalCitations || 0}</p>
+                <div className="p-2.5 sm:p-3.5 bg-bg-page border border-border rounded-xl sm:rounded-2xl shadow-sm">
+                  <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-accent-indigo mx-auto mb-1" />
+                  <p className="text-[9px] sm:text-[10px] text-text-secondary uppercase font-bold tracking-wider">Citations</p>
+                  <p className="text-sm sm:text-lg font-black text-text-primary mt-1">{summaryData.totalCitations || 0}</p>
                 </div>
-                <div className="p-4 bg-bg-page border border-border rounded-2xl shadow-sm">
-                  <Award className="w-5 h-5 text-accent-orange mx-auto mb-1.5" />
-                  <p className="text-[10px] text-text-secondary uppercase font-bold tracking-wider">h-index</p>
-                  <p className="text-lg font-black text-text-primary mt-1">{summaryData.hIndex || 0}</p>
+                <div className="p-2.5 sm:p-3.5 bg-bg-page border border-border rounded-xl sm:rounded-2xl shadow-sm">
+                  <Award className="w-4 h-4 sm:w-5 sm:h-5 text-accent-orange mx-auto mb-1" />
+                  <p className="text-[9px] sm:text-[10px] text-text-secondary uppercase font-bold tracking-wider">h-index</p>
+                  <p className="text-sm sm:text-lg font-black text-text-primary mt-1">{summaryData.hIndex || 0}</p>
                 </div>
               </div>
             )}
@@ -357,7 +357,7 @@ const ResearchIdentityPage = () => {
               <Button
                 variant="primary"
                 onClick={() => navigate(`/profile/${profile?.profileSlug}`)}
-                className="py-3 px-8 text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2"
+                className="w-full sm:w-auto py-3 px-8 text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2"
                 icon={<ArrowRight className="w-4 h-4" />}
               >
                 View Your Profile
@@ -365,7 +365,7 @@ const ResearchIdentityPage = () => {
               <Button
                 variant="secondary"
                 onClick={() => navigate('/')}
-                className="py-3 px-8 text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2"
+                className="w-full sm:w-auto py-3 px-8 text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2"
               >
                 Go to Home Feed
               </Button>
