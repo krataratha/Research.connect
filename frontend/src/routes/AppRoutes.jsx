@@ -29,6 +29,11 @@ const PublicationEditPage = React.lazy(() => import('../modules/publication/page
 const PublicationReader = React.lazy(() => import('../modules/publication/pages/PublicationReader'));
 const PublicationAnalyticsPage = React.lazy(() => import('../modules/publication/pages/PublicationAnalyticsPage'));
 const SearchPage = React.lazy(() => import('../modules/search/pages/SearchPage'));
+const CreateProject = React.lazy(() => import('../modules/project/pages/CreateProject'));
+const ProjectsPage = React.lazy(() => import('../modules/project/pages/ProjectsPage'));
+const ProjectDetails = React.lazy(() => import('../modules/project/pages/ProjectDetails'));
+const ProjectDashboard = React.lazy(() => import('../modules/project/pages/ProjectDashboard'));
+const EditProject = React.lazy(() => import('../modules/project/pages/EditProject'));
 const MessagesPage = React.lazy(() => import('../components/messages/MessagesPage'));
 
 // Social Collaboration Modules
@@ -52,8 +57,6 @@ const TrendingFeed = React.lazy(() => import('../modules/feed/pages/TrendingFeed
 const LatestFeed = React.lazy(() => import('../modules/feed/pages/LatestFeed'));
 const BookmarksFeed = React.lazy(() => import('../modules/feed/pages/BookmarksFeed'));
 
-// Help Center
-const HelpCenterPage = React.lazy(() => import('../modules/helpcenter/pages/HelpCenterPage'));
 
 // Profile module routes nested
 import profileRoutes from '../modules/profile/routes/profile.routes';
@@ -124,7 +127,11 @@ const AppRoutes = () => {
           <Route path="publications/published" element={<PublicationsLibraryPage />} />
           <Route path="publications/trash" element={<PublicationsLibraryPage />} />
           <Route path="publications/bookmarks" element={<PublicationsLibraryPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/create" element={<CreateProject />} />
+          <Route path="projects/:id" element={<ProjectDetails />} />
+          <Route path="projects/:id/edit" element={<EditProject />} />
+          <Route path="projects/:projectId/dashboard" element={<ProjectDashboard />} />
           <Route path="datasets/create" element={<ComingSoon title="Share Dataset Coming Soon" />} />
           <Route path="questions/create" element={<ComingSoon title="Ask Question Coming Soon" />} />
           <Route path="collaborations/create" element={<CreateWorkspace />} />
@@ -176,8 +183,7 @@ const AppRoutes = () => {
           <Route path="bookmarks" element={<BookmarksFeed />} />
           <Route path="discover" element={<DiscoverResearchersPage />} />
 
-          {/* Help Center */}
-          <Route path="help" element={<HelpCenterPage />} />
+
         </Route>
 
         {/* Profile Module Nested Routes (ProfileLayout handles sidebar) */}

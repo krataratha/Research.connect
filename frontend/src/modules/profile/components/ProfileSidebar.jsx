@@ -12,7 +12,7 @@ const NAV_SECTIONS = [
   {
     label: 'Overview',
     links: [
-      { name: 'Home Feed', path: '/home', icon: Home, end: true },
+      { name: 'Home Feed', path: '/', icon: Home, end: true },
       { name: 'Profile', path: '/profile/:slug', icon: User, end: true },
       { name: 'Research Identity', path: '/profile/:slug/research-identity', icon: Globe },
       { name: 'Publications', path: '/profile/:slug/publications', icon: FileText }

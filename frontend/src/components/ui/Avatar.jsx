@@ -75,7 +75,11 @@ const UserAvatar = memo(({
   className = '',
 }) => {
   // ── Resolve values from user object or individual props ──────────────────
-  const resolvedSrc = src ?? user?.profileImage ?? user?.avatar ?? null;
+  let resolvedSrc = src ?? user?.profileImage ?? user?.avatar ?? null;
+  if (resolvedSrc && typeof resolvedSrc === 'object' && resolvedSrc.url !== undefined) {
+    resolvedSrc = resolvedSrc.url;
+  }
+
   const resolvedName =
     name ??
     user?.fullName ??

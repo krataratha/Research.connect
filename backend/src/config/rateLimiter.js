@@ -1,29 +1,10 @@
 const rateLimit = require('express-rate-limit');
 const redisClient = require('./redis');
 
-// Helper to create a unique RedisStore instance for each rate limiter to prevent sharing error
-const createStore = (prefix) => {
-  try {
-    const { RedisStore } = require('rate-limit-redis');
-    return new RedisStore({
-      sendCommand: async (...args) => {
-        if (!redisClient.isOpen || !redisClient.isReady) {
-          const cmd = Array.isArray(args[0]) ? args[0] : args;
-          
-          if (cmd[0] === 'SCRIPT' && cmd[1] === 'LOAD') {
-            return 'dummy_sha1_hash';
-          }
-          
-          // For EVALSHA and everything else, return a dummy [hits, ttl] to prevent crashes
-          return [1, 500];
-        }
-        return await redisClient.sendCommand(args);
-      },
-      prefix: `rl:${prefix}:`
-    });
-  } catch (err) {
-    console.warn(`Failed to initialize Redis store for rate limiting prefix "${prefix}", falling back to memory:`, err.message);
-    return undefined;
+class FallbackStore {
+  constructor(prefix) {
+    this.prefix = prefix;
+    this.useMemory = false;
   }
 
   async init(options) {

@@ -57,10 +57,15 @@ export const AuthProvider = ({ children }) => {
 const processUserData = (profileData) => {
   if (!profileData) return null;
   const userModelFields = profileData.user && typeof profileData.user === 'object' ? profileData.user : {};
+  const actualUserId = userModelFields._id || userModelFields.id || profileData.user;
+  
   return {
     ...userModelFields,
     ...profileData,
-    id: userModelFields._id || userModelFields.id || profileData.user,
+    _id: actualUserId, // Force _id to be the User ID
+    profileId: profileData._id, // Save profile's _id
+    id: actualUserId,
+    userId: actualUserId, // Explicitly add userId
     displayName: profileData.displayName || userModelFields.fullName || '',
   };
 };

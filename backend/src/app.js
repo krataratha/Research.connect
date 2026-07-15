@@ -27,6 +27,7 @@ const datasetModule = require("./modules/dataset");
 const notificationsModule = require("./modules/notifications");
 const networkModule = require("./modules/network");
 const presenceModule = require("./modules/presence");
+const helpModule = require("./modules/help");
 
 const collaborationRoutes = require("./modules/collaborations/routes/collaboration.routes");
 

@@ -18,7 +18,7 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
     const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
     const newSocket = io(socketUrl, {

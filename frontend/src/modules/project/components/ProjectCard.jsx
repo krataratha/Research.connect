@@ -12,7 +12,6 @@ import {
 import { toast } from "react-hot-toast";
 import { TAG_STYLES } from "../data";
 import Avatar from "./Avatar";
-import { toast } from "react-hot-toast";
 
 export default function ProjectCard({
   project,
