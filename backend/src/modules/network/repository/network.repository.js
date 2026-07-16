@@ -229,7 +229,34 @@ class NetworkRepository {
           as: 'presence'
         }
       },
-      { $unwind: { path: '$presence', preserveNullAndEmptyArrays: true } }
+      { $unwind: { path: '$presence', preserveNullAndEmptyArrays: true } },
+      // Check whether the current user already follows this follower back,
+      // so the UI can show "Following" instead of "Follow Back" for people
+      // we've already followed.
+      {
+        $lookup: {
+          from: 'follows',
+          let: { followerUserId: '$followerId' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$followerId', castUserId] },
+                    { $eq: ['$followingId', '$$followerUserId'] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: 'followBackDoc'
+        }
+      },
+      {
+        $addFields: {
+          isFollowingBack: { $gt: [{ $size: '$followBackDoc' }, 0] }
+        }
+      }
     ];
 
     if (search) {
@@ -249,6 +276,7 @@ class NetworkRepository {
       $project: {
         _id: 1,
         createdAt: 1,
+        isFollowingBack: 1,
         user: {
           _id: 1,
           firstName: 1,

@@ -30,7 +30,12 @@ const NAV_SECTIONS = [
     label: 'Collaborate',
     links: [
       { name: 'Projects', path: '/projects', icon: Briefcase },
-      { name: 'My Network', path: '/network', icon: Users },
+      {
+        name: 'My Network',
+        path: '/network',
+        icon: Users,
+        matchPrefixes: ['/network']
+      },
       { name: 'Messages', path: '/messages', icon: MessageSquare }
     ]
   },
@@ -71,6 +76,13 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
   // so a link can stay highlighted across a whole flow — e.g. Publications
   // stays active on /publications/create and /publication/:slug too.
   const isLinkActive = (link) => {
+    // /discover/researchers is shared: reached from Network's "View All"
+    // AND from Home's "Top Researchers" link. Route alone can't tell them
+    // apart, so Network only stays highlighted there when the navigation
+    // itself was flagged as coming from Network (see NetworkPage's Link).
+    if (link.path === '/network' && location.pathname === '/discover/researchers') {
+      return location.state?.fromNetwork === true;
+    }
     const prefixes = link.matchPrefixes || [link.path];
     return link.end
       ? prefixes.some((p) => location.pathname === p)

@@ -44,6 +44,14 @@ const ConnectButton = ({ targetUserId, username, className = '' }) => {
       queryClient.invalidateQueries({ queryKey: ['profile', username] });
       queryClient.invalidateQueries({ queryKey: ['connections'] });
     }
+    // NetworkPage keeps its own separate caches (suggestions/requests/tab
+    // list/overview). Without invalidating these too, withdrawing/removing/
+    // accepting here leaves stale "Pending"/"Connected" state on the Network
+    // tab until a hard refresh, since those queries never get marked stale.
+    queryClient.invalidateQueries({ queryKey: ['networkSuggestions'] });
+    queryClient.invalidateQueries({ queryKey: ['networkTabList'] });
+    queryClient.invalidateQueries({ queryKey: ['networkRequests'] });
+    queryClient.invalidateQueries({ queryKey: ['networkOverview'] });
   };
 
   // Send request mutation

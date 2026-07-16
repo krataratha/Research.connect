@@ -44,6 +44,10 @@ class NetworkDTO {
       formatted.presenceStatus = presence.status || 'offline';
       formatted.lastSeen = presence.lastSeen || null;
       formatted.connectionId = doc.connectionId || doc._id || null;
+      // Only meaningful on the Followers tab: whether the current user
+      // already follows this follower back (so UI can show "Following"
+      // instead of "Follow Back").
+      formatted.isFollowing = doc.isFollowingBack || false;
       return formatted;
     });
   }
