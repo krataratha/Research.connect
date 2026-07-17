@@ -42,8 +42,12 @@ const NAV_SECTIONS = [
   {
     label: 'Community',
     links: [
-      { name: 'Followers', path: '/profile/:slug/followers', icon: UserCheck },
-      { name: 'Following', path: '/profile/:slug/following', icon: UserPlus },
+      {
+        name: 'Followers & Following',
+        path: '/profile/:slug/followers',
+        icon: UserCheck,
+        matchPrefixes: ['/profile/:slug/followers', '/profile/:slug/following']
+      },
       { name: 'Analytics', path: '/profile/:slug/analytics', icon: BarChart2 },
       { name: 'Settings', path: '/profile/:slug/settings', icon: Settings },
       { name: 'Help Center', path: '/help', icon: HelpCircle }
