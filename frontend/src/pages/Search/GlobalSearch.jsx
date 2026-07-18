@@ -25,12 +25,13 @@ const GlobalSearch = () => {
   const type = searchParams.get('type') || 'All';
   const filter = searchParams.get('filter') || '';
   const year = searchParams.get('year') || '';
+  const minCitations = searchParams.get('minCitations') || '';
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Publications'); // Defaulting since we're searching publications
 
   const { data, isLoading } = useQuery({
-    queryKey: ['search', activeTab, { query, page, sort, type, filter, year }],
+    queryKey: ['search', activeTab, { query, page, sort, type, filter, year, minCitations }],
     queryFn: async () => {
       // We allow empty queries to pass through because the backend has intelligent
       // fallback matching (e.g. Profile-based matching for Researchers)
@@ -38,7 +39,10 @@ const GlobalSearch = () => {
       
       const params = { q: query, page, sort, limit: 10 };
 
-      if (activeTab === 'Researchers') return searchService.searchResearchers(params);
+      if (activeTab === 'Researchers') return searchService.searchResearchers({
+        ...params,
+        minCitations: minCitations || undefined
+      });
       if (activeTab === 'Authors') return searchService.searchAuthors(params);
       if (activeTab === 'Organizations') return searchService.searchInstitutions(params);
       if (activeTab === 'Projects') return searchService.searchProjects(params);
@@ -47,14 +51,15 @@ const GlobalSearch = () => {
         publicationType: type === 'All' ? undefined : type,
         filter: filter || undefined,
         year: year || undefined,
+        minCitations: minCitations || undefined,
       });
 
       // activeTab === 'All'
       const [resData, projData, pubData] = await Promise.all([
-        searchService.searchResearchers({ ...params, limit: 6 }),
+        searchService.searchResearchers({ ...params, limit: 6, minCitations: minCitations || undefined }),
         searchService.searchProjects({ ...params, limit: 6 }),
         searchService.searchPublications({
-          ...params, limit: 6, publicationType: type === 'All' ? undefined : type, filter: filter || undefined, year: year || undefined
+          ...params, limit: 6, publicationType: type === 'All' ? undefined : type, filter: filter || undefined, year: year || undefined, minCitations: minCitations || undefined
         })
       ]);
 
@@ -73,7 +78,7 @@ const GlobalSearch = () => {
 
   const handleTabChange = (newTab) => {
     setActiveTab(newTab);
-    const newParams = { q: query, sort, type, filter, year };
+    const newParams = { q: query, sort, type, filter, year, minCitations };
     
     // Clean up empty params
     Object.keys(newParams).forEach(k => {
@@ -83,7 +88,7 @@ const GlobalSearch = () => {
   };
 
   const handleFilterChange = (key, value) => {
-    const newParams = { q: query, page: '1', sort, type, filter, year };
+    const newParams = { q: query, page: '1', sort, type, filter, year, minCitations };
     newParams[key] = value;
 
     // Clean up empty params
@@ -103,7 +108,7 @@ const GlobalSearch = () => {
   const totalPages = data?.totalPages || 1;
 
   // Active filters count for mobile drawer trigger
-  const activeCount = [type !== 'All', filter, year].filter(Boolean).length;
+  const activeCount = [type !== 'All', filter, year, minCitations].filter(Boolean).length;
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col bg-[#F8FAFC] font-sans selection:bg-[#2563EB] selection:text-white overflow-hidden">
@@ -146,6 +151,7 @@ const GlobalSearch = () => {
                 activeTab={activeTab}
                 setActiveTab={handleTabChange}
                 year={year}
+                minCitations={minCitations}
                 sort={sort}
                 onFilterChange={handleFilterChange}
                 onReset={resetFilters}
@@ -159,6 +165,7 @@ const GlobalSearch = () => {
               activeTab={activeTab}
               setActiveTab={handleTabChange}
               year={year}
+              minCitations={minCitations}
               sort={sort}
               onFilterChange={handleFilterChange}
               onReset={resetFilters}

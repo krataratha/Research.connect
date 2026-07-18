@@ -122,6 +122,8 @@ class SearchService {
       publicationType,
       yearFrom,
       yearTo,
+      year,
+      minCitations,
       journal,
       conference,
       publisher,
@@ -158,11 +160,18 @@ class SearchService {
         if (publicationType && publicationType !== 'all') {
           filterArray.push(`publicationType = "${publicationType}"`);
         }
-        if (yearFrom) {
-          filterArray.push(`year >= ${yearFrom}`);
+        if (year) {
+          filterArray.push(`year = ${parseInt(year, 10)}`);
+        } else {
+          if (yearFrom) {
+            filterArray.push(`year >= ${parseInt(yearFrom, 10)}`);
+          }
+          if (yearTo) {
+            filterArray.push(`year <= ${parseInt(yearTo, 10)}`);
+          }
         }
-        if (yearTo) {
-          filterArray.push(`year <= ${yearTo}`);
+        if (minCitations) {
+          filterArray.push(`citations >= ${parseInt(minCitations, 10)}`);
         }
 
         const searchParams = {
@@ -239,10 +248,15 @@ class SearchService {
     if (publicationType && publicationType !== 'all') {
       baseFilter.publicationType = publicationType;
     }
-    if (yearFrom || yearTo) {
+    if (year) {
+      baseFilter.year = parseInt(year, 10);
+    } else if (yearFrom || yearTo) {
       baseFilter.year = {};
       if (yearFrom) baseFilter.year.$gte = parseInt(yearFrom, 10);
       if (yearTo) baseFilter.year.$lte = parseInt(yearTo, 10);
+    }
+    if (minCitations) {
+      baseFilter.citations = { $gte: parseInt(minCitations, 10) };
     }
     if (journal) baseFilter.$or = [{ journal: buildRegex(journal) }, { publication: buildRegex(journal) }];
     if (conference) baseFilter.conference = buildRegex(conference);
@@ -417,13 +431,13 @@ class SearchService {
 
   // ─── Researcher Search ────────────────────────────────────────────────────────
   async searchResearchers(params) {
-    const { q = '', page = 1, limit = 20, country, institution, researchArea, currentUserId } = params;
+    const { q = '', page = 1, limit = 20, country, institution, researchArea, currentUserId, minCitations } = params;
     const pageNum = Math.max(1, parseInt(page, 10));
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
     const skip = (pageNum - 1) * limitNum;
 
     // ── Intelligent Profile Matching for Empty Queries ──
-    if (!q.trim() && !country && !institution && !researchArea && currentUserId) {
+    if (!q.trim() && !country && !institution && !researchArea && !minCitations && currentUserId) {
       const currentUserProfile = await Profile.findOne({ userId: currentUserId }).lean();
       
       let userKeywords = [];
@@ -525,7 +539,7 @@ class SearchService {
     }
 
     // ── Fallback for completely empty queries to avoid full DB scan ──
-    if (!q.trim() && !country && !institution && !researchArea) {
+    if (!q.trim() && !country && !institution && !researchArea && !minCitations) {
       const finalUserFilter = { isDeleted: { $ne: true }, isActive: true };
       if (currentUserId) finalUserFilter._id = { $ne: new mongoose.Types.ObjectId(currentUserId) };
       
@@ -564,6 +578,7 @@ class SearchService {
     if (country) profileQuery['institutionLocation.country'] = country;
     if (institution) profileQuery.institution = { $regex: institution, $options: 'i' };
     if (researchArea) profileQuery.researchAreas = { $in: [new RegExp(researchArea, 'i')] };
+    if (minCitations) profileQuery['metrics.totalCitations'] = { $gte: parseInt(minCitations, 10) };
 
     if (q.trim()) {
       const regex = buildRegex(q);
@@ -597,7 +612,7 @@ class SearchService {
       ];
     } else if (matchedUserIdsFromProfiles.length > 0) {
       finalUserFilter._id = { $in: matchedUserIdsFromProfiles };
-    } else if (country || institution || researchArea) {
+    } else if (country || institution || researchArea || minCitations) {
       // If filters applied but no profiles matched, we should return empty
       return { results: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 };
     }
