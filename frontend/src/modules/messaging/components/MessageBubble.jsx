@@ -13,6 +13,7 @@ const MessageBubble = memo(({ message, onReply, onEditInit, otherParticipant, sh
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [deleteConfirmType, setDeleteConfirmType] = useState(null); // null | 'everyone' | 'me'
 
   const { _id, senderId, text, message: textMessage, type, attachment, replyTo, status, edited, deleted, createdAt, reactions = [] } = message;
 
@@ -208,8 +209,7 @@ const MessageBubble = memo(({ message, onReply, onEditInit, otherParticipant, sh
             )}
             <button
               onClick={() => {
-                const confirmMsg = isSender ? 'Delete message for everyone?' : 'Delete message for yourself?';
-                if (window.confirm(confirmMsg)) deleteMutation.mutate(isSender ? 'everyone' : 'me');
+                setDeleteConfirmType(isSender ? 'everyone' : 'me');
                 setSheetOpen(false);
               }}
               className="w-full flex items-center gap-3 px-3 py-3 hover:bg-red-50 rounded-xl text-sm font-semibold text-red-500 cursor-pointer"
@@ -217,6 +217,44 @@ const MessageBubble = memo(({ message, onReply, onEditInit, otherParticipant, sh
               <Trash2 className="w-4 h-4" /> {isSender ? 'Delete for everyone' : 'Delete for me'}
             </button>
             <button onClick={() => setSheetOpen(false)} className="w-full text-center px-3 py-3 mt-1 text-sm font-bold text-slate-400 hover:text-slate-650 cursor-pointer sm:hidden">Cancel</button>
+          </div>
+        </div>
+      )}
+      {deleteConfirmType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setDeleteConfirmType(null)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-5 h-5 text-red-500" />
+            </div>
+            <h4 className="text-sm font-extrabold text-slate-900 text-center">
+              {deleteConfirmType === 'everyone' ? 'Delete message for everyone?' : 'Delete message for yourself?'}
+            </h4>
+            <p className="text-xs text-slate-450 font-medium text-center mt-1.5">
+              {deleteConfirmType === 'everyone'
+                ? "This message will be removed for everyone in this chat. This can't be undone."
+                : "This message will be removed only from your view. This can't be undone."}
+            </p>
+            <div className="flex gap-2.5 mt-6">
+              <button
+                onClick={() => setDeleteConfirmType(null)}
+                className="flex-1 py-2.5 rounded-2xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  deleteMutation.mutate(deleteConfirmType);
+                  setDeleteConfirmType(null);
+                }}
+                className="flex-1 py-2.5 rounded-2xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -101,6 +101,9 @@ const MessageInput = ({ conversationId, onSend, replyContext, onClearReply, edit
       socket.emit('chat:stopTyping', { conversationId });
       socket.emit('typing:stop', { conversationId });
     }
+    // Clicking the Send button moves focus to it — bring it back to the textarea
+    // so the user can keep typing the next message without clicking in again.
+    textareaRef.current?.focus();
   };
 
   const handleSharePublication = (pub) => {

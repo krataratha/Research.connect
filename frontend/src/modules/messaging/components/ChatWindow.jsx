@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Phone, Video, Info, Loader2, ArrowDown, BadgeCheck, ArrowLeft, MessageCircle } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
@@ -6,59 +6,6 @@ import TypingIndicator from './TypingIndicator';
 import Avatar from '../../../components/ui/Avatar';
 import { formatLastSeen, getGroupDateString } from '../../../utils/date';
 import { usePresence } from '../../../context/PresenceContext';
-
-// Custom Intersection Observer Hook for Virtualization
-const useIntersectionObserver = ({ root = null, rootMargin = '0px', threshold = 0 } = {}) => {
-  const [isIntersecting, setIsIntersecting] = useState(false);
-  const [target, setTarget] = useState(null);
-
-  useEffect(() => {
-    if (!target) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsIntersecting(entry.isIntersecting);
-      },
-      { root, rootMargin, threshold }
-    );
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [target, root, rootMargin, threshold]);
-
-  return [setTarget, isIntersecting];
-};
-
-// Virtualized Message Bubble Wrapper (Requirement 16)
-const VirtualMessage = ({ children, id, estimatedHeight = 80 }) => {
-  const [ref, isIntersecting] = useIntersectionObserver({
-    rootMargin: '400px 0px', // Load before entering viewport
-  });
-  const [height, setHeight] = useState(estimatedHeight);
-  const elementRef = useRef(null);
-
-  useEffect(() => {
-    if (elementRef.current && isIntersecting) {
-      const measured = elementRef.current.getBoundingClientRect().height;
-      if (measured > 0) {
-        setHeight(measured);
-      }
-    }
-  }, [isIntersecting]);
-
-  const setRefs = useCallback((node) => {
-    elementRef.current = node;
-    ref(node);
-  }, [ref]);
-
-  if (!isIntersecting) {
-    return <div ref={setRefs} style={{ height: `${height}px` }} className="w-full" data-virtual-id={id} />;
-  }
-
-  return (
-    <div ref={setRefs} className="w-full" data-virtual-id={id}>
-      {children}
-    </div>
-  );
-};
 
 const ChatWindow = ({
   conversation,
@@ -78,6 +25,9 @@ const ChatWindow = ({
 
   const messagesEndRef = useRef(null);
   const viewportRef = useRef(null);
+  const contentRef = useRef(null);
+  const lastConversationIdRef = useRef(undefined);
+  const stickToBottomRef = useRef(true);
 
   const { getUserPresence } = usePresence();
   const otherParticipant = conversation?.otherParticipant;
@@ -89,13 +39,53 @@ const ChatWindow = ({
   const otherImage = otherParticipant?.profileImage;
 
   const scrollToBottom = (behavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    const el = viewportRef.current;
+    if (!el) return;
+    if (behavior === 'auto') {
+      // Direct, instant jump — bypasses the container's CSS scroll-behavior entirely,
+      // so it can't get left mid-animation by a resize firing right after.
+      el.scrollTop = el.scrollHeight;
+    } else {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    }
   };
 
-  // Auto scroll on new messages (Requirement 7)
+  // Auto scroll to the latest message — instantly when a (new) conversation is opened,
+  // smoothly when a new message arrives in the conversation that's already open (Requirement 7)
   useEffect(() => {
-    scrollToBottom(messages.length > 0 ? 'smooth' : 'auto');
-  }, [messages.length]);
+    const conversationId = conversation?._id;
+    if (conversationId !== lastConversationIdRef.current) {
+      // Don't "consume" the switch until we actually have messages to scroll to —
+      // otherwise the empty first render eats the flag and the real data load
+      // ends up treated as a same-conversation update (smooth scroll from the top).
+      if (!messages.length) return;
+      lastConversationIdRef.current = conversationId;
+      stickToBottomRef.current = true;
+      scrollToBottom('auto');
+      return;
+    }
+
+    if (messages.length) {
+      scrollToBottom('smooth');
+    }
+  }, [conversation?._id, messages.length]);
+
+  // Keep pinned to the bottom whenever the visible content area changes size —
+  // either because virtualized messages swap placeholders for their real (taller)
+  // height, or because the composer below grows (reply/edit banner, attachment
+  // preview, multi-line text) and shrinks the viewport, sliding the last message
+  // underneath it. Stops once the user deliberately scrolls up (see handleScroll).
+  useEffect(() => {
+    if (!contentRef.current || !viewportRef.current) return;
+    const observer = new ResizeObserver(() => {
+      if (stickToBottomRef.current) {
+        scrollToBottom('auto');
+      }
+    });
+    observer.observe(contentRef.current);
+    observer.observe(viewportRef.current);
+    return () => observer.disconnect();
+  }, [conversation?._id]);
 
   // Typing indicators
   useEffect(() => {
@@ -126,7 +116,10 @@ const ChatWindow = ({
   const handleScroll = () => {
     if (!viewportRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = viewportRef.current;
-    setShowScrollDown(scrollHeight - scrollTop - clientHeight >= 180);
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    setShowScrollDown(distanceFromBottom >= 180);
+    // Only keep auto-pinning to the bottom while the user is already near it
+    stickToBottomRef.current = distanceFromBottom < 40;
   };
 
   const handleSend = (payload) => {
@@ -271,8 +264,9 @@ const ChatWindow = ({
       <div
         ref={viewportRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 bg-slate-50 flex flex-col gap-0 scroll-smooth"
+        className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 bg-slate-50"
       >
+        <div ref={contentRef} className="flex flex-col gap-0">
         {processedItems.map((item) => {
           if (item.type === 'date_separator') {
             return (
@@ -297,16 +291,15 @@ const ChatWindow = ({
           }
 
           return (
-            <VirtualMessage key={msg._id || item.key} id={msg._id || item.key}>
-              <MessageBubble
-                message={msg}
-                onReply={() => setReplyContext(msg)}
-                onEditInit={() => setEditContext(msg)}
-                otherParticipant={otherParticipant}
-                showAvatar={isDifferentSender}
-                isDifferentSender={isDifferentSender}
-              />
-            </VirtualMessage>
+            <MessageBubble
+              key={msg._id || item.key}
+              message={msg}
+              onReply={() => setReplyContext(msg)}
+              onEditInit={() => setEditContext(msg)}
+              otherParticipant={otherParticipant}
+              showAvatar={isDifferentSender}
+              isDifferentSender={isDifferentSender}
+            />
           );
         })}
 
@@ -317,6 +310,7 @@ const ChatWindow = ({
         )}
 
         <div ref={messagesEndRef} className="h-6" />
+        </div>
       </div>
 
       {/* Scroll to Bottom Button */}

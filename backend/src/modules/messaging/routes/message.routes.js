@@ -53,7 +53,10 @@ router.post('/:id/reply', validateSendMessage, (req, res, next) => {
 });
 
 // POST Reactions
-router.post('/:id/react', validateReaction, messageController.reactToMessage);
+router.post('/:id/react', (req, res, next) => {
+  req.body.messageId = req.params.id;
+  next();
+}, validateReaction, messageController.reactToMessage);
 
 
 

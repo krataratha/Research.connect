@@ -411,7 +411,7 @@ const MessagesPage = () => {
       const tempMessage = {
         _id: tempId,
         conversationId: activeId,
-        senderId: user?.id || user?._id || '',
+        senderId: user?.userId || user?._id || user?.id || '',
         receiverId: activeConversation?.otherParticipant?._id || null,
         text: payload.text,
         message: payload.text,
@@ -1043,8 +1043,8 @@ const MessagesPage = () => {
           <>
             {/* Conversation list */}
             <div 
-              className={`h-full transition-all duration-300 md:block shrink-0 ${
-                mobileView === 'chat' ? 'hidden' : 'block w-full md:w-80'
+              className={`h-full transition-all duration-300 shrink-0 w-full md:w-80 ${
+                mobileView === 'chat' ? 'hidden md:block' : 'block'
               }`}
             >
               <ConversationList
