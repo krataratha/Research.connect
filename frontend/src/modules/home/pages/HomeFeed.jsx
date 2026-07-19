@@ -32,7 +32,6 @@ const HomeFeed = () => {
   const [isSticky, setIsSticky] = useState(false);
   const profileCompletionRef = useRef(null);
   const tabRef = useRef(activeTab);
-  const fetchingRef = useRef(false);
 
   // Infinite Scroll Feed States
   const [page, setPage] = useState(1);
@@ -120,8 +119,6 @@ const HomeFeed = () => {
 
     let isSubscribed = true;
     const fetchFeedPage = async () => {
-      if (fetchingRef.current) return;
-      fetchingRef.current = true;
       setFeedLoading(true);
       try {
         let res;
@@ -159,7 +156,6 @@ const HomeFeed = () => {
         console.error('Error fetching feed:', err);
         if (isSubscribed) setHasMore(false);
       } finally {
-        fetchingRef.current = false;
         if (isSubscribed) setFeedLoading(false);
       }
     };
