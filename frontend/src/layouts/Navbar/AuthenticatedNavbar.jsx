@@ -485,13 +485,13 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
             <div className="relative shrink-0" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-0.5 sm:gap-1.5 p-0.5 sm:p-1 pr-1 sm:pr-2.5 rounded-full border border-slate-200 hover:border-blue-600 hover:bg-slate-50 focus:outline-none transition-all shadow-sm duration-200 group"
+                className="flex items-center gap-0.5 sm:gap-1.5 p-0.5 sm:p-1 pr-1 sm:pr-2.5 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md focus:outline-none transition-all duration-200 shadow-sm group"
               >
                 <UserAvatar
                   user={user}
                   src={profile?.profileImage}
                   size="sm"
-                  className="ring-2 ring-transparent group-hover:ring-blue-100 transition-all shrink-0"
+                  className="shrink-0"
                 />
                 <span className="hidden lg:block text-xs font-bold text-slate-700 group-hover:text-blue-600 max-w-[90px] truncate transition-colors duration-150">
                   {displayName.split(' ')[0] || ''}
