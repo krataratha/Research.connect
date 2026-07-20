@@ -153,7 +153,7 @@ const GlobalSearch = () => {
       </div>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 h-full">
             {/* Results Area */}
@@ -172,7 +172,7 @@ const GlobalSearch = () => {
                 />
               ) : (
                 <>
-                  <div className="space-y-3 sm:space-y-3.5 2xl:space-y-5">
+                  <div className="space-y-3 sm:space-y-3.5 2xl:space-y-5 pt-4">
                     {results.map((item, index) => {
                       const key = item._id || index;
                       const cardType = item.resultType || activeTab;
