@@ -29,6 +29,47 @@ class ConnectionsRepository extends BaseRepository {
   }
 
   /**
+   * Count actual valid connections for a user (excludes connections whose
+   * other-side user document no longer exists — e.g. deleted accounts —
+   * so this always matches what findConnections actually returns).
+   */
+  async countConnections(userId) {
+    const castUserId = new mongoose.Types.ObjectId(userId);
+    const result = await this.model.aggregate([
+      {
+        $match: {
+          $or: [
+            { researcherA: castUserId },
+            { researcherB: castUserId }
+          ]
+        }
+      },
+      {
+        $project: {
+          otherUserId: {
+            $cond: {
+              if: { $eq: ['$researcherA', castUserId] },
+              then: '$researcherB',
+              else: '$researcherA'
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'otherUserId',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' },
+      { $count: 'total' }
+    ]);
+    return result[0]?.total || 0;
+  }
+
+  /**
    * Find connections for a user with pagination and search
    */
   async findConnections(userId, { limit = 10, cursor, search = '' }) {

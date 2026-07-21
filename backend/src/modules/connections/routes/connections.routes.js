@@ -3,6 +3,7 @@ const router = express.Router();
 const connectionsController = require('../controller/connections.controller');
 const { authMiddleware } = require('../../../common/middlewares/auth.middleware');
 const {
+  usernameParamValidator,
   researcherParamValidator,
   requestParamValidator,
   connectionParamValidator,
@@ -14,6 +15,8 @@ router.use(authMiddleware);
 
 // Get list of connections, received, and sent requests
 router.get('/', connectionsController.getConnections);
+// Get connections list of a specific researcher's profile (by username/profileSlug)
+router.get('/user/:username', usernameParamValidator, connectionsController.getConnectionsByUsername);
 router.get('/requests/received', connectionsController.getReceivedRequests);
 router.get('/requests/sent', connectionsController.getSentRequests);
 

@@ -9,6 +9,7 @@ const Analytics = React.lazy(() => import('../pages/Analytics'));
 const Settings = React.lazy(() => import('../pages/Settings'));
 const Followers = React.lazy(() => import('../pages/Followers'));
 const Following = React.lazy(() => import('../pages/Following'));
+const Connections = React.lazy(() => import('../pages/Connections'));
 const Datasets = React.lazy(() => import('../pages/Datasets'));
 const Bookmarks = React.lazy(() => import('../pages/Bookmarks'));
 const Saved = React.lazy(() => import('../pages/Saved'));
@@ -26,6 +27,7 @@ const profileRoutes = (
     <Route path="datasets" element={<Datasets />} />
     <Route path="followers" element={<Followers />} />
     <Route path="following" element={<Following />} />
+    <Route path="connections" element={<Connections />} />
     <Route path="analytics" element={<Analytics />} />
     <Route path="settings" element={<Settings />} />
     <Route path="messages" element={<Messages />} />

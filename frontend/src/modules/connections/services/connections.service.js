@@ -25,6 +25,10 @@ class ConnectionsService {
     return await axiosInstance.get('/v1/connections', { params });
   }
 
+  async getUserConnections(username, params = {}) {
+    return await axiosInstance.get(`/v1/connections/user/${username}`, { params });
+  }
+
   async getReceivedRequests() {
     return await axiosInstance.get('/v1/connections/requests/received');
   }
