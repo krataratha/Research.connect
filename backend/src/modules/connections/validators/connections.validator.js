@@ -1,6 +1,14 @@
 const { param, body } = require('express-validator');
 const validationMiddleware = require('../../../common/middlewares/validation.middleware');
 
+const usernameParamValidator = [
+  param('username')
+    .trim()
+    .notEmpty()
+    .withMessage('Username is required'),
+  validationMiddleware
+];
+
 const researcherParamValidator = [
   param('researcherId')
     .isMongoId()
@@ -35,6 +43,7 @@ const sendRequestValidator = [
 ];
 
 module.exports = {
+  usernameParamValidator,
   researcherParamValidator,
   requestParamValidator,
   connectionParamValidator,

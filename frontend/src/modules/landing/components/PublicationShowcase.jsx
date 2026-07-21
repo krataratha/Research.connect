@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Star, Eye, Share2, Award, ArrowUpRight, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const publications = [
   {
@@ -33,6 +34,7 @@ const publications = [
 ];
 
 const PublicationShowcase = () => {
+  const navigate = useNavigate();
   return (
     <section className="py-24 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,6 +46,7 @@ const PublicationShowcase = () => {
           <motion.button
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/register')}
             transition={{ type: 'spring', stiffness: 400, damping: 15 }}
             className="hidden md:flex items-center gap-2 px-6 py-3 bg-slate-50 text-slate-900 border border-slate-200 font-bold rounded-xl hover:bg-slate-100 transition-colors"
           >

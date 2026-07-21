@@ -7,6 +7,7 @@ import {
   Compass, Link2, BookOpen, GraduationCap, CheckCircle, 
   Loader2, Linkedin, Award, Play, AlertCircle, ArrowRight, Info 
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import scholarService from '../../../services/scholar.service';
 import { updateProfileState } from '../../../redux/slices/authSlice';
 import Button from '../../../components/common/buttons/Button';
@@ -15,7 +16,9 @@ import Input from '../../../components/common/inputs/Input';
 const ResearchIdentityPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { profile } = useSelector((state) => state.auth);
+  const queryClient = useQueryClient();
+  const { profile, user } = useSelector((state) => state.auth);
+  const profileSlug = user?.profileSlug || user?.slug || user?.username;
 
   // Form State
   const [formData, setFormData] = useState({
@@ -132,6 +135,8 @@ const ResearchIdentityPage = () => {
 
             if (job.status === 'completed') {
               clearInterval(pollInterval);
+              // Invalidate cached profile so the profile page refetches synced data
+              queryClient.invalidateQueries({ queryKey: ['profile', profileSlug] });
               // Fetch summary metrics to display on success page
               try {
                 const summaryRes = await scholarService.getProfile();
@@ -356,7 +361,10 @@ const ResearchIdentityPage = () => {
             <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
               <Button
                 variant="primary"
-                onClick={() => navigate(`/profile/${profile?.profileSlug}`)}
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ['profile', profileSlug] });
+                  navigate(`/profile/${profileSlug}`);
+                }}
                 className="w-full sm:w-auto py-3 px-8 text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2"
                 icon={<ArrowRight className="w-4 h-4" />}
               >

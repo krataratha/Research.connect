@@ -28,7 +28,7 @@ const PublicationsLibraryPage = React.lazy(() => import('../modules/publication/
 const PublicationEditPage = React.lazy(() => import('../modules/publication/pages/PublicationEditPage'));
 const PublicationReader = React.lazy(() => import('../modules/publication/pages/PublicationReader'));
 const PublicationAnalyticsPage = React.lazy(() => import('../modules/publication/pages/PublicationAnalyticsPage'));
-const SearchPage = React.lazy(() => import('../modules/search/pages/SearchPage'));
+const GlobalSearch = React.lazy(() => import('../pages/Search/GlobalSearch'));
 const MessagesPage = React.lazy(() => import('../modules/messaging/pages/MessagesPage'));
 const CreateProject = React.lazy(() => import('../modules/project/pages/CreateProject'));
 const ProjectDetails = React.lazy(() => import('../modules/project/pages/ProjectDetails'));
@@ -150,7 +150,7 @@ const AppRoutes = () => {
           <Route path="messages" element={<MessagesPage />} />
           <Route path="messages/:conversationId" element={<MessagesPage />} />
           <Route path="messages/new" element={<MessagesPage />} />
-          <Route path="search" element={<SearchPage />} />
+          <Route path="search" element={<GlobalSearch />} />
           <Route path="help" element={<HelpCenterPage />} />
           {/* Social Collaboration Module Routes */}
           <Route path="network" element={<NetworkPage />} />
@@ -183,7 +183,7 @@ const AppRoutes = () => {
           {/* Phase 7 — Publication Analytics */}
           <Route path="/publication/:slug/analytics" element={<PublicationAnalyticsPage />} />
           {/* Phase 5 — Global Search (also accessible without auth) */}
-          <Route path="/search" element={<SearchPage />} />
+          <Route path="/search" element={<GlobalSearch />} />
         </Route>
 
         {/* 404 & Wildcard Fallback */}

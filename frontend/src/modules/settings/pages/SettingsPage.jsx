@@ -104,8 +104,8 @@ const SettingsPage = ({ profile, refetch, isOwnProfile }) => {
       {/* Main Grid Layout */}
       <div className="grid grid-cols-12 gap-8 items-start">
         {/* Left Column (3 Columns wide) */}
-        <div className="col-span-12 lg:col-span-3 bg-white border border-slate-200 rounded-3xl p-3 shadow-sm lg:sticky lg:top-[85px]">
-          <div className="flex lg:flex-col overflow-x-auto lg:overflow-x-visible no-scrollbar -mx-2 px-2 lg:mx-0 lg:px-0 gap-1.5 whitespace-nowrap">
+        <div className="col-span-12 lg:col-span-3 bg-white border border-slate-200 rounded-3xl p-2.5 lg:p-3 shadow-sm lg:sticky lg:top-[85px]">
+          <div className="flex flex-wrap lg:flex-col gap-1.5">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isSelected = activeTab === tab.id;
@@ -114,13 +114,13 @@ const SettingsPage = ({ profile, refetch, isOwnProfile }) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-extrabold transition-all duration-200 shrink-0 ${
+                  className={`flex items-center gap-1.5 lg:gap-3 px-3 py-2 lg:px-4 lg:py-3 rounded-full lg:rounded-xl text-[11px] lg:text-xs font-extrabold transition-all duration-200 shrink-0 whitespace-nowrap ${
                     isSelected
                       ? 'bg-primary text-white shadow-sm shadow-blue-500/25'
-                      : 'text-slate-600 hover:text-primary hover:bg-slate-50'
+                      : 'bg-slate-50 lg:bg-transparent text-slate-600 hover:text-primary hover:bg-slate-100 lg:hover:bg-slate-50'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-white' : 'text-slate-500'}`} />
+                  <Icon className={`w-3.5 h-3.5 lg:w-4 lg:h-4 flex-shrink-0 ${isSelected ? 'text-white' : 'text-slate-500'}`} />
                   <span>{tab.name}</span>
                 </button>
               );

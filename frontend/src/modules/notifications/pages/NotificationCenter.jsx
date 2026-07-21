@@ -8,7 +8,6 @@ import { useNotifications } from '../../../hooks/useNotifications';
 import NotificationHeroSection from '../components/NotificationHeroSection';
 import NotificationStatsGrid from '../components/NotificationStatsGrid';
 import NotificationFilterBar from '../components/NotificationFilterBar';
-import NotificationCategoryBar from '../components/NotificationCategoryBar';
 import NotificationFeed from '../components/NotificationFeed';
 import NotificationRightSidebar from '../components/NotificationRightSidebar';
 import { HeroSkeleton } from '../components/NotificationSkeletons';
@@ -16,15 +15,15 @@ import { HeroSkeleton } from '../components/NotificationSkeletons';
 // ── Filter helpers ────────────────────────────────────────────────────────────
 const FILTER_TYPE_MAP = {
   citations: 'citation',
-  mentions:  'mention',
-  reviews:   'review',
-  system:    'system',
-  messages:  'message',
-  projects:  'project',
-  follow:    'follow',
-  collab:    'collab',
-  funding:   'funding',
-  research:  'research',
+  mentions: 'mention',
+  reviews: 'review',
+  system: 'system',
+  messages: 'message',
+  projects: 'project',
+  follow: 'follow',
+  collab: 'collab',
+  funding: 'funding',
+  research: 'research',
 };
 
 const applyFilters = (list, filters, activeCategory) => {
@@ -34,9 +33,9 @@ const applyFilters = (list, filters, activeCategory) => {
   if (activeCategory !== 'all' && activeCategory !== 'archived') {
     const t = FILTER_TYPE_MAP[activeCategory] || activeCategory.replace(/s$/, ''); // very basic mapping
     // E.g. 'mentions' -> 'mention', 'citations' -> 'citation', 'reviews' -> 'review'
-    result = result.filter(n => 
-      n.type === t || 
-      (t === 'collab' && n.type === 'system') || 
+    result = result.filter(n =>
+      n.type === t ||
+      (t === 'collab' && n.type === 'system') ||
       (t === 'publications' && n.type === 'citation')
     );
   } else if (activeCategory === 'archived') {
@@ -53,8 +52,42 @@ const applyFilters = (list, filters, activeCategory) => {
     );
   }
 
+  // Toolbar: Date Range
+  if (filters.dateRange && filters.dateRange !== 'all') {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    result = result.filter(n => {
+      if (!n.createdAt) return false;
+      const d = new Date(n.createdAt);
+      if (filters.dateRange === 'today') return d >= today;
+      if (filters.dateRange === 'yesterday') {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return d >= yesterday && d < today;
+      }
+      if (filters.dateRange === '7d') {
+        const last7 = new Date(today);
+        last7.setDate(last7.getDate() - 7);
+        return d >= last7;
+      }
+      if (filters.dateRange === '30d') {
+        const last30 = new Date(today);
+        last30.setDate(last30.getDate() - 30);
+        return d >= last30;
+      }
+      if (filters.dateRange === 'month') {
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }
+      if (filters.dateRange === 'year') {
+        return d.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  }
+
   // 3. Toolbar: Type
-  if (filters.type !== 'all') {
+  if (filters.type && filters.type !== 'all') {
     const typeMap = {
       citation: ['citation'],
       mention: ['mention'],
@@ -75,7 +108,7 @@ const applyFilters = (list, filters, activeCategory) => {
   }
 
   // 4. Toolbar: Priority
-  if (filters.priority !== 'All') {
+  if (filters.priority && filters.priority !== 'All') {
     result = result.filter(n => (n.priority || 'Low').toLowerCase() === filters.priority.toLowerCase());
   }
 
@@ -101,15 +134,15 @@ const applyFilters = (list, filters, activeCategory) => {
 const NotificationCenter = () => {
   // Global category state (left sidebar)
   const [activeFilter, setActiveFilter] = useState('all');
-  
+
   // Advanced toolbar state
   const [toolbarFilters, setToolbarFilters] = useState({
-    search:    '',
+    search: '',
     dateRange: 'all',
-    type:      'all',
-    priority:  'All',
-    status:    'All',
-    sort:      'newest',
+    type: 'all',
+    priority: 'All',
+    status: 'All',
+    sort: 'newest',
   });
 
   const [showToast, setShowToast] = useState(false);
@@ -128,10 +161,10 @@ const NotificationCenter = () => {
   } = useNotifications();
 
   // Apply filters
-  const today     = useMemo(() => applyFilters(dateGrouped.today,     toolbarFilters, activeFilter), [dateGrouped.today,     toolbarFilters, activeFilter]);
+  const today = useMemo(() => applyFilters(dateGrouped.today, toolbarFilters, activeFilter), [dateGrouped.today, toolbarFilters, activeFilter]);
   const yesterday = useMemo(() => applyFilters(dateGrouped.yesterday, toolbarFilters, activeFilter), [dateGrouped.yesterday, toolbarFilters, activeFilter]);
-  const older     = useMemo(() => applyFilters(dateGrouped.older,     toolbarFilters, activeFilter), [dateGrouped.older,     toolbarFilters, activeFilter]);
-  
+  const older = useMemo(() => applyFilters(dateGrouped.older, toolbarFilters, activeFilter), [dateGrouped.older, toolbarFilters, activeFilter]);
+
   const totalFiltered = today.length + yesterday.length + older.length;
 
   const handleMarkAllRead = () => {
@@ -141,14 +174,14 @@ const NotificationCenter = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      
+    <div className="min-h-[calc(100vh-112px)] md:min-h-[calc(100vh-128px)] bg-[#F8FAFC] font-sans pb-12">
+
       {/* ── Success toast ─────────────────────────────────────────────────── */}
       <div
         className="fixed bottom-6 right-6 bg-white border border-[#E2E8F0] shadow-2xl rounded-2xl p-4 pr-6 flex items-center gap-3 z-[999] max-w-sm"
         style={{
           transform: showToast ? 'translateX(0) scale(1)' : 'translateX(130%) scale(0.9)',
-          opacity:   showToast ? 1 : 0,
+          opacity: showToast ? 1 : 0,
           transition: 'all 350ms cubic-bezier(0.34,1.2,0.64,1)',
         }}
       >
@@ -162,9 +195,8 @@ const NotificationCenter = () => {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
-        
-        {/* ── HERO SECTION ─────────────────────────────────────────────────── */}
+      {/* ── TOP AREA (HERO + GRID) ─────────────────────────────────── */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 relative z-20">
         {isLoading ? (
           <HeroSkeleton />
         ) : (
@@ -177,37 +209,29 @@ const NotificationCenter = () => {
           />
         )}
 
-        {/* ── 8-CARD STATS GRID ────────────────────────────────────────────── */}
-        <NotificationStatsGrid stats={stats} isLoading={isLoading} />
+        <NotificationStatsGrid 
+          stats={stats} 
+          isLoading={isLoading} 
+          activeFilter={activeFilter}
+          onCardClick={setActiveFilter}
+        />
+      </div>
 
-        {/* ── 3-COLUMN MAIN LAYOUT ─────────────────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row gap-8 items-start relative">
-          
-          {/* Left Column (30%): Category Sidebar */}
-          <div className="w-full lg:w-[280px] xl:w-[320px] flex-shrink-0">
-            {isLoading ? (
-              <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-3 h-[600px] animate-pulse" />
-            ) : (
-              <NotificationCategoryBar
-                activeFilter={activeFilter}
-                setActiveFilter={setActiveFilter}
-                stats={stats}
+      {/* ── MAIN LAYOUT (FEED + RIGHT SIDEBAR) ───────────────────────── */}
+      <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 mt-2 lg:mt-6">
+        <div className="flex flex-col lg:flex-row gap-6 xl:gap-8 items-start relative">
+
+          {/* Center Column (Feed & Filters) */}
+          <div id="notification-feed-start" className="flex-1 min-w-0">
+            <div className="mb-4 lg:mb-6">
+              <NotificationFilterBar
+                filters={toolbarFilters}
+                setFilters={setToolbarFilters}
+                totalResults={totalFiltered}
               />
-            )}
-          </div>
+            </div>
 
-          {/* Center Column: Feed & Filters */}
-          <div className="flex-1 min-w-0">
-            <NotificationFilterBar
-              filters={toolbarFilters}
-              setFilters={setToolbarFilters}
-              totalResults={totalFiltered}
-            />
-            
-            <div 
-              className="overflow-y-auto pr-2 pb-6"
-              style={{ maxHeight: 'calc(100vh - 220px)', scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}
-            >
+            <div className="pb-6">
               <NotificationFeed
                 isLoading={isLoading}
                 isFetching={isFetching}
@@ -219,17 +243,17 @@ const NotificationCenter = () => {
                 onMarkRead={markAsRead}
                 onRefetch={refetch}
                 weeklyStats={{
-                  weeklyReads:     stats.weeklyReads,
+                  weeklyReads: stats.weeklyReads,
                   weeklyCitations: stats.weeklyCitations,
-                  weeklyBars:      stats.weeklyBars,
+                  weeklyBars: stats.weeklyBars,
                 }}
                 setActiveFilter={setActiveFilter}
               />
             </div>
           </div>
 
-          {/* Right Column: Sticky Sidebar (XL only) */}
-          <div className="hidden xl:block w-[320px] flex-shrink-0">
+          {/* Right Column (Sticky Sidebar XL only) */}
+          <div className="hidden xl:block w-[320px] flex-shrink-0 lg:sticky lg:top-6 lg:self-start">
             {isLoading ? (
               <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-3 h-[400px] animate-pulse" />
             ) : (

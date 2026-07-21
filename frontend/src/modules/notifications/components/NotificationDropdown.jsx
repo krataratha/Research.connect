@@ -87,10 +87,10 @@ const NotificationDropdown = ({ onClose }) => {
   return (
     <div 
       ref={dropdownRef}
-      className="absolute right-0 mt-3 w-80 sm:w-96 bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] z-50 overflow-hidden text-left flex flex-col max-h-[480px] animate-in fade-in zoom-in-95 duration-200 origin-top-right ring-1 ring-black/5"
+      className="fixed sm:absolute left-2 right-2 top-[70px] sm:left-auto sm:right-0 sm:top-auto sm:mt-3 w-auto sm:w-96 bg-white border border-slate-200/60 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] z-[100] overflow-hidden text-left flex flex-col max-h-[80vh] sm:max-h-[480px] animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5 origin-top sm:origin-top-right"
     >
       {/* Header */}
-      <div className="relative flex justify-between items-center px-5 py-4 border-b border-slate-100 bg-slate-50/50 backdrop-blur-md">
+      <div className="relative flex justify-between items-center px-5 py-4 border-b border-slate-100 bg-slate-50">
         <div>
           <h4 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">Notifications</h4>
           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Your latest updates</p>
@@ -182,7 +182,7 @@ const NotificationDropdown = ({ onClose }) => {
       <Link 
         to="/notifications" 
         onClick={onClose}
-        className="block text-center py-3.5 bg-slate-50/80 backdrop-blur-md border-t border-slate-100 text-[11px] font-black uppercase text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 transition-colors tracking-wider"
+        className="block text-center py-3.5 bg-slate-50 border-t border-slate-100 text-[11px] font-black uppercase text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 transition-colors tracking-wider"
       >
         <span>View all notifications</span>
       </Link>

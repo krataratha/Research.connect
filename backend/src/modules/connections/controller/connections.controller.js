@@ -49,6 +49,18 @@ class ConnectionsController {
     return res.success('Connections list retrieved successfully.', connections);
   });
 
+  // Get connections list of a specific researcher (public profile view)
+  getConnectionsByUsername = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const { limit = 10, cursor, search = '' } = req.query;
+    const connections = await connectionsService.getConnectionsByUsername(username, {
+      limit: Number(limit),
+      cursor,
+      search
+    });
+    return res.success('Connections list retrieved successfully.', connections);
+  });
+
   // Get received pending requests
   getReceivedRequests = asyncHandler(async (req, res) => {
     const requests = await connectionsService.getReceivedRequests(req.user._id);

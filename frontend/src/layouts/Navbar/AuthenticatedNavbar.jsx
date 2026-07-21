@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logoutSuccess } from '../../redux/slices/authSlice';
@@ -20,6 +20,7 @@ import UserAvatar from '../../components/ui/Avatar';
 
 const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const { user, profile } = useSelector((state) => state.auth);
@@ -110,6 +111,35 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
     return () => clearTimeout(delayDebounceFn);
   }, [searchState.query]);
 
+  // Clear search box when navigating away from the search page
+  useEffect(() => {
+    if (location.pathname !== '/search' && searchState.query) {
+      dispatch(setQuery(''));
+    }
+  }, [location.pathname]); // Only run when pathname changes
+
+  // Auto-search as you type (only on /search page)
+  useEffect(() => {
+    if (location.pathname === '/search') {
+      const delayDebounceFn = setTimeout(() => {
+        const trimmed = searchState.query.trim();
+        const currentParams = new URLSearchParams(location.search);
+        
+        if (trimmed) {
+          if (currentParams.get('q') !== trimmed) {
+            navigate(`/search?q=${encodeURIComponent(trimmed)}`, { replace: true });
+          }
+        } else {
+          if (currentParams.has('q')) {
+            navigate('/search', { replace: true });
+          }
+        }
+      }, 500); // 500ms debounce
+      
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [searchState.query, location.pathname, location.search, navigate]);
+
   const handleLogout = async () => {
     try {
       await authService.logout();
@@ -128,9 +158,14 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (searchState.query.trim()) {
-      setShowSuggestions(false);
-      navigate(`/search?q=${encodeURIComponent(searchState.query)}`);
+    setShowSuggestions(false);
+    
+    const trimmedQuery = searchState.query.trim();
+    if (trimmedQuery) {
+      navigate(`/search?q=${encodeURIComponent(trimmedQuery)}`);
+    } else if (window.location.pathname === '/search') {
+      // Reset search if the input is cleared and submitted on the search page
+      navigate('/search');
     }
   };
 
@@ -140,17 +175,21 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
         {mobileSearchOpen ? (
           <div className="flex items-center h-16 gap-2 md:hidden">
             <form onSubmit={handleSearchSubmit} className="flex-grow relative">
-              <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
-                <Search className="w-4 h-4" />
-              </div>
               <input
                 autoFocus
                 type="text"
                 placeholder="Search researchers, papers..."
                 value={searchState.query}
                 onChange={handleSearchChange}
-                className="w-full pl-11 pr-4 py-2.5 rounded-full border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950 placeholder-slate-400"
+                className="w-full pl-4 pr-11 py-2.5 rounded-full border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950 placeholder-slate-400"
               />
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                aria-label="Submit search"
+              >
+                <Search className="w-4 h-4" />
+              </button>
             </form>
             <button
               onClick={() => setMobileSearchOpen(false)}
@@ -187,29 +226,36 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
           {/* Large Global Search with Autocomplete */}
           <div ref={searchContainerRef} className="flex-grow max-w-xl relative hidden md:block">
             <form onSubmit={handleSearchSubmit} className="relative w-full">
-              <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
-                <Search className="w-4 h-4" />
-              </div>
               <input
                 type="text"
                 placeholder="Search researchers, papers, patents, keywords..."
                 value={searchState.query}
                 onChange={handleSearchChange}
-                onFocus={() => setShowSuggestions(true)}
-                className="w-full pl-11 pr-4 py-2 rounded-full border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950 placeholder-slate-400 shadow-inner hover:bg-slate-100/50 focus:bg-white transition-all duration-200"
+                onFocus={() => {
+                  setShowSuggestions(true);
+                  if (window.location.pathname !== '/search') {
+                    navigate('/search' + (searchState.query ? `?q=${encodeURIComponent(searchState.query)}` : ''));
+                  }
+                }}
+                className="w-full pl-5 pr-12 py-2 rounded-full border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950 placeholder-slate-400 shadow-inner hover:bg-slate-100/50 focus:bg-white transition-all duration-200"
               />
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors cursor-pointer z-10"
+                aria-label="Submit search"
+              >
+                <Search className="w-4 h-4" />
+              </button>
             </form>
 
-            {showSuggestions && (searchState.query.trim().length >= 2) && (
+            {showSuggestions && (searchState.query.trim().length >= 2) && (isSearchingSuggestions || (suggestions && Object.values(suggestions).some(arr => Array.isArray(arr) && arr.length > 0))) && (
               <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden max-h-[420px] overflow-y-auto">
                 {isSearchingSuggestions ? (
                   <div className="flex items-center justify-center py-6 gap-2 text-xs font-semibold text-slate-400">
                     <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                     Searching...
                   </div>
-                ) : suggestions && (
-                  Object.values(suggestions).some(arr => Array.isArray(arr) && arr.length > 0)
-                ) ? (
+                ) : (
                   <div className="py-2.5 divide-y divide-slate-100">
                     {suggestions.authors && suggestions.authors.length > 0 && (
                       <div className="py-2">
@@ -299,10 +345,6 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <div className="py-6 px-4 text-center text-xs font-semibold text-slate-400 italic">
-                    No suggestions found. Press Enter to search.
-                  </div>
                 )}
               </div>
             )}
@@ -313,7 +355,12 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
 
             {/* Mobile Search Trigger */}
             <button
-              onClick={() => setMobileSearchOpen(true)}
+              onClick={() => {
+                setMobileSearchOpen(true);
+                if (window.location.pathname !== '/search') {
+                  navigate('/search' + (searchState.query ? `?q=${encodeURIComponent(searchState.query)}` : ''));
+                }
+              }}
               className="p-1 sm:p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-all md:hidden shrink-0"
               aria-label="Search"
             >
@@ -438,13 +485,13 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
             <div className="relative shrink-0" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-0.5 sm:gap-1.5 p-0.5 sm:p-1 pr-1 sm:pr-2.5 rounded-full border border-slate-200 hover:border-blue-600 hover:bg-slate-50 focus:outline-none transition-all shadow-sm duration-200 group"
+                className="flex items-center gap-0.5 sm:gap-1.5 p-0.5 sm:p-1 pr-1 sm:pr-2.5 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md focus:outline-none transition-all duration-200 shadow-sm group"
               >
                 <UserAvatar
                   user={user}
                   src={profile?.profileImage}
                   size="sm"
-                  className="ring-2 ring-transparent group-hover:ring-blue-100 transition-all shrink-0"
+                  className="shrink-0"
                 />
                 <span className="hidden lg:block text-xs font-bold text-slate-700 group-hover:text-blue-600 max-w-[90px] truncate transition-colors duration-150">
                   {displayName.split(' ')[0] || ''}

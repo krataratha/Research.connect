@@ -8,10 +8,6 @@ const faqs = [
     a: 'Research Connect offers a robust free tier that includes profile creation, networking, publication indexing, and basic collaboration tools. We also offer premium plans for labs and universities.'
   },
   {
-    q: 'How does the AI matching work?',
-    a: 'Our AI analyzes your publication history, keywords, methodologies, and reading habits to build a semantic profile. It then matches you with researchers with complementary skills globally.'
-  },
-  {
     q: 'Can I import my Google Scholar profile?',
     a: 'Yes, you can easily sync your Google Scholar, ORCID, and ResearchGate profiles with a single click to import all your past publications and metrics.'
   },

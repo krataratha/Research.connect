@@ -192,7 +192,7 @@ const BentoCards = ({ weeklyStats = {} }) => {
         </div>
 
         {/* Members row */}
-        <div className="flex items-center justify-between pt-3 border-t border-[#F8FAFC]">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#F8FAFC]">
           <div className="flex items-center gap-2">
             <div className="flex -space-x-2">
               {['#2563EB', '#4F46E5', '#22C55E'].map((color, i) => (
@@ -210,7 +210,7 @@ const BentoCards = ({ weeklyStats = {} }) => {
 
           <button 
             onClick={() => navigate('/network')}
-            className="flex items-center gap-1 font-bold text-[#2563EB] text-[13px] relative group/btn"
+            className="flex items-center gap-1 font-bold text-[#2563EB] text-[13px] relative group/btn ml-auto"
           >
             Explore Groups
             <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover/btn:translate-x-[4px]" />

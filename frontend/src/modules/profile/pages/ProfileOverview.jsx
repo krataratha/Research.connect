@@ -132,6 +132,10 @@ const ProfileOverview = () => {
           setHasMorePubs(res.data.hasNextPage || (res.data.page < res.data.totalPages));
         }
       } catch (err) {
+        if (err?.isCanceled) {
+          // A newer identical request superseded this one — not a real failure.
+          return;
+        }
         console.error('Error fetching publications for overview:', err);
       } finally {
         setLoadingPubs(false);
@@ -159,6 +163,10 @@ const ProfileOverview = () => {
           setPubTypeCounts(counts);
         }
       } catch (err) {
+        if (err?.isCanceled) {
+          // A newer identical request superseded this one — not a real failure.
+          return;
+        }
         console.error('Error fetching publication counts:', err);
       }
     };
@@ -207,6 +215,10 @@ const ProfileOverview = () => {
         refetch();
       }
     } catch (err) {
+      if (err?.isCanceled) {
+          // A newer identical request superseded this one — not a real failure.
+          return;
+        }
       console.error(err);
       toast.error(err.message || 'Failed to update profile');
     } finally {

@@ -44,12 +44,12 @@ const NotificationHeroSection = ({
   }, []);
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-8">
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-6 mb-4 sm:mb-8">
       {/* Left: badge + heading + subtitle */}
       <div>
         {/* Badge */}
         <motion.div
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-4"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full mb-3 sm:mb-4"
           style={{
             background: 'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(79,70,229,0.08))',
             border: '1px solid rgba(37,99,235,0.2)',
@@ -60,9 +60,9 @@ const NotificationHeroSection = ({
         >
           <BellRing
             ref={bellRef}
-            className="w-3.5 h-3.5 text-[#2563EB]"
+            className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#2563EB]"
           />
-          <span className="text-[#2563EB] text-xs font-bold tracking-wide uppercase">
+          <span className="text-[#2563EB] text-[10px] sm:text-xs font-bold tracking-wide uppercase">
             Notification Center
           </span>
           {stats.unread > 0 && (
@@ -70,7 +70,7 @@ const NotificationHeroSection = ({
               key={stats.unread}
               initial={{ scale: 0.5 }}
               animate={{ scale: 1 }}
-              className="w-5 h-5 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+              className="w-4 h-4 sm:w-5 sm:h-5 rounded-full text-[9px] sm:text-[10px] font-bold text-white flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #2563EB, #4F46E5)' }}
             >
               {stats.unread > 99 ? '99+' : stats.unread}
@@ -80,7 +80,7 @@ const NotificationHeroSection = ({
 
         {/* Heading */}
         <motion.h1
-          className="text-4xl lg:text-5xl font-bold text-[#0F172A] mb-3 leading-tight font-display"
+          className="text-2xl sm:text-4xl lg:text-5xl font-bold text-[#0F172A] mb-2 sm:mb-3 leading-tight font-display"
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.08, ease: EASE_OUT_EXPO }}
@@ -90,7 +90,7 @@ const NotificationHeroSection = ({
 
         {/* Subtitle */}
         <motion.p
-          className="text-[15px] text-[#64748B] leading-relaxed max-w-xl"
+          className="text-xs sm:text-[15px] text-[#64748B] leading-relaxed max-w-xl"
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.15, ease: EASE_OUT_EXPO }}
@@ -102,14 +102,14 @@ const NotificationHeroSection = ({
 
       {/* Right: action buttons */}
       <motion.div
-        className="flex items-center gap-2.5 shrink-0"
+        className="flex items-center gap-2 sm:gap-2.5 shrink-0"
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.45, delay: 0.22, ease: EASE_OUT_EXPO }}
       >
         {/* Mark all as read — primary CTA */}
         <div
-          className="p-[1.5px] rounded-xl"
+          className="p-[1.5px] rounded-lg sm:rounded-xl"
           style={{ background: 'linear-gradient(135deg, #2563EB, #4F46E5)' }}
         >
           <motion.button
@@ -119,12 +119,12 @@ const NotificationHeroSection = ({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-[10px] text-[#2563EB] font-semibold text-sm transition-all duration-200 hover:bg-[#EFF6FF] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 bg-white rounded-md sm:rounded-[10px] text-[#2563EB] font-semibold text-xs sm:text-sm transition-all duration-200 hover:bg-[#EFF6FF] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
             {isMarkingAllRead ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
             ) : (
-              <CheckCheck className="w-4 h-4" />
+              <CheckCheck className="w-3 h-3 sm:w-4 sm:h-4" />
             )}
             Mark all as read
             {stats.unread > 0 && (

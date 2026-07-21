@@ -25,6 +25,19 @@
   --color-brand-light-orange: #FEF3C7;
   --color-brand-light-purple: #EDE9FE;
 }
+
+/* ── Hide browser-native password reveal/clear icons ──
+   Prevents duplicate eye icon on top of our custom show/hide toggle
+   (Edge/IE inject their own; Chrome/Safari inject autofill decorations) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-container {
+  visibility: hidden;
+  display: none !important;
+}
 /* ── Shimmer animation for skeleton cards ── */
 @keyframes shimmer {
   0% { background-position: -200% 0; }

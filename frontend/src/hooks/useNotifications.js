@@ -33,8 +33,9 @@ const getDateGroup = (dateStr) => {
 
 // ── Backend → UI type normalizer ──────────────────────────────────────────────
 const TYPE_MAP = {
-  follow:      'system',
-  connection:  'system',
+  follow:      'follow',
+  connection:  'collab',
+  collab:      'collab',
   publication: 'citation',
   mention:     'mention',
   comment:     'mention',
@@ -42,6 +43,8 @@ const TYPE_MAP = {
   peer:        'review',
   system:      'system',
   citation:    'citation',
+  message:     'message',
+  project:     'project',
 };
 
 export const normalizeType = (type) => {
@@ -171,6 +174,7 @@ export const useNotifications = () => {
     const mentions  = notifications.filter((n) => n.type === 'mention').length;
     const reviews   = notifications.filter((n) => n.type === 'review').length;
     const system    = notifications.filter((n) => n.type === 'system').length;
+    const messages  = notifications.filter((n) => n.type === 'message').length;
     const readRatio = total > 0 ? Math.round(((total - unreadRaw) / total) * 100) : 0;
 
     // Weekly bars — last 7 days
@@ -200,7 +204,7 @@ export const useNotifications = () => {
       unreadCountQuery.data?.data?.count  ??
       unreadRaw;
 
-    return { total, unread: liveUnread, citations, mentions, reviews, system, readRatio, weeklyBars, weeklyReads, weeklyCitations };
+    return { total, unread: liveUnread, citations, mentions, reviews, system, messages, readRatio, weeklyBars, weeklyReads, weeklyCitations };
   }, [notifications, unreadCountQuery.data]);
 
   // ── Date-grouped list ──────────────────────────────────────────────────────

@@ -140,13 +140,13 @@ const ConnectedAccountsSettings = ({ profile, refetch }) => {
 
           return (
             <div key={acc.id} className="py-5 first:pt-0 last:pb-0 space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="flex items-start gap-4 min-w-0">
                   <div className="mt-0.5 shrink-0">
                     <IconComponent />
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h4 className="text-xs font-black text-text-primary uppercase tracking-tight">{acc.name}</h4>
                       
                       {acc.connected ? (
@@ -163,7 +163,7 @@ const ConnectedAccountsSettings = ({ profile, refetch }) => {
                       {acc.description}
                     </p>
                     {acc.connected && acc.displayId && (
-                      <p className="text-[10px] text-primary font-bold truncate max-w-xs md:max-w-md mt-1">
+                      <p className="text-[10px] text-primary font-bold truncate max-w-[240px] sm:max-w-xs md:max-w-md mt-1">
                         {acc.displayId.startsWith('http') ? (
                           <a href={acc.displayId} target="_blank" rel="noopener noreferrer" className="hover:underline">
                             {acc.displayId}
@@ -178,12 +178,12 @@ const ConnectedAccountsSettings = ({ profile, refetch }) => {
                   </div>
                 </div>
 
-                <div className="shrink-0">
+                <div className="shrink-0 pl-9 sm:pl-0">
                   {acc.connected ? (
                     <button
                       onClick={() => handleDisconnectClick(acc.id)}
                       disabled={isSaving}
-                      className="px-4 py-1.5 text-xs font-bold bg-white text-slate-700 border border-slate-250 hover:bg-slate-50 rounded-lg shadow-sm transition-all"
+                      className="w-full sm:w-auto px-4 py-1.5 text-xs font-bold bg-white text-slate-700 border border-slate-250 hover:bg-slate-50 rounded-lg shadow-sm transition-all"
                     >
                       Disconnect
                     </button>
@@ -191,7 +191,7 @@ const ConnectedAccountsSettings = ({ profile, refetch }) => {
                     <button
                       onClick={() => handleConnectClick(acc.id, acc.displayId || '')}
                       disabled={isSaving}
-                      className="px-5 py-1.5 text-xs font-bold text-white bg-primary hover:bg-primary-hover rounded-lg shadow-sm shadow-primary/10 transition-all"
+                      className="w-full sm:w-auto px-5 py-1.5 text-xs font-bold text-white bg-primary hover:bg-primary-hover rounded-lg shadow-sm shadow-primary/10 transition-all"
                     >
                       Connect
                     </button>
@@ -200,27 +200,29 @@ const ConnectedAccountsSettings = ({ profile, refetch }) => {
               </div>
 
               {isInputActive && (
-                <div className="flex items-center gap-2 pl-9 max-w-md animate-fade-in">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pl-0 sm:pl-9 max-w-md animate-fade-in">
                   <input
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder={acc.placeholder}
-                    className="flex-grow px-3 py-1.5 text-xs bg-white border border-slate-205 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary text-text-primary"
+                    className="flex-grow min-w-0 px-3 py-1.5 text-xs bg-white border border-slate-205 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary text-text-primary"
                   />
-                  <button
-                    onClick={() => updateAccountLink(acc.id, inputValue)}
-                    disabled={isSaving}
-                    className="px-3 py-1.5 text-xs font-bold text-white bg-primary rounded-lg shrink-0"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => setInputVisible(null)}
-                    className="px-3 py-1.5 text-xs font-bold bg-white text-slate-700 border border-slate-250 rounded-lg shrink-0"
-                  >
-                    Cancel
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => updateAccountLink(acc.id, inputValue)}
+                      disabled={isSaving}
+                      className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold text-white bg-primary rounded-lg shrink-0"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setInputVisible(null)}
+                      className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold bg-white text-slate-700 border border-slate-250 rounded-lg shrink-0"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

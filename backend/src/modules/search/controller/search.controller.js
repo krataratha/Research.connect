@@ -53,7 +53,10 @@ class SearchController {
   });
 
   searchProjects = asyncHandler(async (req, res) => {
-    const results = await searchService.searchProjects(req.query);
+    const results = await searchService.searchProjects({
+      ...req.query,
+      currentUserId: req.user?.id
+    });
     return res.success('Projects search completed.', results);
   });
 

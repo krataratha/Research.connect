@@ -22,11 +22,93 @@ const buildRegex = (q, options = 'i') => new RegExp(sanitizeQuery(q), options);
 class SearchService {
 
   async searchProjects(params) {
-    const { q = '', status, domain, tags, owner, page = 1, limit = 20, sort = 'relevance' } = params;
+    const { q = '', status, domain, tags, owner, page = 1, limit = 20, sort = 'relevance', currentUserId } = params;
     const pageNum = Math.max(1, parseInt(page, 10)); const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+    const skip = (pageNum - 1) * limitNum;
+
+    // ── Intelligent Profile Matching for Empty Queries ──
+    if (!q.trim() && !status && !domain && !tags && currentUserId) {
+      const currentUserProfile = await Profile.findOne({ userId: currentUserId }).lean();
+      let userKeywords = [];
+      if (currentUserProfile) {
+        if (currentUserProfile.skills) userKeywords = userKeywords.concat(currentUserProfile.skills.map(s => s.name?.toLowerCase()));
+        if (currentUserProfile.researchAreas) userKeywords = userKeywords.concat(currentUserProfile.researchAreas.map(r => r?.toLowerCase()));
+      }
+      userKeywords = [...new Set(userKeywords.filter(Boolean))];
+
+      if (userKeywords.length > 0) {
+        const pipeline = [
+          { $match: { isArchived: false, visibility: 'Public', owner: { $ne: new mongoose.Types.ObjectId(currentUserId) } } },
+          {
+            $addFields: {
+              lowercaseTags: {
+                $map: { input: { $ifNull: ["$tags", []] }, as: "t", in: { $toLower: "$$t" } }
+              },
+              lowercaseDomain: { $toLower: { $ifNull: ["$researchDomain", ""] } }
+            }
+          },
+          {
+            $addFields: {
+              allProjectKeywords: { $setUnion: ["$lowercaseTags", ["$lowercaseDomain"]] }
+            }
+          },
+          {
+            $addFields: {
+              sharedKeywords: { $setIntersection: ["$allProjectKeywords", userKeywords] }
+            }
+          },
+          {
+            $addFields: {
+              intersectSize: { $size: { $ifNull: ["$sharedKeywords", []] } }
+            }
+          },
+          {
+            $match: { intersectSize: { $gt: 0 } }
+          },
+          { $sort: { intersectSize: -1, createdAt: -1 } },
+          {
+            $facet: {
+              metadata: [{ $count: "total" }],
+              data: [{ $skip: skip }, { $limit: limitNum }]
+            }
+          }
+        ];
+
+        const aggResult = await Project.aggregate(pipeline);
+        const data = aggResult[0].data;
+        const total = aggResult[0].metadata[0]?.total || 0;
+
+        if (total > 0) {
+          const ownerIds = data.map(p => p.owner);
+          const owners = await User.find({ _id: { $in: ownerIds } })
+            .select('firstName lastName fullName profileSlug avatar')
+            .lean();
+          
+          const results = data.map(proj => {
+            proj.owner = owners.find(u => u._id.toString() === proj.owner.toString()) || proj.owner;
+            proj.reasons = [`Matches ${proj.intersectSize} of your research interests/skills`];
+            return proj;
+          });
+
+          return { results, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
+        }
+      }
+    }
+
+    // ── Generic Fallback ──
     const filter = { isArchived: false, visibility: 'Public' };
     if (q.trim()) filter.$text = { $search: q.trim() };
-    if (status) filter.status = status; if (domain) filter.researchDomain = buildRegex(domain); if (tags) filter.tags = { $in: String(tags).split(',').map(buildRegex) }; if (owner) filter.owner = owner;
+    if (status) filter.status = status; 
+    if (domain) filter.researchDomain = buildRegex(domain); 
+    if (tags) filter.tags = { $in: String(tags).split(',').map(buildRegex) }; 
+    if (owner) filter.owner = owner;
+    
+    // Exclude current user's own projects from generic discovery if empty query
+    // Commented out so that the user can see their own public projects if they are the only one with projects
+    // if (!q.trim() && currentUserId && !status && !domain && !tags && !owner) {
+    //    filter.owner = { $ne: currentUserId };
+    // }
+
     const sortMap = { newest: { createdAt: -1 }, oldest: { createdAt: 1 }, alphabetical: { title: 1 }, updated: { updatedAt: -1 }, relevance: filter.$text ? { score: { $meta: 'textScore' }, updatedAt: -1 } : { updatedAt: -1 } };
     const [results, total] = await Promise.all([Project.find(filter, filter.$text ? { score: { $meta: 'textScore' } } : {}).populate('owner', 'firstName lastName fullName profileSlug avatar').sort(sortMap[sort] || sortMap.relevance).skip((pageNum - 1) * limitNum).limit(limitNum).lean(), Project.countDocuments(filter)]);
     return { results, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
@@ -40,6 +122,8 @@ class SearchService {
       publicationType,
       yearFrom,
       yearTo,
+      year,
+      minCitations,
       journal,
       conference,
       publisher,
@@ -76,11 +160,18 @@ class SearchService {
         if (publicationType && publicationType !== 'all') {
           filterArray.push(`publicationType = "${publicationType}"`);
         }
-        if (yearFrom) {
-          filterArray.push(`year >= ${yearFrom}`);
+        if (year) {
+          filterArray.push(`year = ${parseInt(year, 10)}`);
+        } else {
+          if (yearFrom) {
+            filterArray.push(`year >= ${parseInt(yearFrom, 10)}`);
+          }
+          if (yearTo) {
+            filterArray.push(`year <= ${parseInt(yearTo, 10)}`);
+          }
         }
-        if (yearTo) {
-          filterArray.push(`year <= ${yearTo}`);
+        if (minCitations) {
+          filterArray.push(`citations >= ${parseInt(minCitations, 10)}`);
         }
 
         const searchParams = {
@@ -157,10 +248,15 @@ class SearchService {
     if (publicationType && publicationType !== 'all') {
       baseFilter.publicationType = publicationType;
     }
-    if (yearFrom || yearTo) {
+    if (year) {
+      baseFilter.year = parseInt(year, 10);
+    } else if (yearFrom || yearTo) {
       baseFilter.year = {};
       if (yearFrom) baseFilter.year.$gte = parseInt(yearFrom, 10);
       if (yearTo) baseFilter.year.$lte = parseInt(yearTo, 10);
+    }
+    if (minCitations) {
+      baseFilter.citations = { $gte: parseInt(minCitations, 10) };
     }
     if (journal) baseFilter.$or = [{ journal: buildRegex(journal) }, { publication: buildRegex(journal) }];
     if (conference) baseFilter.conference = buildRegex(conference);
@@ -335,10 +431,145 @@ class SearchService {
 
   // ─── Researcher Search ────────────────────────────────────────────────────────
   async searchResearchers(params) {
-    const { q = '', page = 1, limit = 20, country, institution, researchArea, currentUserId } = params;
+    const { q = '', page = 1, limit = 20, country, institution, researchArea, currentUserId, minCitations } = params;
     const pageNum = Math.max(1, parseInt(page, 10));
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
     const skip = (pageNum - 1) * limitNum;
+
+    // ── Intelligent Profile Matching for Empty Queries ──
+    if (!q.trim() && !country && !institution && !researchArea && !minCitations && currentUserId) {
+      const currentUserProfile = await Profile.findOne({ userId: currentUserId }).lean();
+      
+      let userKeywords = [];
+      if (currentUserProfile) {
+        if (currentUserProfile.skills) {
+          userKeywords = userKeywords.concat(currentUserProfile.skills.map(s => s.name?.toLowerCase()));
+        }
+        if (currentUserProfile.researchAreas) {
+          userKeywords = userKeywords.concat(currentUserProfile.researchAreas.map(r => r?.toLowerCase()));
+        }
+      }
+      userKeywords = [...new Set(userKeywords.filter(Boolean))];
+
+      if (userKeywords.length > 0) {
+        const pipeline = [
+          { $match: { userId: { $ne: new mongoose.Types.ObjectId(currentUserId) }, isDeleted: { $ne: true } } },
+          {
+            $addFields: {
+              lowercaseSkills: {
+                $map: {
+                  input: { $ifNull: ["$skills", []] },
+                  as: "s",
+                  in: { $toLower: "$$s.name" }
+                }
+              },
+              lowercaseAreas: {
+                $map: {
+                  input: { $ifNull: ["$researchAreas", []] },
+                  as: "a",
+                  in: { $toLower: "$$a" }
+                }
+              }
+            }
+          },
+          {
+            $addFields: {
+              allKeywords: { $setUnion: ["$lowercaseSkills", "$lowercaseAreas"] }
+            }
+          },
+          {
+            $addFields: {
+              sharedKeywords: { $setIntersection: ["$allKeywords", userKeywords] }
+            }
+          },
+          {
+            $addFields: {
+              intersectSize: { $size: { $ifNull: ["$sharedKeywords", []] } }
+            }
+          },
+          {
+            $match: { intersectSize: { $gt: 0 } }
+          },
+          {
+            $addFields: {
+              matchPercentage: {
+                $round: [
+                  { $multiply: [ { $divide: ["$intersectSize", userKeywords.length] }, 100 ] },
+                  0
+                ]
+              }
+            }
+          },
+          { $sort: { matchPercentage: -1, intersectSize: -1 } },
+          {
+            $facet: {
+              metadata: [{ $count: "total" }],
+              data: [{ $skip: skip }, { $limit: limitNum }]
+            }
+          }
+        ];
+
+        const aggResult = await Profile.aggregate(pipeline);
+        const data = aggResult[0].data;
+        const total = aggResult[0].metadata[0]?.total || 0;
+
+        if (total > 0) {
+          const userIds = data.map(p => p.userId);
+          const users = await User.find({ _id: { $in: userIds }, isDeleted: { $ne: true }, isActive: true })
+            .select('firstName lastName fullName email profileImage profileSlug slug username researcherType institution')
+            .lean();
+
+          const results = data.map(prof => {
+            const user = users.find(u => u._id.toString() === prof.userId.toString());
+            if (!user) return null;
+            return {
+              ...user,
+              profile: prof,
+              institution: prof.institution || user.institution || '',
+              researchAreas: prof.researchAreas || [],
+              profileSlug: user.slug || user.profileSlug || user.username,
+              matchPercentage: prof.matchPercentage,
+              reasons: prof.intersectSize > 0 ? [`Matches ${prof.intersectSize} of your research interests/skills`] : []
+            };
+          }).filter(Boolean);
+
+          return { results, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
+        }
+      }
+    }
+
+    // ── Fallback for completely empty queries to avoid full DB scan ──
+    if (!q.trim() && !country && !institution && !researchArea && !minCitations) {
+      const finalUserFilter = { isDeleted: { $ne: true }, isActive: true };
+      if (currentUserId) finalUserFilter._id = { $ne: new mongoose.Types.ObjectId(currentUserId) };
+      
+      const [users, total] = await Promise.all([
+        User.find(finalUserFilter)
+          .skip(skip)
+          .limit(limitNum)
+          .select('firstName lastName fullName email profileImage profileSlug slug username researcherType institution')
+          .lean(),
+        User.countDocuments(finalUserFilter)
+      ]);
+
+      const userIds = users.map(u => u._id);
+      const profiles = await Profile.find({ userId: { $in: userIds }, isDeleted: { $ne: true } }).lean();
+
+      const results = users.map((user) => {
+        const prof = profiles.find(p => p.userId.toString() === user._id.toString());
+        return {
+          ...user,
+          profile: prof || null,
+          institution: prof?.institution || user.institution || '',
+          researchAreas: prof?.researchAreas || [],
+          profileSlug: user.slug || user.profileSlug || user.username,
+          matchPercentage: 0,
+          reasons: []
+        };
+      });
+
+      return { results, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
+    }
 
     // Search query on user's fullName / email or profile's bio / institution / researchAreas
     const userQuery = {};
@@ -347,6 +578,7 @@ class SearchService {
     if (country) profileQuery['institutionLocation.country'] = country;
     if (institution) profileQuery.institution = { $regex: institution, $options: 'i' };
     if (researchArea) profileQuery.researchAreas = { $in: [new RegExp(researchArea, 'i')] };
+    if (minCitations) profileQuery['metrics.totalCitations'] = { $gte: parseInt(minCitations, 10) };
 
     if (q.trim()) {
       const regex = buildRegex(q);
@@ -380,7 +612,7 @@ class SearchService {
       ];
     } else if (matchedUserIdsFromProfiles.length > 0) {
       finalUserFilter._id = { $in: matchedUserIdsFromProfiles };
-    } else if (country || institution || researchArea) {
+    } else if (country || institution || researchArea || minCitations) {
       // If filters applied but no profiles matched, we should return empty
       return { results: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 };
     }
