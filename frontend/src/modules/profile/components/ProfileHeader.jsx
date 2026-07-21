@@ -161,7 +161,7 @@ const ProfileHeader = ({
               <span className="text-[#0F172A] font-black">{profile?.followingCount || 0}</span> Following
             </Link>
             <span className="w-1 h-1 rounded-full bg-slate-300" />
-            <Link to="/network/connections" className="hover:text-[#2563EB] transition-colors">
+            <Link to={`/profile/${profile?.profileSlug || profile?.username || 'me'}/connections`} className="hover:text-[#2563EB] transition-colors">
               <span className="text-[#0F172A] font-black">{profile?.connectionsCount || 0}</span> Connections
             </Link>
           </div>

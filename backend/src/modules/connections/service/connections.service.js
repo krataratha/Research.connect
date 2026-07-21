@@ -367,7 +367,54 @@ class ConnectionsService {
    * Get connections list
    */
   async getConnections(userId, queryOptions) {
-    return await connectionsRepository.findConnections(userId, queryOptions);
+    return await this._getConnectionsWithAccurateCount(userId, queryOptions);
+  }
+
+  /**
+   * Resolve a user by username OR profileSlug (handles both profile URL types)
+   */
+  async _resolveUser(usernameOrSlug) {
+    const user = await User.findOne({
+      $or: [
+        { username: usernameOrSlug },
+        { profileSlug: usernameOrSlug }
+      ],
+      isDeleted: { $ne: true }
+    }).lean();
+    if (!user) throw new NotFoundError('Researcher not found.');
+    return user;
+  }
+
+  /**
+   * Get connections list of a specific researcher by username or profileSlug
+   */
+  async getConnectionsByUsername(usernameOrSlug, queryOptions) {
+    const user = await this._resolveUser(usernameOrSlug);
+    return await this._getConnectionsWithAccurateCount(user._id, queryOptions);
+  }
+
+  /**
+   * Fetches the paginated connections list alongside the TRUE total count
+   * (i.e. excluding orphaned connections whose other-side user no longer
+   * exists). If the stored Profile.connectionsCount counter has drifted
+   * from this true count (e.g. because an account was deleted without
+   * decrementing it), it is silently corrected in the background so the
+   * profile header stays accurate on future loads too.
+   */
+  async _getConnectionsWithAccurateCount(userId, queryOptions) {
+    const [result, totalCount] = await Promise.all([
+      connectionsRepository.findConnections(userId, queryOptions),
+      connectionsRepository.countConnections(userId)
+    ]);
+
+    // Self-heal a stale counter without blocking the response
+    Profile.findOneAndUpdate({ userId, connectionsCount: { $ne: totalCount } }, { connectionsCount: totalCount })
+      .then((updated) => {
+        if (updated) ProfileCache.del(userId.toString());
+      })
+      .catch((err) => console.error('Failed to reconcile connectionsCount:', err));
+
+    return { ...result, totalCount };
   }
 
   /**
