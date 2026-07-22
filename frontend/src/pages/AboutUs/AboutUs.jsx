@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './AboutUs.css';
 
 /* ----------------------------------------------------------------------
@@ -74,6 +74,48 @@ const Icon = {
     </svg>
   ),
 };
+
+/* Back button — fixed to the top-left of the viewport */
+function BackButton() {
+  const navigate = useNavigate();
+
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(-1)}
+      aria-label="Go back"
+      style={{
+        position: 'fixed',
+        top: '20px',
+        left: '20px',
+        zIndex: 1000,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        border: '1px solid rgba(0,0,0,0.08)',
+        background: '#fff',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+        cursor: 'pointer',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.16)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
+      }}
+    >
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#1e293b" strokeWidth="2">
+        <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
 
 /* Reveal-on-scroll wrapper */
 function Reveal({ children, className = '', as: Tag = 'div', ...rest }) {
@@ -153,6 +195,7 @@ function NetworkGraphic() {
 export default function AboutUs() {
   return (
     <div className="rc-about">
+      <BackButton />
 
       {/* ---------------- HERO ---------------- */}
       <section className="rc-hero">
